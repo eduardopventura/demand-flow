@@ -42,6 +42,77 @@ export const NovaDemandaModal = ({ open, onOpenChange }: NovaDemandaModalProps) 
     }
   }, [templateSelecionado]);
 
+  const renderCampoInput = (campo: any) => {
+    const value = camposValores[campo.id_campo] || "";
+
+    switch (campo.tipo_campo) {
+      case "numero":
+        return (
+          <Input
+            type="number"
+            value={value}
+            onChange={(e) =>
+              setCamposValores({ ...camposValores, [campo.id_campo]: e.target.value })
+            }
+            placeholder={campo.obrigatorio_criacao ? "Obrigatório" : "Opcional"}
+          />
+        );
+      case "data":
+        return (
+          <Input
+            type="date"
+            value={value}
+            onChange={(e) =>
+              setCamposValores({ ...camposValores, [campo.id_campo]: e.target.value })
+            }
+          />
+        );
+      case "arquivo":
+        return (
+          <Input
+            type="file"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                setCamposValores({ ...camposValores, [campo.id_campo]: file.name });
+              }
+            }}
+          />
+        );
+      case "dropdown":
+        return (
+          <Select
+            value={value}
+            onValueChange={(v) =>
+              setCamposValores({ ...camposValores, [campo.id_campo]: v })
+            }
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione uma opção" />
+            </SelectTrigger>
+            <SelectContent>
+              {campo.opcoes_dropdown?.map((opcao: string) => (
+                <SelectItem key={opcao} value={opcao}>
+                  {opcao}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        );
+      default:
+        return (
+          <Input
+            type="text"
+            value={value}
+            onChange={(e) =>
+              setCamposValores({ ...camposValores, [campo.id_campo]: e.target.value })
+            }
+            placeholder={campo.obrigatorio_criacao ? "Obrigatório" : "Opcional"}
+          />
+        );
+    }
+  };
+
   const handleSubmit = () => {
     if (!templateId || !responsavelId) {
       toast.error("Selecione um template e um responsável");
@@ -61,10 +132,27 @@ export const NovaDemandaModal = ({ open, onOpenChange }: NovaDemandaModalProps) 
       return;
     }
 
+    // Verificar se campo "complementa_nome" está preenchido
+    const campoComplementaNome = templateSelecionado.campos_preenchimento.find(
+      (c) => c.complementa_nome
+    );
+    
+    if (campoComplementaNome && !camposValores[campoComplementaNome.id_campo]?.trim()) {
+      toast.error(`O campo "${campoComplementaNome.nome_campo}" é obrigatório`);
+      return;
+    }
+
+    // Gerar nome da demanda
+    let nomeDemanda = templateSelecionado.nome;
+    if (campoComplementaNome) {
+      const valorComplemento = camposValores[campoComplementaNome.id_campo];
+      nomeDemanda = `${templateSelecionado.nome} - ${valorComplemento}`;
+    }
+
     // Criar demanda
     const novaDemanda = {
       template_id: templateId,
-      nome_demanda: templateSelecionado.nome,
+      nome_demanda: nomeDemanda,
       status: "Criada" as const,
       prioridade: templateSelecionado.prioridade,
       responsavel_id: responsavelId,
@@ -128,22 +216,23 @@ export const NovaDemandaModal = ({ open, onOpenChange }: NovaDemandaModalProps) 
             </Select>
           </div>
 
-          {templateSelecionado && (
-            <div className="space-y-4 pt-4 border-t">
-              <h4 className="font-semibold">Campos de Preenchimento</h4>
+          {templateSelecionado && templateSelecionado.campos_preenchimento.length > 0 && (
+            <div className="space-y-3 pt-4 border-t">
+              <Label className="text-base">Campos de Preenchimento</Label>
               {templateSelecionado.campos_preenchimento.map((campo) => (
                 <div key={campo.id_campo} className="space-y-2">
-                  <Label>
+                  <Label className="flex items-center gap-1">
                     {campo.nome_campo}
-                    {campo.obrigatorio_criacao && " *"}
+                    {(campo.obrigatorio_criacao || campo.complementa_nome) && (
+                      <span className="text-destructive">*</span>
+                    )}
+                    {campo.complementa_nome && (
+                      <span className="text-xs text-muted-foreground ml-1">
+                        (complementa nome)
+                      </span>
+                    )}
                   </Label>
-                  <Input
-                    value={camposValores[campo.id_campo] || ""}
-                    onChange={(e) =>
-                      setCamposValores({ ...camposValores, [campo.id_campo]: e.target.value })
-                    }
-                    placeholder={`Digite ${campo.nome_campo.toLowerCase()}`}
-                  />
+                  {renderCampoInput(campo)}
                 </div>
               ))}
             </div>

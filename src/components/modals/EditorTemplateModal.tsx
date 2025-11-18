@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -18,10 +19,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card } from "@/components/ui/card";
-import { Plus, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { Plus, Trash2, GripVertical } from "lucide-react";
 import type { Template, CampoPreenchimento, Tarefa } from "@/contexts/DataContext";
+import { toast } from "sonner";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface EditorTemplateModalProps {
   template: Template | null;
@@ -29,19 +46,58 @@ interface EditorTemplateModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export const EditorTemplateModal = ({ template, open, onOpenChange }: EditorTemplateModalProps) => {
+const SortableItem = ({ id, children }: { id: string; children: React.ReactNode }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-start gap-2">
+      <button
+        className="mt-2 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="w-4 h-4" />
+      </button>
+      {children}
+    </div>
+  );
+};
+
+export const EditorTemplateModal = ({
+  template,
+  open,
+  onOpenChange,
+}: EditorTemplateModalProps) => {
   const { addTemplate, updateTemplate } = useData();
   const [nome, setNome] = useState("");
   const [prioridade, setPrioridade] = useState<"Baixa" | "Média" | "Alta">("Média");
   const [campos, setCampos] = useState<CampoPreenchimento[]>([]);
   const [tarefas, setTarefas] = useState<Tarefa[]>([]);
 
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
   useEffect(() => {
     if (template) {
       setNome(template.nome);
       setPrioridade(template.prioridade);
-      setCampos([...template.campos_preenchimento]);
-      setTarefas([...template.tarefas]);
+      setCampos(template.campos_preenchimento);
+      setTarefas(template.tarefas);
     } else {
       setNome("");
       setPrioridade("Média");
@@ -51,58 +107,108 @@ export const EditorTemplateModal = ({ template, open, onOpenChange }: EditorTemp
   }, [template, open]);
 
   const handleAddCampo = () => {
-    setCampos([
-      ...campos,
-      {
-        id_campo: `c${Date.now()}`,
-        nome_campo: "",
-        obrigatorio_criacao: false,
-      },
-    ]);
+    const novoCampo: CampoPreenchimento = {
+      id_campo: `c${Date.now()}`,
+      nome_campo: "",
+      tipo_campo: "texto",
+      obrigatorio_criacao: false,
+      complementa_nome: false,
+    };
+    setCampos([...campos, novoCampo]);
   };
 
-  const handleRemoveCampo = (id: string) => {
-    setCampos(campos.filter((c) => c.id_campo !== id));
+  const handleRemoveCampo = (idCampo: string) => {
+    setCampos(campos.filter((c) => c.id_campo !== idCampo));
   };
 
-  const handleUpdateCampo = (id: string, updates: Partial<CampoPreenchimento>) => {
-    setCampos(campos.map((c) => (c.id_campo === id ? { ...c, ...updates } : c)));
+  const handleUpdateCampo = (
+    idCampo: string,
+    updates: Partial<CampoPreenchimento>
+  ) => {
+    setCampos(
+      campos.map((c) => {
+        if (c.id_campo === idCampo) {
+          // Se marcando complementa_nome, desmarcar outros
+          if (updates.complementa_nome === true) {
+            setCampos((prev) =>
+              prev.map((campo) =>
+                campo.id_campo === idCampo
+                  ? { ...campo, ...updates }
+                  : { ...campo, complementa_nome: false }
+              )
+            );
+            return { ...c, ...updates };
+          }
+          return { ...c, ...updates };
+        }
+        return c;
+      })
+    );
   };
 
   const handleAddTarefa = () => {
-    setTarefas([
-      ...tarefas,
-      {
-        id_tarefa: `ta${Date.now()}`,
-        nome_tarefa: "",
-        link_pai: null,
-      },
-    ]);
+    const novaTarefa: Tarefa = {
+      id_tarefa: `ta${Date.now()}`,
+      nome_tarefa: "",
+      link_pai: null,
+    };
+    setTarefas([...tarefas, novaTarefa]);
   };
 
-  const handleRemoveTarefa = (id: string) => {
-    setTarefas(tarefas.filter((t) => t.id_tarefa !== id));
+  const handleRemoveTarefa = (idTarefa: string) => {
+    setTarefas(tarefas.filter((t) => t.id_tarefa !== idTarefa));
   };
 
-  const handleUpdateTarefa = (id: string, updates: Partial<Tarefa>) => {
-    setTarefas(tarefas.map((t) => (t.id_tarefa === id ? { ...t, ...updates } : t)));
+  const handleUpdateTarefa = (idTarefa: string, updates: Partial<Tarefa>) => {
+    setTarefas(tarefas.map((t) => (t.id_tarefa === idTarefa ? { ...t, ...updates } : t)));
+  };
+
+  const handleDragEndCampos = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setCampos((items) => {
+        const oldIndex = items.findIndex((item) => item.id_campo === active.id);
+        const newIndex = items.findIndex((item) => item.id_campo === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
+
+  const handleDragEndTarefas = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setTarefas((items) => {
+        const oldIndex = items.findIndex((item) => item.id_tarefa === active.id);
+        const newIndex = items.findIndex((item) => item.id_tarefa === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
   };
 
   const handleSubmit = () => {
     if (!nome.trim()) {
-      toast.error("Digite um nome para o template");
+      toast.error("O nome do template é obrigatório");
       return;
     }
 
     const camposInvalidos = campos.filter((c) => !c.nome_campo.trim());
     if (camposInvalidos.length > 0) {
-      toast.error("Preencha o nome de todos os campos");
+      toast.error("Todos os campos devem ter um nome");
       return;
     }
 
     const tarefasInvalidas = tarefas.filter((t) => !t.nome_tarefa.trim());
     if (tarefasInvalidas.length > 0) {
-      toast.error("Preencha o nome de todas as tarefas");
+      toast.error("Todas as tarefas devem ter um nome");
+      return;
+    }
+
+    // Verificar se campos dropdown têm opções
+    const dropdownsSemOpcoes = campos.filter(
+      (c) => c.tipo_campo === "dropdown" && (!c.opcoes_dropdown || c.opcoes_dropdown.length === 0)
+    );
+    if (dropdownsSemOpcoes.length > 0) {
+      toast.error("Campos dropdown devem ter pelo menos uma opção");
       return;
     }
 
@@ -132,136 +238,249 @@ export const EditorTemplateModal = ({ template, open, onOpenChange }: EditorTemp
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Nome do Template *</Label>
-              <Input
-                value={nome}
-                onChange={(e) => setNome(e.target.value)}
-                placeholder="Ex: Cadastro de Novo Aluno"
-              />
-            </div>
+          <div className="space-y-2">
+            <Label>Nome do Template *</Label>
+            <Input
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              placeholder="Ex: Cadastro de Novo Aluno"
+            />
+          </div>
 
-            <div className="space-y-2">
-              <Label>Prioridade</Label>
-              <Select value={prioridade} onValueChange={(v: any) => setPrioridade(v)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Baixa">Baixa</SelectItem>
-                  <SelectItem value="Média">Média</SelectItem>
-                  <SelectItem value="Alta">Alta</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label>Prioridade *</Label>
+            <Select value={prioridade} onValueChange={(v: any) => setPrioridade(v)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Baixa">Baixa</SelectItem>
+                <SelectItem value="Média">Média</SelectItem>
+                <SelectItem value="Alta">Alta</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-3">
-            <div className="flex justify-between items-center">
+            <div className="flex items-center justify-between">
               <Label className="text-base">Campos de Preenchimento</Label>
-              <Button type="button" variant="outline" size="sm" onClick={handleAddCampo}>
+              <Button onClick={handleAddCampo} size="sm" variant="outline">
                 <Plus className="w-4 h-4 mr-1" />
                 Adicionar Campo
               </Button>
             </div>
 
-            {campos.map((campo) => (
-              <Card key={campo.id_campo} className="p-4">
-                <div className="flex gap-3 items-start">
-                  <div className="flex-1 space-y-3">
-                    <Input
-                      placeholder="Nome do campo"
-                      value={campo.nome_campo}
-                      onChange={(e) =>
-                        handleUpdateCampo(campo.id_campo, { nome_campo: e.target.value })
-                      }
-                    />
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`obrig-${campo.id_campo}`}
-                        checked={campo.obrigatorio_criacao}
-                        onCheckedChange={(checked) =>
-                          handleUpdateCampo(campo.id_campo, {
-                            obrigatorio_criacao: checked as boolean,
-                          })
-                        }
-                      />
-                      <label
-                        htmlFor={`obrig-${campo.id_campo}`}
-                        className="text-sm cursor-pointer"
-                      >
-                        Obrigatório na criação
-                      </label>
-                    </div>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleRemoveCampo(campo.id_campo)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEndCampos}
+            >
+              <SortableContext
+                items={campos.map((c) => c.id_campo)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-3">
+                  {campos.map((campo) => (
+                    <SortableItem key={campo.id_campo} id={campo.id_campo}>
+                      <div className="flex-1 p-4 border rounded-lg space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Nome do Campo</Label>
+                            <Input
+                              value={campo.nome_campo}
+                              onChange={(e) =>
+                                handleUpdateCampo(campo.id_campo, {
+                                  nome_campo: e.target.value,
+                                })
+                              }
+                              placeholder="Ex: Nome do Aluno"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Tipo</Label>
+                            <Select
+                              value={campo.tipo_campo}
+                              onValueChange={(v: any) =>
+                                handleUpdateCampo(campo.id_campo, { tipo_campo: v })
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="texto">Texto</SelectItem>
+                                <SelectItem value="numero">Número</SelectItem>
+                                <SelectItem value="data">Data</SelectItem>
+                                <SelectItem value="arquivo">Arquivo</SelectItem>
+                                <SelectItem value="dropdown">Lista Dropdown</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+
+                        {campo.tipo_campo === "dropdown" && (
+                          <div className="space-y-1">
+                            <Label className="text-xs">
+                              Opções (uma por linha)
+                            </Label>
+                            <Textarea
+                              value={campo.opcoes_dropdown?.join("\n") || ""}
+                              onChange={(e) =>
+                                handleUpdateCampo(campo.id_campo, {
+                                  opcoes_dropdown: e.target.value
+                                    .split("\n")
+                                    .filter((o) => o.trim()),
+                                })
+                              }
+                              placeholder="Opção 1&#10;Opção 2&#10;Opção 3"
+                              rows={3}
+                            />
+                          </div>
+                        )}
+
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              id={`obr-${campo.id_campo}`}
+                              checked={campo.obrigatorio_criacao}
+                              onCheckedChange={(checked) =>
+                                handleUpdateCampo(campo.id_campo, {
+                                  obrigatorio_criacao: !!checked,
+                                })
+                              }
+                            />
+                            <Label
+                              htmlFor={`obr-${campo.id_campo}`}
+                              className="text-xs font-normal cursor-pointer"
+                            >
+                              Obrigatório
+                            </Label>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              id={`comp-${campo.id_campo}`}
+                              checked={campo.complementa_nome}
+                              onCheckedChange={(checked) =>
+                                handleUpdateCampo(campo.id_campo, {
+                                  complementa_nome: !!checked,
+                                })
+                              }
+                            />
+                            <Label
+                              htmlFor={`comp-${campo.id_campo}`}
+                              className="text-xs font-normal cursor-pointer"
+                            >
+                              Complementa nome
+                            </Label>
+                          </div>
+
+                          <Button
+                            onClick={() => handleRemoveCampo(campo.id_campo)}
+                            size="sm"
+                            variant="ghost"
+                            className="ml-auto"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </SortableItem>
+                  ))}
                 </div>
-              </Card>
-            ))}
+              </SortableContext>
+            </DndContext>
+
+            {campos.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Nenhum campo adicionado
+              </p>
+            )}
           </div>
 
           <div className="space-y-3">
-            <div className="flex justify-between items-center">
+            <div className="flex items-center justify-between">
               <Label className="text-base">Tarefas</Label>
-              <Button type="button" variant="outline" size="sm" onClick={handleAddTarefa}>
+              <Button onClick={handleAddTarefa} size="sm" variant="outline">
                 <Plus className="w-4 h-4 mr-1" />
                 Adicionar Tarefa
               </Button>
             </div>
 
-            {tarefas.map((tarefa) => (
-              <Card key={tarefa.id_tarefa} className="p-4">
-                <div className="flex gap-3 items-start">
-                  <div className="flex-1 space-y-3">
-                    <Input
-                      placeholder="Nome da tarefa"
-                      value={tarefa.nome_tarefa}
-                      onChange={(e) =>
-                        handleUpdateTarefa(tarefa.id_tarefa, { nome_tarefa: e.target.value })
-                      }
-                    />
-                    <Select
-                      value={tarefa.link_pai || "none"}
-                      onValueChange={(v) =>
-                        handleUpdateTarefa(tarefa.id_tarefa, {
-                          link_pai: v === "none" ? null : v,
-                        })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Depende de (opcional)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Nenhuma</SelectItem>
-                        {tarefas
-                          .filter((t) => t.id_tarefa !== tarefa.id_tarefa)
-                          .map((t) => (
-                            <SelectItem key={t.id_tarefa} value={t.id_tarefa}>
-                              {t.nome_tarefa || "Tarefa sem nome"}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleRemoveTarefa(tarefa.id_tarefa)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEndTarefas}
+            >
+              <SortableContext
+                items={tarefas.map((t) => t.id_tarefa)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-3">
+                  {tarefas.map((tarefa) => (
+                    <SortableItem key={tarefa.id_tarefa} id={tarefa.id_tarefa}>
+                      <div className="flex-1 p-4 border rounded-lg space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Nome da Tarefa</Label>
+                            <Input
+                              value={tarefa.nome_tarefa}
+                              onChange={(e) =>
+                                handleUpdateTarefa(tarefa.id_tarefa, {
+                                  nome_tarefa: e.target.value,
+                                })
+                              }
+                              placeholder="Ex: Gerar Contrato"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Depende de (Linkar)</Label>
+                            <Select
+                              value={tarefa.link_pai || "nenhuma"}
+                              onValueChange={(v) =>
+                                handleUpdateTarefa(tarefa.id_tarefa, {
+                                  link_pai: v === "nenhuma" ? null : v,
+                                })
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="nenhuma">Nenhuma</SelectItem>
+                                {tarefas
+                                  .filter((t) => t.id_tarefa !== tarefa.id_tarefa)
+                                  .map((t) => (
+                                    <SelectItem key={t.id_tarefa} value={t.id_tarefa}>
+                                      {t.nome_tarefa || "Sem nome"}
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+
+                        <Button
+                          onClick={() => handleRemoveTarefa(tarefa.id_tarefa)}
+                          size="sm"
+                          variant="ghost"
+                          className="w-full"
+                        >
+                          <Trash2 className="w-4 h-4 mr-1" />
+                          Remover Tarefa
+                        </Button>
+                      </div>
+                    </SortableItem>
+                  ))}
                 </div>
-              </Card>
-            ))}
+              </SortableContext>
+            </DndContext>
+
+            {tarefas.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Nenhuma tarefa adicionada
+              </p>
+            )}
           </div>
         </div>
 

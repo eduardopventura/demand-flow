@@ -133,23 +133,82 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
             </Select>
           </div>
 
-          <div className="space-y-4">
-            <h4 className="font-semibold">Campos de Preenchimento</h4>
-            {template.campos_preenchimento.map((campo) => (
-              <div key={campo.id_campo} className="space-y-2">
-                <Label>{campo.nome_campo}</Label>
-                <Input
-                  value={camposValores[campo.id_campo] || ""}
-                  onChange={(e) =>
-                    setCamposValores({ ...camposValores, [campo.id_campo]: e.target.value })
-                  }
-                />
-              </div>
-            ))}
+          <div className="space-y-3 border-t pt-4">
+            <Label className="text-base">Campos de Preenchimento</Label>
+            {template.campos_preenchimento.map((campo) => {
+              const value = camposValores[campo.id_campo] || "";
+              
+              return (
+                <div key={campo.id_campo} className="space-y-2">
+                  <Label>{campo.nome_campo}</Label>
+                  {campo.tipo_campo === "numero" ? (
+                    <Input
+                      type="number"
+                      value={value}
+                      onChange={(e) =>
+                        setCamposValores({ ...camposValores, [campo.id_campo]: e.target.value })
+                      }
+                    />
+                  ) : campo.tipo_campo === "data" ? (
+                    <Input
+                      type="date"
+                      value={value}
+                      onChange={(e) =>
+                        setCamposValores({ ...camposValores, [campo.id_campo]: e.target.value })
+                      }
+                    />
+                  ) : campo.tipo_campo === "arquivo" ? (
+                    <div className="space-y-2">
+                      <Input type="text" value={value} disabled />
+                      <Input
+                        type="file"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setCamposValores({ ...camposValores, [campo.id_campo]: file.name });
+                          }
+                        }}
+                      />
+                    </div>
+                  ) : campo.tipo_campo === "dropdown" ? (
+                    <Select
+                      value={value}
+                      onValueChange={(v) =>
+                        setCamposValores({ ...camposValores, [campo.id_campo]: v })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione uma opção" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {campo.opcoes_dropdown?.map((opcao: string) => (
+                          <SelectItem key={opcao} value={opcao}>
+                            {opcao}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input
+                      type="text"
+                      value={value}
+                      onChange={(e) =>
+                        setCamposValores({ ...camposValores, [campo.id_campo]: e.target.value })
+                      }
+                    />
+                  )}
+                </div>
+              );
+            })}
           </div>
 
-          <div className="space-y-4">
-            <h4 className="font-semibold">Tarefas</h4>
+          <div className="space-y-3 border-t pt-4">
+            <div className="flex items-center justify-between">
+              <Label className="text-base">Tarefas</Label>
+              <span className="text-sm text-muted-foreground">
+                {tarefasStatus.filter((t) => t.concluida).length}/{tarefasStatus.length}
+              </span>
+            </div>
             <div className="space-y-3">
               {getTarefasVisiveis().map((tarefa) => {
                 const status = tarefasStatus.find((t) => t.id_tarefa === tarefa.id_tarefa);

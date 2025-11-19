@@ -4,7 +4,15 @@ import { cn } from "@/lib/utils";
 
 export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {}
 
-const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({ className, ...props }, ref) => {
+const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({ className, onKeyDown, ...props }, ref) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Permitir quebra de linha com Enter
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.stopPropagation();
+    }
+    onKeyDown?.(e);
+  };
+
   return (
     <textarea
       className={cn(
@@ -12,6 +20,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({ classNa
         className,
       )}
       ref={ref}
+      onKeyDown={handleKeyDown}
       {...props}
     />
   );

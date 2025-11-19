@@ -313,24 +313,64 @@ export const EditorTemplateModal = ({
                         </div>
 
                         {campo.tipo_campo === "dropdown" && (
-                          <div className="space-y-1">
-                            <Label className="text-xs">
-                              Opções (pressione Enter para adicionar)
-                            </Label>
-                            <Textarea
-                              value={campo.opcoes_dropdown?.join("\n") || ""}
-                              onChange={(e) =>
-                                handleUpdateCampo(campo.id_campo, {
-                                  opcoes_dropdown: e.target.value
-                                    .split("\n")
-                                    .filter((o) => o.trim()),
-                                })
-                              }
-                              placeholder="Opção 1&#10;Opção 2&#10;Opção 3"
-                              rows={3}
-                            />
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <Label className="text-xs">Opções da lista</Label>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  const atuais = campo.opcoes_dropdown || [];
+                                  handleUpdateCampo(campo.id_campo, {
+                                    opcoes_dropdown: [...atuais, ""],
+                                  });
+                                }}
+                              >
+                                <Plus className="w-3 h-3 mr-1" />
+                                Adicionar opção
+                              </Button>
+                            </div>
+
+                            {(campo.opcoes_dropdown && campo.opcoes_dropdown.length > 0 ? campo.opcoes_dropdown : [""]).map(
+                              (opcao, index) => (
+                                <div key={index} className="flex items-center gap-2">
+                                  <Input
+                                    className="flex-1"
+                                    placeholder={`Opção ${index + 1}`}
+                                    value={opcao}
+                                    onChange={(e) => {
+                                      const novas = [...(campo.opcoes_dropdown || [])];
+                                      novas[index] = e.target.value;
+                                      // Remove vazias no final
+                                      const filtradas = novas.filter((o, i) => o.trim() !== "" || i < novas.length - 1);
+                                      handleUpdateCampo(campo.id_campo, {
+                                        opcoes_dropdown: filtradas,
+                                      });
+                                    }}
+                                  />
+                                  {((campo.opcoes_dropdown && campo.opcoes_dropdown.length > 1) || index > 0) && (
+                                    <Button
+                                      type="button"
+                                      size="icon"
+                                      variant="ghost"
+                                      onClick={() => {
+                                        const atuais = campo.opcoes_dropdown || [];
+                                        const novas = atuais.filter((_, i) => i !== index);
+                                        handleUpdateCampo(campo.id_campo, {
+                                          opcoes_dropdown: novas,
+                                        });
+                                      }}
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  )}
+                                </div>
+                              )
+                            )}
                           </div>
                         )}
+
 
                         <div className="flex items-center gap-4">
                           <div className="flex items-center gap-2">

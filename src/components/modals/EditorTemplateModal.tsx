@@ -262,13 +262,7 @@ export const EditorTemplateModal = ({
           </div>
 
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-base">Campos de Preenchimento</Label>
-              <Button onClick={handleAddCampo} size="sm" variant="outline">
-                <Plus className="w-4 h-4 mr-1" />
-                Adicionar Campo
-              </Button>
-            </div>
+            <Label className="text-base">Campos de Preenchimento</Label>
 
             <DndContext
               sensors={sensors}
@@ -321,7 +315,7 @@ export const EditorTemplateModal = ({
                         {campo.tipo_campo === "dropdown" && (
                           <div className="space-y-1">
                             <Label className="text-xs">
-                              Opções (uma por linha)
+                              Opções (pressione Enter para adicionar)
                             </Label>
                             <Textarea
                               value={campo.opcoes_dropdown?.join("\n") || ""}
@@ -396,16 +390,15 @@ export const EditorTemplateModal = ({
                 Nenhum campo adicionado
               </p>
             )}
+
+            <Button onClick={handleAddCampo} size="sm" variant="outline" className="w-full">
+              <Plus className="w-4 h-4 mr-1" />
+              Adicionar Campo
+            </Button>
           </div>
 
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-base">Tarefas</Label>
-              <Button onClick={handleAddTarefa} size="sm" variant="outline">
-                <Plus className="w-4 h-4 mr-1" />
-                Adicionar Tarefa
-              </Button>
-            </div>
+            <Label className="text-base">Tarefas</Label>
 
             <DndContext
               sensors={sensors}
@@ -430,29 +423,29 @@ export const EditorTemplateModal = ({
                                   nome_tarefa: e.target.value,
                                 })
                               }
-                              placeholder="Ex: Gerar Contrato"
+                              placeholder="Ex: Criar documento"
                             />
                           </div>
                           <div className="space-y-1">
-                            <Label className="text-xs">Depende de (Linkar)</Label>
+                            <Label className="text-xs">Tarefa Pai (Dependência)</Label>
                             <Select
-                              value={tarefa.link_pai || "nenhuma"}
+                              value={tarefa.link_pai || "none"}
                               onValueChange={(v) =>
                                 handleUpdateTarefa(tarefa.id_tarefa, {
-                                  link_pai: v === "nenhuma" ? null : v,
+                                  link_pai: v === "none" ? null : v,
                                 })
                               }
                             >
                               <SelectTrigger>
-                                <SelectValue />
+                                <SelectValue placeholder="Nenhuma" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="nenhuma">Nenhuma</SelectItem>
+                                <SelectItem value="none">Nenhuma</SelectItem>
                                 {tarefas
                                   .filter((t) => t.id_tarefa !== tarefa.id_tarefa)
                                   .map((t) => (
                                     <SelectItem key={t.id_tarefa} value={t.id_tarefa}>
-                                      {t.nome_tarefa || "Sem nome"}
+                                      {t.nome_tarefa || "Tarefa sem nome"}
                                     </SelectItem>
                                   ))}
                               </SelectContent>
@@ -460,15 +453,15 @@ export const EditorTemplateModal = ({
                           </div>
                         </div>
 
-                        <Button
-                          onClick={() => handleRemoveTarefa(tarefa.id_tarefa)}
-                          size="sm"
-                          variant="ghost"
-                          className="w-full"
-                        >
-                          <Trash2 className="w-4 h-4 mr-1" />
-                          Remover Tarefa
-                        </Button>
+                        <div className="flex justify-end">
+                          <Button
+                            onClick={() => handleRemoveTarefa(tarefa.id_tarefa)}
+                            size="sm"
+                            variant="ghost"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
                     </SortableItem>
                   ))}
@@ -481,6 +474,11 @@ export const EditorTemplateModal = ({
                 Nenhuma tarefa adicionada
               </p>
             )}
+
+            <Button onClick={handleAddTarefa} size="sm" variant="outline" className="w-full">
+              <Plus className="w-4 h-4 mr-1" />
+              Adicionar Tarefa
+            </Button>
           </div>
         </div>
 

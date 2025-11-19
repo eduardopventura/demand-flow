@@ -45,7 +45,7 @@ export const KanbanColumn = ({ status, demandas, onCardClick }: KanbanColumnProp
           </span>
         </div>
       </div>
-      <div className="flex-1 p-4 space-y-3 overflow-auto bg-background/50">
+      <div className="flex-1 p-4 space-y-3 overflow-y-auto max-h-[calc(100vh-300px)] bg-background/50">
         {demandas.map((demanda) => (
           <DemandaCard
             key={demanda.id}

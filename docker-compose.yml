@@ -1,0 +1,60 @@
+# Docker Compose - Demand Flow MVP
+# JSON-Server backend with React frontend
+# Ready for future PostgreSQL upgrade
+
+version: '3.8'
+
+services:
+  # Backend API - JSON-Server (MVP)
+  # TODO: Replace with PostgreSQL + Express when scaling
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: demand-flow-backend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      # Persist database file
+      - ./backend/db.json:/app/db.json
+      # Hot reload in development (uncomment for dev)
+      # - ./backend/server.js:/app/server.js
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    networks:
+      - demand-flow-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend - React + Vite
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # No VITE_API_URL needed - auto-detected via window.location.hostname
+    container_name: demand-flow-frontend
+    restart: unless-stopped
+    ports:
+      - "3060:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - demand-flow-network
+
+networks:
+  demand-flow-network:
+    driver: bridge
+    name: demand-flow-network
+
+# Volumes for data persistence
+volumes:
+  backend-data:
+    driver: local
+

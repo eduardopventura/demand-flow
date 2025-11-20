@@ -1,32 +1,19 @@
 import { useDroppable } from "@dnd-kit/core";
 import { DemandaCard } from "./DemandaCard";
-import type { Demanda } from "@/contexts/DataContext";
+import type { Demanda } from "@/types";
+import { StatusDemanda, STATUS_CONFIG } from "@/constants";
 import { cn } from "@/lib/utils";
+import { memo } from "react";
 
 interface KanbanColumnProps {
-  status: "Criada" | "Em Andamento" | "Finalizada";
+  status: StatusDemanda;
   demandas: Demanda[];
   onCardClick: (demanda: Demanda) => void;
 }
 
-const statusConfig = {
-  Criada: {
-    bg: "bg-kanban-created",
-    border: "border-primary/20",
-  },
-  "Em Andamento": {
-    bg: "bg-kanban-progress",
-    border: "border-warning/20",
-  },
-  Finalizada: {
-    bg: "bg-kanban-finished",
-    border: "border-success/20",
-  },
-};
-
-export const KanbanColumn = ({ status, demandas, onCardClick }: KanbanColumnProps) => {
+const KanbanColumnComponent = ({ status, demandas, onCardClick }: KanbanColumnProps) => {
   const { setNodeRef, isOver } = useDroppable({ id: status });
-  const config = statusConfig[status];
+  const config = STATUS_CONFIG[status];
 
   return (
     <div
@@ -62,3 +49,12 @@ export const KanbanColumn = ({ status, demandas, onCardClick }: KanbanColumnProp
     </div>
   );
 };
+
+// Memoize component to prevent unnecessary re-renders
+export const KanbanColumn = memo(KanbanColumnComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.status === nextProps.status &&
+    prevProps.demandas.length === nextProps.demandas.length &&
+    prevProps.demandas.every((d, i) => d.id === nextProps.demandas[i]?.id)
+  );
+});

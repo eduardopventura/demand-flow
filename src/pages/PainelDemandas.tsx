@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useData } from "@/contexts/DataContext";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -7,7 +7,8 @@ import { KanbanColumn } from "@/components/kanban/KanbanColumn";
 import { DemandaCard } from "@/components/kanban/DemandaCard";
 import { NovaDemandaModal } from "@/components/modals/NovaDemandaModal";
 import { DetalhesDemandaModal } from "@/components/modals/DetalhesDemandaModal";
-import type { Demanda } from "@/contexts/DataContext";
+import type { Demanda } from "@/types";
+import { StatusDemanda } from "@/types";
 
 export default function PainelDemandas() {
   const { demandas, updateDemanda } = useData();
@@ -15,32 +16,36 @@ export default function PainelDemandas() {
   const [demandaSelecionada, setDemandaSelecionada] = useState<Demanda | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
 
-  const demandaPorStatus = {
-    Criada: demandas.filter((d) => d.status === "Criada"),
-    "Em Andamento": demandas.filter((d) => d.status === "Em Andamento"),
-    Finalizada: demandas.filter((d) => d.status === "Finalizada"),
-  };
+  // Memoize filtered demandas to prevent unnecessary recalculations
+  const demandaPorStatus = useMemo(() => ({
+    [StatusDemanda.CRIADA]: demandas.filter((d) => d.status === StatusDemanda.CRIADA),
+    [StatusDemanda.EM_ANDAMENTO]: demandas.filter((d) => d.status === StatusDemanda.EM_ANDAMENTO),
+    [StatusDemanda.FINALIZADA]: demandas.filter((d) => d.status === StatusDemanda.FINALIZADA),
+  }), [demandas]);
 
-  const handleDragStart = (event: any) => {
-    setActiveId(event.active.id);
-  };
+  const handleDragStart = useCallback((event: DragEndEvent) => {
+    setActiveId(event.active.id as string);
+  }, []);
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
     setActiveId(null);
 
     if (!over) return;
 
     const demandaId = active.id as string;
-    const newStatus = over.id as "Criada" | "Em Andamento" | "Finalizada";
+    const newStatus = over.id as StatusDemanda;
 
     const demanda = demandas.find((d) => d.id === demandaId);
     if (demanda && demanda.status !== newStatus) {
       updateDemanda(demandaId, { status: newStatus });
     }
-  };
+  }, [demandas, updateDemanda]);
 
-  const activeDemanda = activeId ? demandas.find((d) => d.id === activeId) : null;
+  const activeDemanda = useMemo(
+    () => (activeId ? demandas.find((d) => d.id === activeId) : null),
+    [activeId, demandas]
+  );
 
   return (
     <div className="h-full flex flex-col">
@@ -67,18 +72,18 @@ export default function PainelDemandas() {
         >
           <div className="grid grid-cols-3 gap-6 h-full">
             <KanbanColumn
-              status="Criada"
-              demandas={demandaPorStatus.Criada}
+              status={StatusDemanda.CRIADA}
+              demandas={demandaPorStatus[StatusDemanda.CRIADA]}
               onCardClick={setDemandaSelecionada}
             />
             <KanbanColumn
-              status="Em Andamento"
-              demandas={demandaPorStatus["Em Andamento"]}
+              status={StatusDemanda.EM_ANDAMENTO}
+              demandas={demandaPorStatus[StatusDemanda.EM_ANDAMENTO]}
               onCardClick={setDemandaSelecionada}
             />
             <KanbanColumn
-              status="Finalizada"
-              demandas={demandaPorStatus.Finalizada}
+              status={StatusDemanda.FINALIZADA}
+              demandas={demandaPorStatus[StatusDemanda.FINALIZADA]}
               onCardClick={setDemandaSelecionada}
             />
           </div>

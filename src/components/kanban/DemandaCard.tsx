@@ -3,7 +3,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { User, GripVertical, Trash2 } from "lucide-react";
 import { useData } from "@/contexts/DataContext";
-import type { Demanda } from "@/contexts/DataContext";
+import type { Demanda } from "@/types";
+import { PRIORIDADE_CONFIG } from "@/constants";
 import { cn } from "@/lib/utils";
 import {
   AlertDialog,
@@ -17,6 +18,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { memo } from "react";
 
 interface DemandaCardProps {
   demanda: Demanda;
@@ -24,13 +26,7 @@ interface DemandaCardProps {
   isDragging?: boolean;
 }
 
-const prioridadeConfig = {
-  Baixa: "bg-secondary text-secondary-foreground",
-  Média: "bg-warning text-warning-foreground",
-  Alta: "bg-destructive text-destructive-foreground",
-};
-
-export const DemandaCard = ({ demanda, onClick, isDragging }: DemandaCardProps) => {
+const DemandaCardComponent = ({ demanda, onClick, isDragging }: DemandaCardProps) => {
   const { getUsuario, deleteDemanda } = useData();
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: demanda.id,
@@ -95,7 +91,7 @@ export const DemandaCard = ({ demanda, onClick, isDragging }: DemandaCardProps) 
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
-        <Badge variant="secondary" className={prioridadeConfig[demanda.prioridade]}>
+        <Badge variant="secondary" className={PRIORIDADE_CONFIG[demanda.prioridade].className}>
           {demanda.prioridade}
         </Badge>
         {responsavel && (
@@ -108,3 +104,15 @@ export const DemandaCard = ({ demanda, onClick, isDragging }: DemandaCardProps) 
     </Card>
   );
 };
+
+// Memoize component to prevent unnecessary re-renders
+export const DemandaCard = memo(DemandaCardComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.demanda.id === nextProps.demanda.id &&
+    prevProps.demanda.status === nextProps.demanda.status &&
+    prevProps.demanda.nome_demanda === nextProps.demanda.nome_demanda &&
+    prevProps.demanda.prioridade === nextProps.demanda.prioridade &&
+    prevProps.demanda.responsavel_id === nextProps.demanda.responsavel_id &&
+    prevProps.isDragging === nextProps.isDragging
+  );
+});

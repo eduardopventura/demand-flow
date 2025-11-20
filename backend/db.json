@@ -1,0 +1,199 @@
+{
+  "usuarios": [
+    {
+      "id": "u1",
+      "nome": "Eduardo",
+      "email": "eduardopventura@hotmail.com",
+      "login": "eduardopventura",
+      "senha": "Dem@andas960609"
+    },
+    {
+      "id": "u2",
+      "nome": "Helio Ramos Ventura",
+      "email": "helioramosv@gmail.com",
+      "login": "helio",
+      "senha": "123"
+    },
+    {
+      "id": "u3",
+      "nome": "Cristina de Souza Patricio Ventura",
+      "email": "crispventura@gmail.com",
+      "login": "cristina",
+      "senha": "123"
+    },
+    {
+      "nome": "Nubia",
+      "email": "nubia@gmail.com",
+      "login": "Nubia",
+      "senha": "123",
+      "id": "20iCy01"
+    }
+  ],
+  "templates": [
+    {
+      "nome": "Gerar Contrato",
+      "prioridade": "Alta",
+      "campos_preenchimento": [
+        {
+          "id_campo": "c1763595733050",
+          "nome_campo": "Nome do Aluno",
+          "tipo_campo": "texto",
+          "obrigatorio_criacao": true,
+          "complementa_nome": true
+        },
+        {
+          "id_campo": "c1763595762675",
+          "nome_campo": "Tipo de Fidelidade",
+          "tipo_campo": "dropdown",
+          "obrigatorio_criacao": true,
+          "complementa_nome": false,
+          "opcoes_dropdown": [
+            "Tradicional",
+            "6 Meses",
+            "12 Meses"
+          ]
+        },
+        {
+          "id_campo": "c1763595807205",
+          "nome_campo": "Forma de Recorrência",
+          "tipo_campo": "dropdown",
+          "obrigatorio_criacao": true,
+          "complementa_nome": false,
+          "opcoes_dropdown": [
+            "Boleto Bancário ",
+            "Cartão Recorrente"
+          ]
+        },
+        {
+          "id_campo": "c1763595874301",
+          "nome_campo": "Valor da Matricula",
+          "tipo_campo": "numero",
+          "obrigatorio_criacao": true,
+          "complementa_nome": false
+        },
+        {
+          "id_campo": "c1763595887919",
+          "nome_campo": "Valor da Mensalidade",
+          "tipo_campo": "numero",
+          "obrigatorio_criacao": true,
+          "complementa_nome": false
+        },
+        {
+          "id_campo": "c1763595901760",
+          "nome_campo": "Data Contrato",
+          "tipo_campo": "data",
+          "obrigatorio_criacao": false,
+          "complementa_nome": false
+        },
+        {
+          "id_campo": "c1763595914567",
+          "nome_campo": "Contratante",
+          "tipo_campo": "texto",
+          "obrigatorio_criacao": false,
+          "complementa_nome": false
+        },
+        {
+          "id_campo": "c1763595923376",
+          "nome_campo": "Cep",
+          "tipo_campo": "numero",
+          "obrigatorio_criacao": false,
+          "complementa_nome": false
+        },
+        {
+          "id_campo": "c1763595929524",
+          "nome_campo": "Responsável ",
+          "tipo_campo": "texto",
+          "obrigatorio_criacao": false,
+          "complementa_nome": false
+        },
+        {
+          "id_campo": "c1763595938785",
+          "nome_campo": "Forma 1º Pagamento",
+          "tipo_campo": "dropdown",
+          "obrigatorio_criacao": false,
+          "complementa_nome": false,
+          "opcoes_dropdown": [
+            "PIX",
+            "Boleto",
+            "Cartão"
+          ]
+        },
+        {
+          "id_campo": "c1763595966268",
+          "nome_campo": "Status 1º Pagamento",
+          "tipo_campo": "dropdown",
+          "obrigatorio_criacao": false,
+          "complementa_nome": false,
+          "opcoes_dropdown": [
+            "Pago",
+            "Não Pago"
+          ]
+        },
+        {
+          "id_campo": "c1763595989021",
+          "nome_campo": "Data 1º Pagamento",
+          "tipo_campo": "data",
+          "obrigatorio_criacao": false,
+          "complementa_nome": false
+        },
+        {
+          "id_campo": "c1763596004668",
+          "nome_campo": "Mol Preenchido",
+          "tipo_campo": "dropdown",
+          "obrigatorio_criacao": false,
+          "complementa_nome": false,
+          "opcoes_dropdown": [
+            "Sim",
+            "Não"
+          ]
+        },
+        {
+          "id_campo": "c1763596908733",
+          "nome_campo": "Observações",
+          "tipo_campo": "texto",
+          "obrigatorio_criacao": false,
+          "complementa_nome": false
+        }
+      ],
+      "tarefas": [
+        {
+          "id_tarefa": "ta1763596153412",
+          "nome_tarefa": "Solicitar Mol",
+          "link_pai": null
+        },
+        {
+          "id_tarefa": "ta1763596176158",
+          "nome_tarefa": "Aprovar Mol",
+          "link_pai": "ta1763596153412"
+        },
+        {
+          "id_tarefa": "ta1763596184432",
+          "nome_tarefa": "Gerar Contrato",
+          "link_pai": "ta1763596176158"
+        },
+        {
+          "id_tarefa": "ta1763596193984",
+          "nome_tarefa": "Assinar Contrato",
+          "link_pai": "ta1763596184432"
+        },
+        {
+          "id_tarefa": "ta1763596205089",
+          "nome_tarefa": "Gerar Recorrência ",
+          "link_pai": "ta1763596184432"
+        },
+        {
+          "id_tarefa": "ta1763596251594",
+          "nome_tarefa": "Preencher Ksis",
+          "link_pai": "ta1763596184432"
+        },
+        {
+          "id_tarefa": "ta1763596273253",
+          "nome_tarefa": "Gerar Demanda \"Atualizar Quadro de Horário\" ",
+          "link_pai": "ta1763596184432"
+        }
+      ],
+      "id": 1
+    }
+  ],
+  "demandas": []
+}

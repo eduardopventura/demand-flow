@@ -1,0 +1,35 @@
+# Docker Compose - Development Environment
+# Ambiente paralelo para testes sem interferir na produção
+# 
+# Uso:
+#   docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+#
+# Diferenças:
+#   - Portas diferentes (3001 backend, 3061 frontend)
+#   - Rede separada (demand-flow-dev-network)
+#   - Mesmas configs de produção (fidelidade máxima)
+
+version: '3.8'
+
+services:
+  backend:
+    container_name: demand-flow-backend-dev
+    ports:
+      - "3001:3000"  # Porta diferente para não conflitar
+    volumes:
+      - ./backend/db-dev.json:/app/db.json  # Database separado
+    networks:
+      - demand-flow-dev-network
+
+  frontend:
+    container_name: demand-flow-frontend-dev
+    ports:
+      - "3061:80"  # Porta diferente para não conflitar
+    networks:
+      - demand-flow-dev-network
+
+networks:
+  demand-flow-dev-network:
+    driver: bridge
+    name: demand-flow-dev-network
+

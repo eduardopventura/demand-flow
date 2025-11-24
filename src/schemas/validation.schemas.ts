@@ -43,6 +43,7 @@ export const tarefaSchema = z.object({
   id_tarefa: z.string(),
   nome_tarefa: z.string().min(1, "Nome da tarefa é obrigatório"),
   link_pai: z.string().nullable(),
+  responsavel_id: z.string().optional(), // Responsável específico da tarefa no template
 });
 
 // Template schema
@@ -65,6 +66,7 @@ export const campoPreenchidoSchema = z.object({
 export const tarefaStatusSchema = z.object({
   id_tarefa: z.string(),
   concluida: z.boolean(),
+  responsavel_id: z.string().optional(), // Responsável específico da tarefa (se diferente do padrão)
 });
 
 // Demanda schema
@@ -74,8 +76,12 @@ export const demandaSchema = z.object({
   status: z.nativeEnum(StatusDemanda),
   prioridade: z.nativeEnum(Prioridade),
   responsavel_id: z.string().min(1, "Responsável é obrigatório"),
+  tempo_esperado: z.number().min(1, "Tempo esperado deve ser no mínimo 1 dia"),
   campos_preenchidos: z.array(campoPreenchidoSchema),
   tarefas_status: z.array(tarefaStatusSchema),
+  data_criacao: z.string(),
+  data_finalizacao: z.string().nullable(),
+  prazo: z.boolean(),
 });
 
 export type DemandaFormData = z.infer<typeof demandaSchema>;

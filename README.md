@@ -4,7 +4,7 @@ Sistema completo de gerenciamento de demandas com interface Kanban, templates cu
 
 **100% dockerizado e pronto para produção!** 🐳
 
-> **🎯 v2.3.0 - Simplificação Pragmática**: IP hardcoded para MVP. Abordagem simples e direta sem complexidade desnecessária. Veja [CONFIG.md](./CONFIG.md) para configuração.
+> **🎯 v2.5.0 - Gestão Inteligente**: Prazos individualizados por demanda, responsável por tarefa, design limpo e ordenação automática. Sistema testado e aprovado! ✅
 
 ---
 
@@ -25,10 +25,12 @@ Sistema completo de gerenciamento de demandas com interface Kanban, templates cu
 
 | Documento | Descrição |
 |-----------|-----------|
-| **[CHANGELOG.md](./CHANGELOG.md)** | Histórico de versões |
+| **[VERSAO_ATUAL.txt](./VERSAO_ATUAL.txt)** ⭐ | Versão atual e mudanças principais |
+| **[CHANGELOG.md](./CHANGELOG.md)** | Histórico de todas as versões |
 | **[SECURITY.md](./SECURITY.md)** | Considerações de segurança |
-| **[docs/README.md](./docs/README.md)** | Índice completo da documentação |
-| **[docs/archive/](./docs/archive/)** | Documentos antigos (referência histórica) |
+| **[docs/](./docs/)** 📚 | Documentação completa e organizada |
+| **[docs/releases/v2.5.0/](./docs/releases/v2.5.0/)** 🆕 | Release atual (changelog, notes, summary) |
+| **[docs/releases/](./docs/releases/)** | Histórico de todas as releases |
 
 ---
 
@@ -80,12 +82,15 @@ Para testes sem afetar produção:
 
 ### Core Features
 - ✅ **Quadro Kanban** com drag & drop
-- ✅ **Templates customizáveis** com campos dinâmicos
+- ✅ **Templates customizáveis** com campos dinâmicos e tempo esperado
 - ✅ **Controle de tarefas** com dependências
 - ✅ **Gerenciamento de usuários**
 - ✅ **Relatórios e gráficos** de desempenho
 - ✅ **Priorização** de demandas
 - ✅ **Campos personalizados** (texto, número, data, arquivo, dropdown)
+- ✅ **Controle de prazos** com indicadores visuais coloridos
+- ✅ **Rastreamento de datas** (criação e finalização)
+- ✅ **Indicadores visuais** (🟢 verde, 🟡 amarelo, 🔴 vermelho) baseados no status do prazo
 
 ### Infraestrutura
 - ✅ **100% Docker** - Deploy em qualquer lugar
@@ -267,6 +272,14 @@ Ver **[backend/README.md](./backend/README.md)** para detalhes completos.
 
 ## 📊 Melhorias Implementadas
 
+### v2.4.0 - Sistema de Prazos ✅ NOVO!
+- ✅ Controle de prazos nas demandas
+- ✅ Tempo esperado configurável por template
+- ✅ Indicadores visuais coloridos (verde/amarelo/vermelho)
+- ✅ Rastreamento de datas (criação e finalização)
+- ✅ Exibição otimizada (primeiro nome do responsável)
+- ✅ Cálculo automático de status do prazo
+
 ### v2.0 - Refatoração Completa ✅
 - ✅ TypeScript strict mode
 - ✅ Arquitetura organizada
@@ -284,7 +297,7 @@ Ver **[backend/README.md](./backend/README.md)** para detalhes completos.
 - ✅ Scripts de desenvolvimento
 - ✅ Migration path para PostgreSQL
 
-### v2.2 - API Integration ✅ NOVO!
+### v2.2 - API Integration ✅
 - ✅ DataContext migrado para API
 - ✅ Loading states implementados
 - ✅ Error handling robusto

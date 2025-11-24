@@ -1,11 +1,10 @@
 import { useDraggable } from "@dnd-kit/core";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { User, GripVertical, Trash2 } from "lucide-react";
+import { User, GripVertical, Trash2, Calendar } from "lucide-react";
 import { useData } from "@/contexts/DataContext";
 import type { Demanda } from "@/types";
-import { PRIORIDADE_CONFIG } from "@/constants";
 import { cn } from "@/lib/utils";
+import { getCorBordaPrazo, formatarData, getPrimeiroNome } from "@/utils/prazoUtils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,12 +26,39 @@ interface DemandaCardProps {
 }
 
 const DemandaCardComponent = ({ demanda, onClick, isDragging }: DemandaCardProps) => {
-  const { getUsuario, deleteDemanda } = useData();
+  const { getUsuario, deleteDemanda, getTemplate } = useData();
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: demanda.id,
   });
 
-  const responsavel = getUsuario(demanda.responsavel_id);
+  const template = getTemplate(demanda.template_id);
+  
+  // Calcular cor da borda baseado no prazo
+  const corBorda = getCorBordaPrazo(
+    demanda.data_criacao,
+    demanda.data_finalizacao,
+    demanda.tempo_esperado,
+    demanda.status
+  );
+  
+  const classeBorda = {
+    verde: 'border-l-4 border-l-green-500',
+    amarelo: 'border-l-4 border-l-yellow-500',
+    vermelho: 'border-l-4 border-l-red-500',
+  }[corBorda];
+
+  // Calcular usuários com tarefas abertas
+  const usuariosComTarefas = demanda.tarefas_status
+    .filter((t) => !t.concluida) // Apenas tarefas não concluídas
+    .reduce((acc, tarefa) => {
+      // Determina o responsável da tarefa (específico ou padrão da demanda)
+      const responsavelId = tarefa.responsavel_id || demanda.responsavel_id;
+      
+      // Incrementa o contador de tarefas deste usuário
+      acc[responsavelId] = (acc[responsavelId] || 0) + 1;
+      
+      return acc;
+    }, {} as Record<string, number>);
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -51,6 +77,7 @@ const DemandaCardComponent = ({ demanda, onClick, isDragging }: DemandaCardProps
       style={style}
       className={cn(
         "p-4 cursor-pointer hover:shadow-md transition-all",
+        classeBorda,
         isDragging && "opacity-50 rotate-3"
       )}
       onClick={onClick}
@@ -90,15 +117,33 @@ const DemandaCardComponent = ({ demanda, onClick, isDragging }: DemandaCardProps
         </div>
       </div>
 
-      <div className="flex items-center gap-2 flex-wrap">
-        <Badge variant="secondary" className={PRIORIDADE_CONFIG[demanda.prioridade].className}>
-          {demanda.prioridade}
-        </Badge>
-        {responsavel && (
-          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-            <User className="w-3 h-3" />
-            <span>{responsavel.nome}</span>
-          </div>
+      <div className="flex flex-wrap items-center gap-2">
+        {Object.entries(usuariosComTarefas).map(([usuarioId, count]) => {
+          const usuario = getUsuario(usuarioId);
+          if (!usuario) return null;
+          
+          return (
+            <div key={usuarioId} className="flex items-center gap-1 text-xs bg-muted px-2 py-1 rounded-md">
+              <User className="w-3 h-3" />
+              <span className="font-medium">{getPrimeiroNome(usuario.nome)}</span>
+              <span className="text-muted-foreground">({count})</span>
+            </div>
+          );
+        })}
+        {Object.keys(usuariosComTarefas).length === 0 && (
+          <div className="text-xs text-muted-foreground">Todas as tarefas concluídas</div>
+        )}
+      </div>
+
+      {/* Datas de criação e finalização */}
+      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-2">
+        <Calendar className="w-3 h-3" />
+        <span>{formatarData(demanda.data_criacao)}</span>
+        {demanda.data_finalizacao && (
+          <>
+            <span>-</span>
+            <span>{formatarData(demanda.data_finalizacao)}</span>
+          </>
         )}
       </div>
     </Card>
@@ -113,6 +158,9 @@ export const DemandaCard = memo(DemandaCardComponent, (prevProps, nextProps) => 
     prevProps.demanda.nome_demanda === nextProps.demanda.nome_demanda &&
     prevProps.demanda.prioridade === nextProps.demanda.prioridade &&
     prevProps.demanda.responsavel_id === nextProps.demanda.responsavel_id &&
+    prevProps.demanda.data_criacao === nextProps.demanda.data_criacao &&
+    prevProps.demanda.data_finalizacao === nextProps.demanda.data_finalizacao &&
+    prevProps.demanda.prazo === nextProps.demanda.prazo &&
     prevProps.isDragging === nextProps.isDragging
   );
 });

@@ -1,0 +1,26 @@
+v2.5.0
+
+Data de Release: 24 de Novembro de 2025
+Status: Pronto para Produção ✅
+
+Mudanças Principais:
+- Tempo esperado individual por demanda
+- Responsável específico por tarefa
+- Design mais limpo (sem badges de prioridade)
+- Ordenação automática inteligente (prioridade + prazo)
+- Bug fix: Salvar alterações
+
+Arquivos Modificados: 9
+Testes Realizados: 11 cenários
+Aprovação Cliente: ✅ 100%
+
+Documentação:
+- docs/releases/v2.5.0/CHANGELOG.md (detalhes técnicos)
+- docs/releases/v2.5.0/RELEASE_NOTES.md (release notes)
+- docs/releases/v2.5.0/SUMMARY.md (resumo executivo)
+- docs/releases/v2.5.0/DOCUMENTATION_INDEX.md (índice completo)
+- CHANGELOG.md (histórico atualizado)
+
+Deploy:
+docker-compose down && docker-compose up -d --build
+

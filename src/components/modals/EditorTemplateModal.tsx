@@ -79,7 +79,7 @@ export const EditorTemplateModal = ({
   open,
   onOpenChange,
 }: EditorTemplateModalProps) => {
-  const { addTemplate, updateTemplate } = useData();
+  const { addTemplate, updateTemplate, usuarios } = useData();
   const [nome, setNome] = useState("");
   const [prioridade, setPrioridade] = useState<"Baixa" | "Média" | "Alta">("Média");
   const [campos, setCampos] = useState<CampoPreenchimento[]>([]);
@@ -491,6 +491,30 @@ export const EditorTemplateModal = ({
                               </SelectContent>
                             </Select>
                           </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-xs">Responsável Específico (Opcional)</Label>
+                          <Select
+                            value={tarefa.responsavel_id || "none"}
+                            onValueChange={(v) =>
+                              handleUpdateTarefa(tarefa.id_tarefa, {
+                                responsavel_id: v === "none" ? undefined : v,
+                              })
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Padrão (responsável da demanda)" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Padrão (responsável da demanda)</SelectItem>
+                              {usuarios.map((usuario) => (
+                                <SelectItem key={usuario.id} value={usuario.id}>
+                                  {usuario.nome}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
 
                         <div className="flex justify-end">

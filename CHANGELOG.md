@@ -1,5 +1,271 @@
 # Changelog - Demand Flow
 
+## [2.5.0] - 2025-11-24
+
+### 🎯 Gestão de Responsabilidades, Flexibilidade de Prazos e Melhorias de Usabilidade
+
+Esta atualização implementa novas funcionalidades solicitadas pelo cliente após uso do sistema, em duas fases: funcionalidades de gestão e melhorias visuais baseadas em feedback real.
+
+#### ✨ Fase 1: Funcionalidades de Gestão
+
+**1. Tempo Esperado Individual por Demanda**
+- ✅ Tempo esperado agora é definido para cada demanda (não mais no template)
+- ✅ Campo "Tempo Esperado (dias)" adicionado no modal de criação de demanda
+- ✅ Permite diferentes prazos para demandas do mesmo tipo
+- ✅ Valor padrão: 7 dias
+
+**2. Responsável por Tarefa**
+- ✅ Cada tarefa pode ter um responsável específico
+- ✅ Por padrão, tarefas são atribuídas ao responsável da demanda
+- ✅ No template, é possível definir responsável específico para tarefas
+- ✅ Na demanda, é possível alterar responsável de qualquer tarefa
+- ✅ Lógica inteligente de mudança de responsável:
+  - Ao mudar responsável da demanda, tarefas sem responsável específico são transferidas
+  - Tarefas com responsável específico mantêm sua atribuição
+
+**3. Visualização de Responsabilidades no Card**
+- ✅ Card agora mostra todos os usuários com tarefas abertas
+- ✅ Formato: `Nome (X)` onde X é o número de tarefas abertas
+- ✅ Melhor visibilidade de quem está envolvido na demanda
+
+#### 🎨 Fase 2: Melhorias Visuais e de Usabilidade
+
+**1. Design Mais Limpo**
+- ✅ Removida badge de prioridade dos cards
+- ✅ Visual mais profissional e menos poluído
+- ✅ Foco nas informações essenciais
+
+**2. Ordenação Automática Inteligente**
+- ✅ Demandas automaticamente ordenadas em cada coluna
+- ✅ 1º critério: Prioridade (Alta > Média > Baixa)
+- ✅ 2º critério: Prazo restante (menos tempo = mais urgente = topo)
+- ✅ Demandas urgentes sempre visíveis no topo
+- ✅ Sem necessidade de organização manual
+
+**Benefícios da Ordenação:**
+- Priorização automática e inteligente
+- Melhor gestão de tempo e recursos
+- Identificação rápida de demandas urgentes
+- Visual limpo mantendo clareza de prioridades
+
+#### 🐛 Correções de Bugs
+
+**1. Bug de Salvar Alterações**
+- ✅ Corrigido: Mudanças agora só são aplicadas após clicar em "Salvar"
+- ✅ Antes: Marcar tarefa como concluída mudava o card imediatamente
+- ✅ Depois: Todas as alterações são aplicadas apenas ao salvar
+
+#### 🔧 Mudanças Técnicas
+
+**Interfaces Atualizadas:**
+- `Template`: Removido campo `tempo_esperado`
+- `Demanda`: Adicionado campo `tempo_esperado: number`
+- `Tarefa`: Adicionado campo `responsavel_id?: string`
+- `TarefaStatus`: Adicionado campo `responsavel_id?: string`
+
+**Arquivos Modificados (Fase 1 - 6 arquivos):**
+- `src/types/index.ts`
+- `src/schemas/validation.schemas.ts`
+- `src/components/modals/NovaDemandaModal.tsx`
+- `src/components/modals/EditorTemplateModal.tsx`
+- `src/components/modals/DetalhesDemandaModal.tsx`
+- `backend/db.json`
+
+**Arquivos Modificados (Fase 2 - 3 arquivos):**
+- `src/components/kanban/DemandaCard.tsx` - Visual limpo
+- `src/utils/prazoUtils.ts` - Função de ordenação
+- `src/pages/PainelDemandas.tsx` - Aplicação da ordenação
+
+**Total:** 9 arquivos modificados (6 da Fase 1 + 3 da Fase 2)
+
+#### 📝 Notas de Migração
+
+**Banco de Dados:**
+- Demandas existentes agora incluem campo `tempo_esperado`
+- Templates não possuem mais campo `tempo_esperado`
+- Tarefas podem ter campo opcional `responsavel_id`
+
+#### 🧪 Testes
+
+**Status:** ✅ Todos os testes realizados e aprovados pelo cliente
+- Fase 1: 6 cenários testados ✅
+- Fase 2: 5 cenários testados ✅
+
+Ver `CHANGELOG_v2.5.0.md` para detalhes completos da implementação.
+
+---
+
+## [2.4.0] - 2025-11-21
+
+### 🎯 Sistema de Prazos e Melhorias Visuais
+
+Esta atualização adiciona controle de prazos para demandas, melhorias visuais nos cards e indicadores de status do prazo.
+
+#### ✨ Novas Funcionalidades
+
+**1. Tempo Esperado nos Templates**
+- ✅ Campo "Tempo Esperado" (em dias) adicionado aos templates
+- ✅ Valor configurável ao criar/editar template
+- ✅ Valor padrão: 7 dias
+- ✅ Define o prazo esperado para conclusão de demandas daquele tipo
+
+**2. Controle de Datas nas Demandas**
+- ✅ `data_criacao`: Registrada automaticamente ao criar a demanda
+- ✅ `data_finalizacao`: Registrada automaticamente ao finalizar todas as tarefas
+- ✅ `prazo`: Indicador booleano se está dentro do prazo
+
+**3. Indicadores Visuais de Prazo**
+- ✅ **Borda colorida** nos cards de demanda (4px lateral esquerda):
+  - 🟢 **Verde**: Dentro do prazo
+  - 🟡 **Amarela**: Faltam 4 dias ou menos para o prazo
+  - 🔴 **Vermelha**: Fora do prazo
+- ✅ Cores discretas para não poluir visualmente
+- ✅ Atualização dinâmica conforme o tempo passa
+
+**4. Exibição de Datas nos Cards**
+- ✅ Data de criação exibida em todos os cards
+- ✅ Data de finalização exibida após concluir a demanda
+- ✅ Formato: DD/MM/YYYY
+- ✅ Ícone de calendário para melhor identificação
+
+**5. Nome do Responsável Otimizado**
+- ✅ Exibe apenas o primeiro nome do responsável
+- ✅ Economiza espaço no card
+- ✅ Mantém clareza na identificação
+
+#### 🔧 Implementação Técnica
+
+**Backend**:
+- Templates existentes atualizados com campo `tempo_esperado`
+- Suporte para novos campos em demandas
+
+**Frontend**:
+```typescript
+// Novos tipos
+interface Template {
+  tempo_esperado: number; // dias
+  // ... outros campos
+}
+
+interface Demanda {
+  data_criacao: string;     // ISO date
+  data_finalizacao: string | null;
+  prazo: boolean;
+  // ... outros campos
+}
+```
+
+**Utilitários Criados** (`src/utils/prazoUtils.ts`):
+- `calcularDiferencaDias()` - Calcula dias entre datas
+- `verificarDentroPrazo()` - Verifica se está no prazo
+- `diasRestantesPrazo()` - Calcula dias restantes
+- `getCorBordaPrazo()` - Determina cor do indicador
+- `formatarData()` - Formata datas para exibição
+- `getPrimeiroNome()` - Extrai primeiro nome
+
+#### 📊 Lógica de Prazos
+
+**Ao Criar Demanda**:
+- `data_criacao` = data/hora atual
+- `data_finalizacao` = null
+- `prazo` = true (sempre começa verde)
+
+**Durante a Execução**:
+- Cor da borda atualiza baseado em dias decorridos
+- Verde: Ainda há mais de 4 dias
+- Amarela: Faltam 4 dias ou menos
+- Vermelha: Passou do prazo
+
+**Ao Finalizar**:
+- `data_finalizacao` = data/hora da conclusão
+- `prazo` = true/false (baseado se finalizou no tempo esperado)
+- Cor fixa baseada no resultado final
+
+#### 🎨 Interface
+
+**Editor de Template**:
+```
+┌─────────────────────────────────┐
+│ Tempo Esperado *                │
+│ [7] dias                        │
+│ Tempo esperado para conclusão  │
+└─────────────────────────────────┘
+```
+
+**Card de Demanda**:
+```
+┃ ┌─────────────────────────────┐
+┃ │ Gerar Contrato - João Silva │
+┃ │ [Alta] [👤 Eduardo]         │
+┃ │ 📅 21/11/2025 - 21/11/2025  │
+┃ └─────────────────────────────┘
+┗━ Borda colorida (verde/amarelo/vermelho)
+```
+
+#### 📝 Arquivos Modificados
+
+**Types & Schemas**:
+- `src/types/index.ts` - Adicionados novos campos
+- `src/schemas/validation.schemas.ts` - Validações atualizadas
+
+**Components**:
+- `src/components/modals/EditorTemplateModal.tsx` - Campo tempo esperado
+- `src/components/modals/NovaDemandaModal.tsx` - Define datas ao criar
+- `src/components/modals/DetalhesDemandaModal.tsx` - Atualiza prazo ao finalizar
+- `src/components/kanban/DemandaCard.tsx` - Visual com bordas e datas
+
+**Utils**:
+- `src/utils/prazoUtils.ts` - Funções de cálculo de prazo (NOVO)
+
+**Backend**:
+- `backend/db.json` - Templates atualizados com tempo_esperado
+
+#### 🎯 Benefícios
+
+**Para Gestores**:
+- Visibilidade clara de demandas atrasadas
+- Identificação rápida de gargalos
+- Métricas de cumprimento de prazos
+
+**Para Equipe**:
+- Priorização visual automática
+- Alertas antes do vencimento (amarelo)
+- Informação de datas sempre visível
+
+**Para Usuários**:
+- Interface mais informativa
+- Menos clutter (só primeiro nome)
+- Indicadores intuitivos (cores universais)
+
+#### 📈 Exemplos de Uso
+
+**Template "Gerar Contrato"**:
+- Tempo esperado: 7 dias
+- Demanda criada em 14/11/2025
+- Se finalizar até 21/11/2025 → Verde ✅
+- Se finalizar em 22/11/2025 → Vermelho ❌
+
+**Indicadores Temporais**:
+- Dia 14-17 (4+ dias): Verde 🟢
+- Dia 18-21 (≤4 dias): Amarelo 🟡
+- Dia 22+ (atrasado): Vermelho 🔴
+
+#### 🔄 Compatibilidade
+
+- ✅ Totalmente compatível com demandas existentes
+- ✅ Templates antigos recebem tempo_esperado = 7 (padrão)
+- ✅ Fallback para casos sem data_criacao
+- ✅ Sem breaking changes
+
+#### 🚀 Migração
+
+Não requer ação manual. Ao atualizar:
+1. Templates existentes ganham campo `tempo_esperado`
+2. Novas demandas já incluem datas automaticamente
+3. Demandas antigas podem não ter datas (mostram vazio)
+
+---
+
 ## [2.3.3] - 2025-11-19
 
 ### 🌐 Correção de Acesso via Domínio (CORS + Proxy)

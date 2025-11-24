@@ -460,6 +460,37 @@ Para mais detalhes, consulte:
 
 ---
 
+## 🎯 Funcionalidades Recentes (v2.4.0)
+
+### Sistema de Prazos
+
+**Templates**:
+- Campo "Tempo Esperado" (em dias) define prazo para conclusão
+- Configurável ao criar/editar template
+- Valor padrão: 7 dias
+
+**Demandas**:
+- 🟢 **Verde**: Dentro do prazo (mais de 4 dias restantes)
+- 🟡 **Amarelo**: Atenção! (4 dias ou menos restantes)
+- 🔴 **Vermelho**: Fora do prazo (atrasado)
+
+**Cards**:
+- Borda colorida (4px lateral) indica status do prazo
+- Data de criação sempre visível
+- Data de finalização aparece ao concluir
+- Primeiro nome do responsável (otimizado)
+
+**Exemplo**:
+```
+┃ ┌─────────────────────────────────┐
+┃ │ Gerar Contrato - João Silva    │
+🟢│ [Alta] [👤 Eduardo]             │
+┃ │ 📅 14/11/2025 - 21/11/2025     │
+┃ └─────────────────────────────────┘
+```
+
+---
+
 ## 💡 Dicas
 
 - Use `./scripts/start.sh` ao invés de digitar comando completo
@@ -468,6 +499,8 @@ Para mais detalhes, consulte:
 - Database dev (`db-dev.json`) é separado de prod
 - Ctrl+C nos logs não para os containers (modo detached)
 - Use `docker-compose down` para parar containers
+- **NOVO**: Bordas coloridas nos cards indicam urgência de prazos
+- **NOVO**: Data de criação/finalização sempre visíveis nos cards
 
 ---
 
@@ -484,7 +517,7 @@ Para mais detalhes, consulte:
 
 ---
 
-**Versão**: 2.3.0  
-**Última atualização**: 2025-11-19  
+**Versão**: 2.4.0  
+**Última atualização**: 2025-11-21  
 **Consolidação de**: QUICK_START.md, QUICK_REFERENCE.md, CONFIG.md
 

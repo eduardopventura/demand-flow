@@ -9,6 +9,7 @@ import { NovaDemandaModal } from "@/components/modals/NovaDemandaModal";
 import { DetalhesDemandaModal } from "@/components/modals/DetalhesDemandaModal";
 import type { Demanda } from "@/types";
 import { StatusDemanda } from "@/types";
+import { ordenarDemandas } from "@/utils/prazoUtils";
 
 export default function PainelDemandas() {
   const { demandas, updateDemanda } = useData();
@@ -16,11 +17,11 @@ export default function PainelDemandas() {
   const [demandaSelecionada, setDemandaSelecionada] = useState<Demanda | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
 
-  // Memoize filtered demandas to prevent unnecessary recalculations
+  // Memoize filtered and sorted demandas to prevent unnecessary recalculations
   const demandaPorStatus = useMemo(() => ({
-    [StatusDemanda.CRIADA]: demandas.filter((d) => d.status === StatusDemanda.CRIADA),
-    [StatusDemanda.EM_ANDAMENTO]: demandas.filter((d) => d.status === StatusDemanda.EM_ANDAMENTO),
-    [StatusDemanda.FINALIZADA]: demandas.filter((d) => d.status === StatusDemanda.FINALIZADA),
+    [StatusDemanda.CRIADA]: ordenarDemandas(demandas.filter((d) => d.status === StatusDemanda.CRIADA)),
+    [StatusDemanda.EM_ANDAMENTO]: ordenarDemandas(demandas.filter((d) => d.status === StatusDemanda.EM_ANDAMENTO)),
+    [StatusDemanda.FINALIZADA]: ordenarDemandas(demandas.filter((d) => d.status === StatusDemanda.FINALIZADA)),
   }), [demandas]);
 
   const handleDragStart = useCallback((event: DragEndEvent) => {

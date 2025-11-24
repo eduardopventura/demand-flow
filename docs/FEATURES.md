@@ -1,0 +1,289 @@
+# 🎯 Funcionalidades - Demand Flow
+
+## Visão Geral
+
+O Demand Flow é um sistema completo de gerenciamento de demandas com interface Kanban, controle de prazos e templates customizáveis.
+
+---
+
+## 🆕 Novo em v2.4.0 - Sistema de Prazos
+
+### 📊 Controle Visual de Prazos
+
+Cada demanda possui um indicador visual colorido que mostra o status do prazo:
+
+```
+🟢 VERDE     - Dentro do prazo (4+ dias restantes)
+🟡 AMARELO   - Atenção! (≤4 dias restantes)
+🔴 VERMELHO  - Atrasado! (passou do prazo)
+```
+
+### 🎨 Visual dos Cards
+
+```
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Gerar Contrato - Eduardo Ventura  ┃  ← Borda colorida (4px)
+┃ [Alta] [👤 Eduardo]                ┃  ← Apenas primeiro nome
+┃ 📅 14/11/2025 - 21/11/2025        ┃  ← Data criação - finalização
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+    🟢 Verde = No prazo
+```
+
+### ⏱️ Tempo Esperado nos Templates
+
+Ao criar um template, você define o **Tempo Esperado** para conclusão:
+
+```
+┌─────────────────────────────────┐
+│ Nome do Template                │
+│ [Gerar Contrato]                │
+│                                 │
+│ Prioridade                      │
+│ [Alta]                          │
+│                                 │
+│ Tempo Esperado *                │
+│ [7] dias                        │
+│ Tempo esperado para conclusão  │
+└─────────────────────────────────┘
+```
+
+### 📅 Rastreamento Automático de Datas
+
+**Ao criar uma demanda**:
+- `data_criacao` = Data/hora atual
+- `prazo` = true (começa verde)
+- Borda = 🟢 Verde
+
+**Durante a execução**:
+- Sistema calcula dias decorridos automaticamente
+- Borda muda conforme prazo se aproxima:
+  - Dia 1-3: 🟢 Verde (tranquilo)
+  - Dia 4-7: 🟡 Amarelo (atenção!)
+  - Dia 8+: 🔴 Vermelho (atrasado!)
+
+**Ao finalizar**:
+- `data_finalizacao` = Data/hora da conclusão
+- `prazo` = true (se dentro do tempo) ou false (se atrasado)
+- Borda = 🟢 Verde (sucesso) ou 🔴 Vermelho (atrasado)
+
+### 🎯 Exemplo Prático
+
+**Template**: Gerar Contrato (7 dias)
+
+**Cenário 1 - Sucesso**:
+```
+Criada:     14/11/2025 🟢
+Em Trabalho: 15/11/2025 🟢
+Atenção:    18/11/2025 🟡 (4 dias restantes)
+Finalizada: 20/11/2025 🟢 (6 dias = dentro do prazo!)
+```
+
+**Cenário 2 - Atraso**:
+```
+Criada:     14/11/2025 🟢
+Em Trabalho: 15/11/2025 🟢
+Atenção:    18/11/2025 🟡 (4 dias restantes)
+Atrasada:   22/11/2025 🔴 (passou de 7 dias)
+Finalizada: 25/11/2025 🔴 (11 dias = fora do prazo!)
+```
+
+---
+
+## 🎯 Core Features
+
+### 📋 Quadro Kanban
+
+Interface visual com três colunas:
+
+```
+┌─────────────┬─────────────┬─────────────┐
+│   CRIADA    │ EM ANDAMENTO│  FINALIZADA │
+├─────────────┼─────────────┼─────────────┤
+│ • Demanda 1 │ • Demanda 3 │ • Demanda 5 │
+│ • Demanda 2 │ • Demanda 4 │ • Demanda 6 │
+└─────────────┴─────────────┴─────────────┘
+```
+
+**Funcionalidades**:
+- ✅ Drag & Drop entre colunas
+- ✅ Status atualizado automaticamente
+- ✅ Contadores por coluna
+- ✅ Cards coloridos por prioridade
+- ✅ **Indicador visual de prazo** 🆕
+
+### 🎨 Templates Customizáveis
+
+Crie templates reutilizáveis para tipos de demanda:
+
+**Componentes**:
+1. **Campos de Preenchimento**
+   - Texto
+   - Número
+   - Data
+   - Arquivo
+   - Dropdown (lista de opções)
+
+2. **Configurações**
+   - Nome do template
+   - Prioridade padrão (Baixa/Média/Alta)
+   - **Tempo esperado** (dias) 🆕
+   - Campos obrigatórios
+   - Campo que complementa o nome
+
+3. **Tarefas**
+   - Lista de tarefas pré-definidas
+   - Dependências entre tarefas
+   - Ordem customizável (drag & drop)
+
+**Exemplo - Template "Gerar Contrato"**:
+```yaml
+Nome: Gerar Contrato
+Prioridade: Alta
+Tempo Esperado: 7 dias
+
+Campos:
+  - Nome do Aluno (texto, obrigatório, complementa nome)
+  - Tipo de Fidelidade (dropdown)
+  - Valor da Matrícula (número)
+  - Data do Contrato (data)
+
+Tarefas:
+  1. Solicitar MOL
+  2. Aprovar MOL (depende de #1)
+  3. Gerar Contrato (depende de #2)
+  4. Assinar Contrato (depende de #3)
+```
+
+### ✅ Controle de Tarefas
+
+**Características**:
+- Lista de verificação para cada demanda
+- Dependências entre tarefas (tarefa pai/filha)
+- Tarefas aparecem somente após pai ser concluída
+- Progresso visual (3/7 tarefas)
+- Status da demanda atualiza automaticamente:
+  - Nenhuma concluída = "Criada"
+  - Algumas concluídas = "Em Andamento"
+  - Todas concluídas = "Finalizada" + **data_finalizacao** 🆕
+
+### 👥 Gerenciamento de Usuários
+
+**Funcionalidades**:
+- Cadastro de usuários
+- Atribuição de responsáveis
+- Visualização por responsável
+- **Exibição otimizada** (apenas primeiro nome nos cards) 🆕
+
+### 📊 Relatórios e Gráficos
+
+**Métricas Disponíveis**:
+- Total de demandas
+- Demandas por status
+- Demandas por prioridade
+- Gráficos de desempenho
+- Taxa de conclusão
+- **Métricas de cumprimento de prazos** 🆕
+
+### 🎯 Priorização
+
+**Níveis**:
+- 🔴 Alta
+- 🟡 Média
+- 🟢 Baixa
+
+**Indicadores Visuais**:
+- Badges coloridas
+- Ordenação automática
+- Filtros por prioridade
+
+---
+
+## 🛠️ Infraestrutura
+
+### 🐳 100% Docker
+
+```bash
+# Subir aplicação completa
+docker-compose up -d
+
+# Frontend: http://192.168.1.4:3060
+# Backend:  http://192.168.1.4:3000
+```
+
+### 🔄 API REST Completa
+
+```
+GET    /api/usuarios
+POST   /api/usuarios
+PATCH  /api/usuarios/:id
+DELETE /api/usuarios/:id
+
+GET    /api/templates
+POST   /api/templates
+PATCH  /api/templates/:id
+DELETE /api/templates/:id
+
+GET    /api/demandas
+POST   /api/demandas
+PATCH  /api/demandas/:id
+DELETE /api/demandas/:id
+```
+
+### 💾 Persistência
+
+- **Produção**: `db.json` (volume Docker)
+- **Desenvolvimento**: `db-dev.json` (separado)
+- **Fallback**: localStorage (se API cair)
+
+### 🔒 Segurança
+
+**Atual (MVP)**:
+- ⚠️ Senhas em texto plano
+- ⚠️ Sem autenticação real
+- ⚠️ CORS aberto
+
+**Futuro (Produção)**:
+- 🔐 JWT authentication
+- 🔐 Bcrypt password hashing
+- 🔐 HTTPS/SSL
+- 🔐 Rate limiting
+
+---
+
+## 🚀 Próximas Funcionalidades
+
+### Curto Prazo
+- [ ] Notificações de prazo (email/push)
+- [ ] Dashboard de métricas
+- [ ] Filtros avançados
+- [ ] Exportação de relatórios (PDF/Excel)
+
+### Médio Prazo
+- [ ] Comentários nas demandas
+- [ ] Anexos de arquivos reais
+- [ ] Histórico de alterações
+- [ ] Tags e categorias
+
+### Longo Prazo
+- [ ] Migração para PostgreSQL
+- [ ] WebSockets (atualizações em tempo real)
+- [ ] Mobile app
+- [ ] Integrações (Slack, Teams)
+
+---
+
+## 📚 Documentação
+
+- **[README.md](../README.md)** - Overview e quick start
+- **[CHANGELOG.md](../CHANGELOG.md)** - Histórico de versões
+- **[QUICK_GUIDE.md](./QUICK_GUIDE.md)** - Guia rápido de comandos
+- **[DOCKER.md](./DOCKER.md)** - Guia Docker completo
+- **[IMPLEMENTATION.md](./IMPLEMENTATION.md)** - Histórico técnico
+- **[MIGRATION.md](./MIGRATION.md)** - Migração PostgreSQL
+
+---
+
+**Versão**: 2.4.0  
+**Data**: 2025-11-21  
+**Status**: ✅ Produção
+

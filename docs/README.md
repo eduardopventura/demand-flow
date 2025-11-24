@@ -1,6 +1,32 @@
 # 📚 Documentação - Demand Flow
 
-> **Documentação organizada e consolidada v2.3.0**
+> **Documentação organizada e consolidada - Última atualização: v2.5.0**
+
+---
+
+## 🎯 Início Rápido
+
+| Documento | Descrição | Para Quem |
+|-----------|-----------|-----------|
+| **[QUICK_GUIDE.md](./QUICK_GUIDE.md)** ⭐ | Setup rápido e referência diária | Todos |
+| **[FEATURES.md](./FEATURES.md)** | Funcionalidades do sistema | Usuários |
+| **[releases/v2.5.0/](./releases/v2.5.0/)** 🆕 | Documentação da versão atual | Todos |
+
+---
+
+## 📦 Releases e Versões
+
+### **[releases/](./releases/)** - Documentação de Versões
+
+Documentação completa de cada versão do sistema.
+
+**Versão Atual: v2.5.0** (24/11/2025)
+- [CHANGELOG](./releases/v2.5.0/CHANGELOG.md) - Detalhes técnicos
+- [RELEASE_NOTES](./releases/v2.5.0/RELEASE_NOTES.md) - Guia do usuário  
+- [SUMMARY](./releases/v2.5.0/SUMMARY.md) - Resumo executivo
+- [DOCUMENTATION_INDEX](./releases/v2.5.0/DOCUMENTATION_INDEX.md) - Índice completo
+
+[Ver Todas as Versões →](./releases/)
 
 ---
 
@@ -19,6 +45,20 @@
 
 ---
 
+### 🎯 [FEATURES.md](./FEATURES.md)
+**Para: Conhecer as funcionalidades do sistema**
+
+- Sistema de Prazos (v2.4.0)
+- Indicadores visuais coloridos
+- Controle de datas
+- Templates e tarefas
+- Quadro Kanban
+- Relatórios
+
+**Quando ler**: Entender o que o sistema faz, onboarding de usuários
+
+---
+
 ### 🐳 [DOCKER.md](./DOCKER.md)
 **Para: Tudo sobre Docker**
 
@@ -33,7 +73,7 @@
 
 ---
 
-### 🌐 [DOMAIN_FIX.md](./DOMAIN_FIX.md) ⭐ NOVO
+### 🌐 [DOMAIN_FIX.md](./DOMAIN_FIX.md)
 **Para: Correção de CORS/Proxy ao usar domínio**
 
 - Problema: Funciona via IP mas não via domínio
@@ -50,7 +90,7 @@
 **Para: Detalhes técnicos e histórico**
 
 - Arquitetura completa
-- Evolução do código (v1.0 → v2.3)
+- Evolução do código (v1.0 → v2.5)
 - Stack tecnológica
 - Decisões de design
 - Métricas e melhorias
@@ -73,167 +113,133 @@
 
 ---
 
-## 📄 Arquivos na Raiz
+## 📄 Arquivos na Raiz do Projeto
 
 ### [../README.md](../README.md)
-Overview geral do projeto, quick start, stack
+Overview geral do projeto, quick start, stack tecnológica
+
+### [../VERSAO_ATUAL.txt](../VERSAO_ATUAL.txt)
+Informação rápida da versão atual e mudanças principais
 
 ### [../CHANGELOG.md](../CHANGELOG.md)
-Histórico de versões e mudanças
+Histórico completo de todas as versões
 
 ### [../SECURITY.md](../SECURITY.md)
-Considerações de segurança, boas práticas
-
-### [../MIGRATION_GUIDE.md](../MIGRATION_GUIDE.md)
-(Duplicado em `docs/MIGRATION.md` para consistência)
+Considerações de segurança e boas práticas
 
 ---
 
-## 🗂️ Estrutura Completa
+## 🎯 Recomendações de Leitura
+
+### Novo no Projeto?
+**Sequência:**
+1. [../README.md](../README.md) (5 min) - Overview
+2. [../VERSAO_ATUAL.txt](../VERSAO_ATUAL.txt) (1 min) - Versão atual
+3. [QUICK_GUIDE.md](./QUICK_GUIDE.md) (10 min) - Setup
+4. [FEATURES.md](./FEATURES.md) (5 min) - Funcionalidades
+5. [releases/v2.5.0/RELEASE_NOTES.md](./releases/v2.5.0/RELEASE_NOTES.md) (15 min) - Últimas mudanças
+
+**Total: ~35 minutos para estar produtivo**
+
+---
+
+### Conhece o Projeto e Quer Saber as Novidades?
+**Sequência rápida:**
+1. [../VERSAO_ATUAL.txt](../VERSAO_ATUAL.txt) (1 min)
+2. [releases/v2.5.0/RELEASE_NOTES.md](./releases/v2.5.0/RELEASE_NOTES.md) (5 min)
+
+**Total: ~6 minutos**
+
+---
+
+### Referência Diária?
+**Documento principal:**
+- [QUICK_GUIDE.md](./QUICK_GUIDE.md)
+
+**Marcar como favorito** no seu editor
+
+---
+
+### Troubleshooting?
+**90% dos problemas:**
+1. [QUICK_GUIDE.md](./QUICK_GUIDE.md) - Seção Troubleshooting
+2. [DOCKER.md](./DOCKER.md) - Troubleshooting detalhado
+
+**Problemas com domínio custom:**
+- [DOMAIN_FIX.md](./DOMAIN_FIX.md)
+
+---
+
+### Desenvolvimento e Manutenção?
+**Documentos técnicos:**
+- [releases/v2.5.0/CHANGELOG.md](./releases/v2.5.0/CHANGELOG.md) - Detalhes técnicos
+- [IMPLEMENTATION.md](./IMPLEMENTATION.md) - Arquitetura
+- [MIGRATION.md](./MIGRATION.md) - Plano futuro (PostgreSQL)
+
+---
+
+### Gestão e Apresentações?
+**Resumos executivos:**
+- [releases/v2.5.0/SUMMARY.md](./releases/v2.5.0/SUMMARY.md) - Métricas e impactos
+- [releases/](./releases/) - Histórico de versões
+
+---
+
+## 🏗️ Estrutura da Documentação
 
 ```
-demand-flow/
-├── README.md                  ⭐ Comece aqui
-├── CHANGELOG.md               📝 Histórico de versões
-├── SECURITY.md                🔒 Segurança
-├── MIGRATION_GUIDE.md         🔄 Migração (duplicado)
+docs/
+├── README.md              ← Você está aqui (índice principal)
 │
-├── docs/                      📚 Documentação organizada
-│   ├── README.md             📖 Este arquivo
-│   ├── QUICK_GUIDE.md        ⚡ Referência rápida
-│   ├── DOCKER.md             🐳 Guia Docker completo
-│   ├── IMPLEMENTATION.md     📦 Histórico técnico
-│   ├── MIGRATION.md          🔄 Migração PostgreSQL
-│   │
-│   └── archive/              🗄️ Documentos antigos
-│       ├── API_INTEGRATION.md
-│       ├── DOCKER_FIX.md
-│       ├── DOCKER_GUIDE.md
-│       ├── DOCKER_MVP.md
-│       ├── IMPLEMENTATION_SUMMARY.md
-│       ├── IMPROVEMENTS.md
-│       ├── SIMPLIFICATION.md
-│       ├── MIGRATION_COMPLETED.md
-│       ├── QUICK_START.md
-│       ├── QUICK_REFERENCE.md
-│       ├── CONFIG.md
-│       └── ... (referência histórica)
+├── 📖 Guias de Uso
+│   ├── QUICK_GUIDE.md     ⭐ Setup e referência diária
+│   ├── FEATURES.md        Funcionalidades do sistema
+│   └── DOMAIN_FIX.md      Fix domínio custom
 │
-├── src/                       💻 Código fonte
-├── backend/                   🔧 Backend JSON-Server
-└── scripts/                   🛠️ Utilitários
+├── 🔧 Guias Técnicos
+│   ├── DOCKER.md          Docker e containers
+│   ├── IMPLEMENTATION.md  Arquitetura e decisões
+│   └── MIGRATION.md       Plano PostgreSQL
+│
+└── 📦 Releases
+    └── releases/
+        ├── README.md           Histórico de versões
+        └── v2.5.0/             ⭐ Versão atual
+            ├── CHANGELOG.md            Detalhes técnicos
+            ├── RELEASE_NOTES.md        Guia do usuário
+            ├── SUMMARY.md              Resumo executivo
+            └── DOCUMENTATION_INDEX.md  Índice completo
 ```
 
 ---
 
-## 🎯 Fluxo de Leitura Recomendado
+## 💡 Dicas de Navegação
 
-### Novo no Projeto
-
-1. **[../README.md](../README.md)** - Overview
-2. **[QUICK_GUIDE.md](./QUICK_GUIDE.md)** - Setup e primeiros passos
-3. **[DOCKER.md](./DOCKER.md)** - Se tiver problemas
-4. **[IMPLEMENTATION.md](./IMPLEMENTATION.md)** - Entender arquitetura
-
-### Desenvolvedor Ativo
-
-- **[QUICK_GUIDE.md](./QUICK_GUIDE.md)** - Referência diária
-- **[../CHANGELOG.md](../CHANGELOG.md)** - Ver mudanças recentes
-- **[DOCKER.md](./DOCKER.md)** - Troubleshooting
-
-### Planejamento de Upgrade
-
-- **[MIGRATION.md](./MIGRATION.md)** - Migração PostgreSQL
-- **[../SECURITY.md](../SECURITY.md)** - Segurança
-- **[IMPLEMENTATION.md](./IMPLEMENTATION.md)** - Entender estado atual
+1. **Use Ctrl+F** (ou Cmd+F) para buscar nos documentos
+2. **Comece pelo README principal** no topo do projeto
+3. **Use QUICK_GUIDE.md** como referência diária
+4. **Consulte releases/** para ver mudanças de versões
+5. **Marque como favorito** os documentos que você mais usa
 
 ---
 
-## 📊 Consolidação
+## 📊 Estatísticas da Documentação
 
-Esta estrutura consolidou **15+ arquivos .md dispersos** em **4 guias principais**:
-
-| Antes | Depois | Benefício |
-|-------|--------|-----------|
-| 15 arquivos .md na raiz | 4 em `docs/` | Organização |
-| Informação duplicada | Consolidada | Clareza |
-| Difícil de navegar | Estrutura clara | Produtividade |
-| Múltiplos guias Docker | 1 guia completo | Simplicidade |
-| Histórico espalhado | 1 arquivo implementação | Contexto |
-
-### Arquivos Consolidados
-
-**DOCKER.md** ← 
-- DOCKER_MVP.md
-- DOCKER_GUIDE.md
-- DOCKER_FIX.md
-- REBUILD_FORCE.md
-
-**IMPLEMENTATION.md** ←
-- API_INTEGRATION.md
-- IMPLEMENTATION_SUMMARY.md
-- IMPROVEMENTS.md
-- SIMPLIFICATION.md
-- MIGRATION_COMPLETED.md
-- SUMMARY.md
-
-**QUICK_GUIDE.md** ←
-- QUICK_START.md
-- QUICK_REFERENCE.md
-- CONFIG.md
-
-**MIGRATION.md** ←
-- MIGRATION_GUIDE.md (mantido na raiz também)
+- **Guias de Uso:** 3 documentos
+- **Guias Técnicos:** 3 documentos  
+- **Releases Documentadas:** 1 versão (v2.5.0)
+- **Total:** ~3,500 linhas de documentação organizada
 
 ---
 
-## 🔍 Busca Rápida
+## 🔄 Histórico de Organização
 
-### Como fazer X?
-
-| Tarefa | Documento |
-|--------|-----------|
-| Subir aplicação | [QUICK_GUIDE.md](./QUICK_GUIDE.md) |
-| Mudar IP | [QUICK_GUIDE.md](./QUICK_GUIDE.md) → Configuração |
-| Ambiente dev | [QUICK_GUIDE.md](./QUICK_GUIDE.md) → Comandos |
-| Container não inicia | [DOCKER.md](./DOCKER.md) → Troubleshooting |
-| Erro de conexão | [DOCKER.md](./DOCKER.md) → Troubleshooting |
-| Entender arquitetura | [IMPLEMENTATION.md](./IMPLEMENTATION.md) |
-| Ver histórico | [IMPLEMENTATION.md](./IMPLEMENTATION.md) |
-| Migrar para PostgreSQL | [MIGRATION.md](./MIGRATION.md) |
-| Segurança | [../SECURITY.md](../SECURITY.md) |
+- **v2.5.0** (24/11/2025): Estrutura de releases criada, archive removido
+- **v2.3.1** (19/11/2025): Consolidação inicial, criação de docs/
+- **v2.3.0** (Nov/2025): Primeira organização da documentação
 
 ---
 
-## ✨ Novidades v2.3.0
-
-- ✅ Documentação consolidada (15 → 4 arquivos)
-- ✅ Estrutura organizada (`docs/`)
-- ✅ Arquivos antigos preservados (`docs/archive/`)
-- ✅ Guias focados e completos
-- ✅ Navegação clara
-- ✅ Zero duplicação de conteúdo
-
----
-
-## 🆘 Ajuda
-
-**Não encontrou o que precisa?**
-
-1. Consultar [QUICK_GUIDE.md](./QUICK_GUIDE.md) → seção Troubleshooting
-2. Ver [DOCKER.md](./DOCKER.md) → seção Troubleshooting
-3. Verificar [archive/](./archive/) → documentos antigos (referência histórica)
-
-**Quer contribuir com a documentação?**
-
-1. Manter estrutura de 4 guias principais
-2. Evitar duplicação
-3. Atualizar este README se adicionar novos docs
-4. Preservar arquivos antigos em `archive/`
-
----
-
-**Versão**: 2.3.0  
-**Última atualização**: 2025-11-19  
-**Status**: Documentação consolidada e organizada ✅
-
+**Última Atualização**: 24/11/2025  
+**Versão**: 2.5.0  
+**Status**: Documentação Completa e Organizada ✅

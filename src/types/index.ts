@@ -41,6 +41,7 @@ export interface Tarefa {
   id_tarefa: string;
   nome_tarefa: string;
   link_pai: string | null;
+  responsavel_id?: string; // Responsável específico da tarefa no template (opcional)
 }
 
 export interface Template {
@@ -59,6 +60,7 @@ export interface CampoPreenchido {
 export interface TarefaStatus {
   id_tarefa: string;
   concluida: boolean;
+  responsavel_id?: string; // Responsável específico da tarefa (se diferente do responsável da demanda)
 }
 
 export interface Demanda {
@@ -68,8 +70,12 @@ export interface Demanda {
   status: StatusDemanda;
   prioridade: Prioridade;
   responsavel_id: string;
+  tempo_esperado: number; // Tempo esperado em dias para conclusão (específico desta demanda)
   campos_preenchidos: CampoPreenchido[];
   tarefas_status: TarefaStatus[];
+  data_criacao: string; // ISO date string
+  data_finalizacao: string | null; // ISO date string ou null se não finalizada
+  prazo: boolean; // true se dentro do prazo, false se fora
 }
 
 // Context types

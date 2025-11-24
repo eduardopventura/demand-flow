@@ -193,6 +193,459 @@
         }
       ],
       "id": 1
+    },
+    {
+      "nome": "Atualizar Quadro de Horário ",
+      "prioridade": "Média",
+      "campos_preenchimento": [
+        {
+          "id_campo": "c1763602673911",
+          "nome_campo": "Nome do Aluno",
+          "tipo_campo": "texto",
+          "obrigatorio_criacao": true,
+          "complementa_nome": true
+        },
+        {
+          "id_campo": "c1763603050028",
+          "nome_campo": "Tipo Aluno",
+          "tipo_campo": "dropdown",
+          "obrigatorio_criacao": false,
+          "complementa_nome": false,
+          "opcoes_dropdown": [
+            "Pré",
+            "Atenção",
+            "Padrão"
+          ]
+        },
+        {
+          "id_campo": "c1763603050910",
+          "nome_campo": "1º Dia",
+          "tipo_campo": "dropdown",
+          "obrigatorio_criacao": false,
+          "complementa_nome": false,
+          "opcoes_dropdown": [
+            "Segunda",
+            "Terça",
+            "Quarta",
+            "Quinta",
+            "Sexta"
+          ]
+        },
+        {
+          "id_campo": "c1763603051692",
+          "nome_campo": "Tipo Aula 1º Dia",
+          "tipo_campo": "dropdown",
+          "obrigatorio_criacao": false,
+          "complementa_nome": false,
+          "opcoes_dropdown": [
+            "Presencial",
+            "Virtual"
+          ]
+        },
+        {
+          "id_campo": "c1763603187103",
+          "nome_campo": "Horário Aula 1º Dia",
+          "tipo_campo": "numero",
+          "obrigatorio_criacao": false,
+          "complementa_nome": false
+        },
+        {
+          "id_campo": "c1763603188201",
+          "nome_campo": "2º Dia",
+          "tipo_campo": "dropdown",
+          "obrigatorio_criacao": false,
+          "complementa_nome": false,
+          "opcoes_dropdown": [
+            "Segunda",
+            "Terça",
+            "Quarta",
+            "Quinta",
+            "Sexta"
+          ]
+        },
+        {
+          "id_campo": "c1763603264562",
+          "nome_campo": "Tipo Aula 2º Dia",
+          "tipo_campo": "dropdown",
+          "obrigatorio_criacao": false,
+          "complementa_nome": false,
+          "opcoes_dropdown": [
+            "Presencial",
+            "Virtual"
+          ]
+        },
+        {
+          "id_campo": "c1763603297001",
+          "nome_campo": "Horário Aula 2º Dia",
+          "tipo_campo": "numero",
+          "obrigatorio_criacao": false,
+          "complementa_nome": false
+        },
+        {
+          "id_campo": "c1763603315611",
+          "nome_campo": "Pai ou Responsável",
+          "tipo_campo": "texto",
+          "obrigatorio_criacao": false,
+          "complementa_nome": false
+        },
+        {
+          "id_campo": "c1763603340441",
+          "nome_campo": "E-Mail do Responsável",
+          "tipo_campo": "texto",
+          "obrigatorio_criacao": false,
+          "complementa_nome": false
+        },
+        {
+          "id_campo": "c1763603357440",
+          "nome_campo": "Contato",
+          "tipo_campo": "numero",
+          "obrigatorio_criacao": false,
+          "complementa_nome": false
+        },
+        {
+          "id_campo": "c1763603365631",
+          "nome_campo": "Data Cadastro",
+          "tipo_campo": "data",
+          "obrigatorio_criacao": false,
+          "complementa_nome": false
+        },
+        {
+          "id_campo": "c1763603380346",
+          "nome_campo": "Disciplinas",
+          "tipo_campo": "dropdown",
+          "obrigatorio_criacao": false,
+          "complementa_nome": false,
+          "opcoes_dropdown": [
+            "P-I-M",
+            "P-I",
+            "P-M",
+            "I-M",
+            "P",
+            "I",
+            "M"
+          ]
+        },
+        {
+          "id_campo": "c1763603429216",
+          "nome_campo": "Autorizou Imagem",
+          "tipo_campo": "dropdown",
+          "obrigatorio_criacao": false,
+          "complementa_nome": false,
+          "opcoes_dropdown": [
+            "Sim",
+            "Não"
+          ]
+        }
+      ],
+      "tarefas": [
+        {
+          "id_tarefa": "ta1763603449637",
+          "nome_tarefa": "Atualizar Quadro de Horário",
+          "link_pai": null
+        }
+      ],
+      "id": 2
+    },
+    {
+      "nome": "Solicitar Ausência",
+      "prioridade": "Alta",
+      "campos_preenchimento": [
+        {
+          "id_campo": "c1763918773356",
+          "nome_campo": "Tipo de Ausência",
+          "tipo_campo": "dropdown",
+          "obrigatorio_criacao": true,
+          "complementa_nome": false,
+          "opcoes_dropdown": [
+            "Saída da Unidade",
+            "Transferência",
+            "Concluinte",
+            "Concluinte Aluno Multi",
+            "Troca de Disciplina",
+            "Troca de Disciplina Aluno Multi"
+          ]
+        },
+        {
+          "id_campo": "c1763906228831",
+          "nome_campo": "Nome do Aluno ",
+          "tipo_campo": "texto",
+          "obrigatorio_criacao": true,
+          "complementa_nome": true
+        },
+        {
+          "id_campo": "c1763906336289",
+          "nome_campo": "Contratante",
+          "tipo_campo": "texto",
+          "obrigatorio_criacao": true,
+          "complementa_nome": false
+        },
+        {
+          "id_campo": "c1763906547043",
+          "nome_campo": "Fidelidade Ativa?",
+          "tipo_campo": "dropdown",
+          "obrigatorio_criacao": false,
+          "complementa_nome": false,
+          "opcoes_dropdown": [
+            "Tradicional",
+            "Sim",
+            "Não"
+          ]
+        },
+        {
+          "id_campo": "c1763906626548",
+          "nome_campo": "Valor de multa de fidelidade (zero ou valor)",
+          "tipo_campo": "numero",
+          "obrigatorio_criacao": false,
+          "complementa_nome": false
+        },
+        {
+          "id_campo": "c1763906657967",
+          "nome_campo": "Valor da Mensalidade ",
+          "tipo_campo": "numero",
+          "obrigatorio_criacao": false,
+          "complementa_nome": false
+        },
+        {
+          "id_campo": "c1763906858548",
+          "nome_campo": "Valor de débitos de mensalidade (zero ou valor)",
+          "tipo_campo": "numero",
+          "obrigatorio_criacao": false,
+          "complementa_nome": false
+        },
+        {
+          "id_campo": "c1763906985726",
+          "nome_campo": "Tipo de Recorrência ",
+          "tipo_campo": "dropdown",
+          "obrigatorio_criacao": false,
+          "complementa_nome": false,
+          "opcoes_dropdown": [
+            "Boleto",
+            "Cartão Recorrente"
+          ]
+        },
+        {
+          "id_campo": "c1763907064111",
+          "nome_campo": "Data Contrato",
+          "tipo_campo": "data",
+          "obrigatorio_criacao": false,
+          "complementa_nome": false
+        },
+        {
+          "id_campo": "c1763907084880",
+          "nome_campo": "Disciplina para ausência ",
+          "tipo_campo": "dropdown",
+          "obrigatorio_criacao": true,
+          "complementa_nome": false,
+          "opcoes_dropdown": [
+            "P-I-M",
+            "P-I",
+            "P-M",
+            "I-M",
+            "P",
+            "I",
+            "M"
+          ]
+        },
+        {
+          "id_campo": "c1763907530271",
+          "nome_campo": "Mês para ausência",
+          "tipo_campo": "dropdown",
+          "obrigatorio_criacao": true,
+          "complementa_nome": false,
+          "opcoes_dropdown": [
+            "janeiro",
+            "fevereiro",
+            "março",
+            "abril",
+            "maio",
+            "junho",
+            "julho",
+            "agosto",
+            "setembro",
+            "outubro",
+            "novembro",
+            "dezembro"
+          ]
+        },
+        {
+          "id_campo": "c1763907252624",
+          "nome_campo": "Motivo Taxa de Evasão por Inadimplência (TEI) - Fator financeiro ",
+          "tipo_campo": "dropdown",
+          "obrigatorio_criacao": true,
+          "complementa_nome": false,
+          "opcoes_dropdown": [
+            "0",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5"
+          ]
+        },
+        {
+          "id_campo": "c1763907756652",
+          "nome_campo": "Motivo Taxa de Evasão por Inadimplência (TEI) - Inadimplência ",
+          "tipo_campo": "dropdown",
+          "obrigatorio_criacao": true,
+          "complementa_nome": false,
+          "opcoes_dropdown": [
+            "0",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5"
+          ]
+        },
+        {
+          "id_campo": "c1763908021399",
+          "nome_campo": "Motivo Taxa de Sucesso em Tarefas-Chave (TSTC) - Desmotivação por \"Lição Chata\"",
+          "tipo_campo": "dropdown",
+          "obrigatorio_criacao": true,
+          "complementa_nome": false,
+          "opcoes_dropdown": [
+            "0",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5"
+          ]
+        },
+        {
+          "id_campo": "c1763908476684",
+          "nome_campo": "Motivo Taxa de Sucesso em Tarefas-Chave (TSTC) - Desmotivação por Ponto de Partida Inadequado",
+          "tipo_campo": "dropdown",
+          "obrigatorio_criacao": true,
+          "complementa_nome": false,
+          "opcoes_dropdown": [
+            "0",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5"
+          ]
+        },
+        {
+          "id_campo": "c1763908587199",
+          "nome_campo": "Motivo Taxa de Acertos na Conferência Doméstica (TACD) - Falta de Engajamento dos Pais",
+          "tipo_campo": "dropdown",
+          "obrigatorio_criacao": true,
+          "complementa_nome": false,
+          "opcoes_dropdown": [
+            "0",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5"
+          ]
+        },
+        {
+          "id_campo": "c1763908630842",
+          "nome_campo": "Motivo Taxa de Acertos na Conferência Doméstica (TACD) - Falta de Apoio dos Pais ",
+          "tipo_campo": "dropdown",
+          "obrigatorio_criacao": true,
+          "complementa_nome": false,
+          "opcoes_dropdown": [
+            "0",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5"
+          ]
+        },
+        {
+          "id_campo": "c1763908722758",
+          "nome_campo": "Motivo Taxa de Retenção por Flexibilização (TRF) - Rotina Extracurricular Conflitante ",
+          "tipo_campo": "dropdown",
+          "obrigatorio_criacao": true,
+          "complementa_nome": false,
+          "opcoes_dropdown": [
+            "0",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5"
+          ]
+        },
+        {
+          "id_campo": "c1763908771346",
+          "nome_campo": "Motivo Taxa de Retenção por Flexibilização (TRF) - Mudança Logística",
+          "tipo_campo": "dropdown",
+          "obrigatorio_criacao": true,
+          "complementa_nome": false,
+          "opcoes_dropdown": [
+            "0",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5"
+          ]
+        },
+        {
+          "id_campo": "c1763908815795",
+          "nome_campo": "Motivo Índice de Avanço Metodológico (IAM) - Não atingimento do ano escolar a curto prazo",
+          "tipo_campo": "dropdown",
+          "obrigatorio_criacao": true,
+          "complementa_nome": false,
+          "opcoes_dropdown": [
+            "0",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5"
+          ]
+        },
+        {
+          "id_campo": "c1763908869933",
+          "nome_campo": "Motivo Índice de Avanço Metodológico (IAM) - Não atingimento de Metas de Curto Prazo ",
+          "tipo_campo": "dropdown",
+          "obrigatorio_criacao": true,
+          "complementa_nome": false,
+          "opcoes_dropdown": [
+            "0",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5"
+          ]
+        }
+      ],
+      "tarefas": [
+        {
+          "id_tarefa": "ta1763908921237",
+          "nome_tarefa": "Calcular débitos de mensalidade e/ou de multas",
+          "link_pai": null
+        },
+        {
+          "id_tarefa": "ta1763908932911",
+          "nome_tarefa": "Arquivar ou Ajustar Recorrência ",
+          "link_pai": null
+        },
+        {
+          "id_tarefa": "ta1763909015091",
+          "nome_tarefa": "•\tAjustar Quadro de horário e ajustar planilha de matrícula",
+          "link_pai": null
+        },
+        {
+          "id_tarefa": "ta1763917295146",
+          "nome_tarefa": "Elaborar Aditivo",
+          "link_pai": null
+        },
+        {
+          "id_tarefa": "ta1763928918579",
+          "nome_tarefa": "Proceder assinatura do Aditivo",
+          "link_pai": "ta1763917295146"
+        }
+      ],
+      "id": 3
     }
   ],
   "demandas": []

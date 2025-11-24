@@ -28,6 +28,7 @@ export const NovaDemandaModal = ({ open, onOpenChange }: NovaDemandaModalProps) 
   const { templates, usuarios, addDemanda, getTemplate } = useData();
   const [templateId, setTemplateId] = useState("");
   const [responsavelId, setResponsavelId] = useState("");
+  const [tempoEsperado, setTempoEsperado] = useState<number>(7);
   const [camposValores, setCamposValores] = useState<Record<string, string>>({});
 
   const templateSelecionado = getTemplate(templateId);
@@ -39,6 +40,8 @@ export const NovaDemandaModal = ({ open, onOpenChange }: NovaDemandaModalProps) 
         initialValues[campo.id_campo] = "";
       });
       setCamposValores(initialValues);
+      // Define tempo esperado padrão como 7 dias
+      setTempoEsperado(7);
     }
   }, [templateSelecionado]);
 
@@ -156,6 +159,7 @@ export const NovaDemandaModal = ({ open, onOpenChange }: NovaDemandaModalProps) 
       status: "Criada" as const,
       prioridade: templateSelecionado.prioridade,
       responsavel_id: responsavelId,
+      tempo_esperado: tempoEsperado,
       campos_preenchidos: Object.entries(camposValores).map(([id_campo, valor]) => ({
         id_campo,
         valor,
@@ -163,7 +167,11 @@ export const NovaDemandaModal = ({ open, onOpenChange }: NovaDemandaModalProps) 
       tarefas_status: templateSelecionado.tarefas.map((t) => ({
         id_tarefa: t.id_tarefa,
         concluida: false,
+        responsavel_id: t.responsavel_id, // Propaga o responsável do template para a tarefa
       })),
+      data_criacao: new Date().toISOString(),
+      data_finalizacao: null,
+      prazo: true, // Toda demanda começa dentro do prazo
     };
 
     addDemanda(novaDemanda);
@@ -173,6 +181,7 @@ export const NovaDemandaModal = ({ open, onOpenChange }: NovaDemandaModalProps) 
     // Reset
     setTemplateId("");
     setResponsavelId("");
+    setTempoEsperado(7);
     setCamposValores({});
   };
 
@@ -214,6 +223,17 @@ export const NovaDemandaModal = ({ open, onOpenChange }: NovaDemandaModalProps) 
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Tempo Esperado (dias) *</Label>
+            <Input
+              type="number"
+              min="1"
+              value={tempoEsperado}
+              onChange={(e) => setTempoEsperado(parseInt(e.target.value) || 1)}
+              placeholder="Dias esperados para conclusão"
+            />
           </div>
 
           {templateSelecionado && templateSelecionado.campos_preenchimento.length > 0 && (

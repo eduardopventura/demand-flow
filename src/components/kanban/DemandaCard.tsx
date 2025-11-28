@@ -76,56 +76,62 @@ const DemandaCardComponent = ({ demanda, onClick, isDragging }: DemandaCardProps
       ref={setNodeRef}
       style={style}
       className={cn(
-        "p-4 cursor-pointer hover:shadow-md transition-all",
+        "p-3 sm:p-4 cursor-pointer hover:shadow-md transition-all touch-manipulation",
         classeBorda,
         isDragging && "opacity-50 rotate-3"
       )}
       onClick={onClick}
     >
-      <div className="flex items-start justify-between gap-2 mb-3">
-        <h4 className="font-semibold text-foreground flex-1">{demanda.nome_demanda}</h4>
-        <div className="flex items-center gap-1">
+      <div className="flex items-start justify-between gap-2 mb-2 sm:mb-3">
+        <h4 className="font-semibold text-foreground flex-1 text-sm sm:text-base line-clamp-2">
+          {demanda.nome_demanda}
+        </h4>
+        <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                className="h-8 w-8 sm:h-6 sm:w-6 text-muted-foreground hover:text-destructive"
                 onClick={(e) => e.stopPropagation()}
               >
-                <Trash2 className="w-3 h-3" />
+                <Trash2 className="w-4 h-4 sm:w-3 sm:h-3" />
               </Button>
             </AlertDialogTrigger>
-            <AlertDialogContent>
+            <AlertDialogContent className="mx-4 sm:mx-auto max-w-[calc(100vw-2rem)] sm:max-w-lg">
               <AlertDialogHeader>
                 <AlertDialogTitle>Excluir Demanda</AlertDialogTitle>
                 <AlertDialogDescription>
                   Tem certeza que deseja excluir a demanda "{demanda.nome_demanda}"? Esta ação não pode ser desfeita.
                 </AlertDialogDescription>
               </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+                <AlertDialogCancel className="w-full sm:w-auto">Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete} className="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90">
                   Excluir
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-          <div {...listeners} {...attributes} className="cursor-grab active:cursor-grabbing">
-            <GripVertical className="w-4 h-4 text-muted-foreground" />
+          <div 
+            {...listeners} 
+            {...attributes} 
+            className="cursor-grab active:cursor-grabbing p-1.5 sm:p-0 touch-manipulation"
+          >
+            <GripVertical className="w-5 h-5 sm:w-4 sm:h-4 text-muted-foreground" />
           </div>
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
         {Object.entries(usuariosComTarefas).map(([usuarioId, count]) => {
           const usuario = getUsuario(usuarioId);
           if (!usuario) return null;
           
           return (
-            <div key={usuarioId} className="flex items-center gap-1 text-xs bg-muted px-2 py-1 rounded-md">
+            <div key={usuarioId} className="flex items-center gap-1 text-xs bg-muted px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md">
               <User className="w-3 h-3" />
-              <span className="font-medium">{getPrimeiroNome(usuario.nome)}</span>
+              <span className="font-medium truncate max-w-[80px] sm:max-w-none">{getPrimeiroNome(usuario.nome)}</span>
               <span className="text-muted-foreground">({count})</span>
             </div>
           );
@@ -136,13 +142,13 @@ const DemandaCardComponent = ({ demanda, onClick, isDragging }: DemandaCardProps
       </div>
 
       {/* Datas de criação e finalização */}
-      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-2">
-        <Calendar className="w-3 h-3" />
-        <span>{formatarData(demanda.data_criacao)}</span>
+      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1.5 sm:mt-2">
+        <Calendar className="w-3 h-3 shrink-0" />
+        <span className="truncate">{formatarData(demanda.data_criacao)}</span>
         {demanda.data_finalizacao && (
           <>
             <span>-</span>
-            <span>{formatarData(demanda.data_finalizacao)}</span>
+            <span className="truncate">{formatarData(demanda.data_finalizacao)}</span>
           </>
         )}
       </div>

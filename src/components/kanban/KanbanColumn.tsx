@@ -9,12 +9,40 @@ interface KanbanColumnProps {
   status: StatusDemanda;
   demandas: Demanda[];
   onCardClick: (demanda: Demanda) => void;
+  isMobile?: boolean;
 }
 
-const KanbanColumnComponent = ({ status, demandas, onCardClick }: KanbanColumnProps) => {
+const KanbanColumnComponent = ({ status, demandas, onCardClick, isMobile }: KanbanColumnProps) => {
   const { setNodeRef, isOver } = useDroppable({ id: status });
   const config = STATUS_CONFIG[status];
 
+  // Mobile layout - simplified without header (tabs already show status)
+  if (isMobile) {
+    return (
+      <div
+        ref={setNodeRef}
+        className={cn(
+          "flex-1 space-y-3 overflow-y-auto",
+          isOver && "ring-2 ring-primary/50 rounded-lg"
+        )}
+      >
+        {demandas.map((demanda) => (
+          <DemandaCard
+            key={demanda.id}
+            demanda={demanda}
+            onClick={() => onCardClick(demanda)}
+          />
+        ))}
+        {demandas.length === 0 && (
+          <div className="text-center text-muted-foreground text-sm py-12 bg-muted/30 rounded-lg">
+            Nenhuma demanda neste status
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Desktop layout - original with header
   return (
     <div
       ref={setNodeRef}
@@ -55,6 +83,7 @@ export const KanbanColumn = memo(KanbanColumnComponent, (prevProps, nextProps) =
   return (
     prevProps.status === nextProps.status &&
     prevProps.demandas.length === nextProps.demandas.length &&
-    prevProps.demandas.every((d, i) => d.id === nextProps.demandas[i]?.id)
+    prevProps.demandas.every((d, i) => d.id === nextProps.demandas[i]?.id) &&
+    prevProps.isMobile === nextProps.isMobile
   );
 });

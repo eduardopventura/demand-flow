@@ -9,12 +9,12 @@ COPY package*.json ./
 # Install ALL dependencies (including dev)
 RUN npm install
 
-# Copy source
+# Copy source (will be overridden by volumes in docker-compose.dev.yml)
 COPY . .
 
 # Expose Vite dev server port
 EXPOSE 8080
 
-# Start dev server
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+# Start dev server with host binding for Docker
+CMD ["npx", "vite", "--host", "0.0.0.0", "--port", "8080"]
 

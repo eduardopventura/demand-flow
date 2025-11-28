@@ -1,0 +1,50 @@
+# Cursor Rules - Gestor de Demandas
+
+## Regras Gerais
+
+### Build e Execução
+- NUNCA execute comandos de build (`npm run build`, `bun run build`, `vite build`, etc.)
+- Builds são gerenciados pelo pipeline de CI/CD, não pelo desenvolvedor local
+- NUNCA execute `npm install` ou `bun install` localmente - as dependências são instaladas dentro do container Docker
+
+### Ambiente de Desenvolvimento (Docker)
+- Sempre use Docker para rodar o projeto
+- Comando para desenvolvimento: `docker-compose -f docker-compose.dev.yml up --build`
+- Comando alternativo: `./scripts/start.sh dev`
+- NÃO é necessário instalar Node.js ou npm localmente
+- O hot reload funciona automaticamente via volumes do Docker
+- Acesso: http://localhost:3061 (frontend) e http://localhost:3001 (backend)
+
+### Arquitetura de Rede Docker
+- Frontend e Backend se comunicam via hostname Docker "backend"
+- Frontend usa "/api" que é redirecionado via proxy (Vite em dev, Nginx em prod)
+- NÃO hardcode IPs - use sempre os hostnames Docker
+
+### Documentação
+- **TODOS** os arquivos de documentação devem estar na pasta `docs/`
+- O `README.md` na raiz deve ser apenas um resumo executivo
+- Se necessário criar novos documentos, organize em subpastas dentro de `docs/` se fizer sentido
+- Mantenha a documentação atualizada com as mudanças de código
+
+### Código e Estilo
+- Use TypeScript para todos os arquivos de código
+- Siga as convenções de estilo do projeto (Tailwind CSS, shadcn/ui)
+- Mantenha a responsividade mobile-first em novos componentes
+- Use variáveis CSS do design system definidas em index.css
+
+### Estrutura de Código
+- Componentes devem estar em `src/components/`
+- Páginas devem estar em `src/pages/`
+- Hooks customizados em `src/hooks/`
+- Tipos TypeScript em `src/types/`
+- Utilitários em `src/utils/`
+
+### Padrões de Responsividade
+- Mobile: < 640px (default)
+- Tablet: sm: >= 640px
+- Desktop: md: >= 768px, lg: >= 1024px
+- Use classes responsivas do Tailwind (sm:, md:, lg:)
+
+### Commits e Versionamento
+- Não gere arquivos de build ou dist
+- Não commite node_modules ou arquivos temporários

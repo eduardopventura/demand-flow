@@ -32,22 +32,22 @@ export default function Templates() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="p-6 border-b bg-card">
-        <div className="flex justify-between items-center">
+      <div className="p-4 sm:p-6 border-b bg-card">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Templates</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Templates</h1>
+            <p className="text-muted-foreground mt-1 text-sm sm:text-base">
               Crie e gerencie modelos de demandas
             </p>
           </div>
-          <Button onClick={() => setModalOpen(true)} size="lg" className="gap-2">
+          <Button onClick={() => setModalOpen(true)} size="lg" className="gap-2 w-full sm:w-auto">
             <Plus className="w-5 h-5" />
-            Novo Template
+            <span>Novo Template</span>
           </Button>
         </div>
       </div>
 
-      <div className="flex-1 p-6 overflow-auto">
+      <div className="flex-1 p-4 sm:p-6 overflow-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {templates.map((template) => (
             <Card key={template.id} className="p-6">

@@ -3,6 +3,7 @@ import { useData } from "@/contexts/DataContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -18,7 +19,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, Mail, User } from "lucide-react";
 import { toast } from "sonner";
 import type { Usuario } from "@/contexts/DataContext";
 
@@ -75,21 +76,66 @@ export default function Usuarios() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="p-6 border-b bg-card">
-        <div className="flex justify-between items-center">
+      <div className="p-4 sm:p-6 border-b bg-card">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Usuários</h1>
-            <p className="text-muted-foreground mt-1">Gerencie os usuários do sistema</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Usuários</h1>
+            <p className="text-muted-foreground mt-1 text-sm sm:text-base">Gerencie os usuários do sistema</p>
           </div>
-          <Button onClick={() => handleOpenModal()} size="lg" className="gap-2">
+          <Button onClick={() => handleOpenModal()} size="lg" className="gap-2 w-full sm:w-auto">
             <Plus className="w-5 h-5" />
-            Novo Usuário
+            <span>Novo Usuário</span>
           </Button>
         </div>
       </div>
 
-      <div className="flex-1 p-6 overflow-auto">
-        <div className="bg-card rounded-lg border">
+      <div className="flex-1 p-4 sm:p-6 overflow-auto">
+        {/* Mobile Card View */}
+        <div className="md:hidden space-y-3">
+          {usuarios.map((usuario) => (
+            <Card key={usuario.id} className="p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-foreground truncate">{usuario.nome}</h3>
+                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-1">
+                    <Mail className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">{usuario.email}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-1">
+                    <User className="w-3.5 h-3.5 shrink-0" />
+                    <span>@{usuario.login}</span>
+                  </div>
+                </div>
+                <div className="flex gap-1 shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleOpenModal(usuario)}
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    onClick={() => handleDelete(usuario.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          ))}
+          {usuarios.length === 0 && (
+            <div className="text-center py-12 text-muted-foreground bg-card rounded-lg border">
+              Nenhum usuário cadastrado
+            </div>
+          )}
+        </div>
+
+        {/* Desktop Table View */}
+        <div className="hidden md:block bg-card rounded-lg border">
           <Table>
             <TableHeader>
               <TableRow>

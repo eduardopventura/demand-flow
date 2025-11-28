@@ -65,60 +65,89 @@ export default function Relatorios() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="p-6 border-b bg-card">
-        <div className="flex justify-between items-center">
+      <div className="p-4 sm:p-6 border-b bg-card">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Relatórios</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Relatórios</h1>
+            <p className="text-muted-foreground mt-1 text-sm sm:text-base">
               Visualize estatísticas e exporte dados
             </p>
           </div>
-          <Button onClick={handleExportCSV} size="lg" className="gap-2">
+          <Button onClick={handleExportCSV} size="lg" className="gap-2 w-full sm:w-auto">
             <Download className="w-5 h-5" />
-            Exportar CSV
+            <span>Exportar CSV</span>
           </Button>
         </div>
       </div>
 
-      <div className="flex-1 p-6 overflow-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="flex-1 p-4 sm:p-6 overflow-auto">
+        {/* Estatísticas Gerais - Moved to top for mobile visibility */}
+        <Card className="p-4 sm:p-6 mb-4 sm:mb-6">
+          <h3 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6">Resumo Geral</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
+            <div className="text-center sm:text-left">
+              <p className="text-muted-foreground text-xs sm:text-sm mb-1">Total de Demandas</p>
+              <p className="text-2xl sm:text-3xl font-bold">{demandas.length}</p>
+            </div>
+            <div className="text-center sm:text-left">
+              <p className="text-muted-foreground text-xs sm:text-sm mb-1">Criadas</p>
+              <p className="text-2xl sm:text-3xl font-bold text-primary">
+                {demandas.filter((d) => d.status === "Criada").length}
+              </p>
+            </div>
+            <div className="text-center sm:text-left">
+              <p className="text-muted-foreground text-xs sm:text-sm mb-1">Em Andamento</p>
+              <p className="text-2xl sm:text-3xl font-bold text-warning">
+                {demandas.filter((d) => d.status === "Em Andamento").length}
+              </p>
+            </div>
+            <div className="text-center sm:text-left">
+              <p className="text-muted-foreground text-xs sm:text-sm mb-1">Finalizadas</p>
+              <p className="text-2xl sm:text-3xl font-bold text-success">
+                {demandas.filter((d) => d.status === "Finalizada").length}
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           {/* Gráfico de Barras */}
-          <Card className="p-6">
-            <h3 className="text-xl font-semibold mb-6">Demandas Concluídas por Mês</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={demandasPorMes}>
+          <Card className="p-4 sm:p-6">
+            <h3 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6">Demandas Concluídas por Mês</h3>
+            <ResponsiveContainer width="100%" height={250} className="sm:h-[300px]">
+              <BarChart data={demandasPorMes} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis dataKey="mes" className="text-sm" />
-                <YAxis className="text-sm" />
+                <XAxis dataKey="mes" className="text-xs sm:text-sm" tick={{ fontSize: 12 }} />
+                <YAxis className="text-xs sm:text-sm" tick={{ fontSize: 12 }} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: "hsl(var(--card))",
                     border: "1px solid hsl(var(--border))",
                     borderRadius: "var(--radius)",
+                    fontSize: "12px",
                   }}
                 />
-                <Legend />
+                <Legend wrapperStyle={{ fontSize: "12px" }} />
                 <Bar dataKey="concluidas" fill="hsl(217, 91%, 60%)" name="Concluídas" />
               </BarChart>
             </ResponsiveContainer>
           </Card>
 
           {/* Gráfico de Pizza */}
-          <Card className="p-6">
-            <h3 className="text-xl font-semibold mb-6">Total de Demandas por Tipo</h3>
-            <ResponsiveContainer width="100%" height={300}>
+          <Card className="p-4 sm:p-6">
+            <h3 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6">Total de Demandas por Tipo</h3>
+            <ResponsiveContainer width="100%" height={250} className="sm:h-[300px]">
               <PieChart>
                 <Pie
                   data={demandasPorTipo}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ nome, percent }) => `${nome} (${(percent * 100).toFixed(0)}%)`}
-                  outerRadius={100}
+                  outerRadius={80}
                   fill="#8884d8"
                   dataKey="total"
                 >
-                  {demandasPorTipo.map((entry, index) => (
+                  {demandasPorTipo.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
@@ -127,39 +156,16 @@ export default function Relatorios() {
                     backgroundColor: "hsl(var(--card))",
                     border: "1px solid hsl(var(--border))",
                     borderRadius: "var(--radius)",
+                    fontSize: "12px",
                   }}
+                  formatter={(value, _, props) => [value, props.payload.nome]}
+                />
+                <Legend 
+                  wrapperStyle={{ fontSize: "12px" }} 
+                  formatter={(_, entry) => entry.payload?.nome || ""}
                 />
               </PieChart>
             </ResponsiveContainer>
-          </Card>
-
-          {/* Estatísticas Gerais */}
-          <Card className="p-6 lg:col-span-2">
-            <h3 className="text-xl font-semibold mb-6">Resumo Geral</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              <div>
-                <p className="text-muted-foreground text-sm mb-1">Total de Demandas</p>
-                <p className="text-3xl font-bold">{demandas.length}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground text-sm mb-1">Criadas</p>
-                <p className="text-3xl font-bold text-primary">
-                  {demandas.filter((d) => d.status === "Criada").length}
-                </p>
-              </div>
-              <div>
-                <p className="text-muted-foreground text-sm mb-1">Em Andamento</p>
-                <p className="text-3xl font-bold text-warning">
-                  {demandas.filter((d) => d.status === "Em Andamento").length}
-                </p>
-              </div>
-              <div>
-                <p className="text-muted-foreground text-sm mb-1">Finalizadas</p>
-                <p className="text-3xl font-bold text-success">
-                  {demandas.filter((d) => d.status === "Finalizada").length}
-                </p>
-              </div>
-            </div>
           </Card>
         </div>
       </div>

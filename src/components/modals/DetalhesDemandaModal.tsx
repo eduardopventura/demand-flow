@@ -135,15 +135,15 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-full max-w-[calc(100vw-2rem)] sm:max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-3">
-            <span>{demanda.nome_demanda}</span>
-            <Badge variant="secondary">{demanda.prioridade}</Badge>
+          <DialogTitle className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 pr-6">
+            <span className="text-base sm:text-lg line-clamp-2">{demanda.nome_demanda}</span>
+            <Badge variant="secondary" className="w-fit">{demanda.prioridade}</Badge>
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
+        <div className="space-y-4 sm:space-y-6 py-2 sm:py-4">
           <div className="space-y-2">
             <Label>Responsável</Label>
             <Select value={responsavelId} onValueChange={setResponsavelId}>
@@ -161,13 +161,13 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
           </div>
 
           <div className="space-y-3 border-t pt-4">
-            <Label className="text-base">Campos de Preenchimento</Label>
+            <Label className="text-sm sm:text-base">Campos de Preenchimento</Label>
             {template.campos_preenchimento.map((campo) => {
               const value = camposValores[campo.id_campo] || "";
               
               return (
                 <div key={campo.id_campo} className="space-y-2">
-                  <Label>{campo.nome_campo}</Label>
+                  <Label className="text-sm">{campo.nome_campo}</Label>
                   {campo.tipo_campo === "numero" ? (
                     <Input
                       type="number"
@@ -231,8 +231,8 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
 
           <div className="space-y-3 border-t pt-4">
             <div className="flex items-center justify-between">
-              <Label className="text-base">Tarefas</Label>
-              <span className="text-sm text-muted-foreground">
+              <Label className="text-sm sm:text-base">Tarefas</Label>
+              <span className="text-xs sm:text-sm text-muted-foreground">
                 {tarefasStatus.filter((t) => t.concluida).length}/{tarefasStatus.length}
               </span>
             </div>
@@ -249,26 +249,26 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
                 return (
                   <div
                     key={tarefa.id_tarefa}
-                    className="p-3 rounded-lg border bg-card space-y-2"
+                    className="p-2.5 sm:p-3 rounded-lg border bg-card space-y-2"
                   >
-                    <div className="flex items-start gap-3">
+                    <div className="flex items-start gap-2 sm:gap-3">
                       <Checkbox
                         checked={status?.concluida || false}
                         onCheckedChange={(checked) =>
                           handleTarefaToggle(tarefa.id_tarefa, checked as boolean)
                         }
-                        className="mt-1"
+                        className="mt-1 h-5 w-5 sm:h-4 sm:w-4"
                       />
-                      <div className="flex-1">
-                        <p className="font-medium">{tarefa.nome_tarefa}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm sm:text-base">{tarefa.nome_tarefa}</p>
                         {tarefaPai && (
-                          <p className="text-sm text-muted-foreground mt-1">
+                          <p className="text-xs sm:text-sm text-muted-foreground mt-1 truncate">
                             Depende de: {tarefaPai.nome_tarefa}
                           </p>
                         )}
                       </div>
                     </div>
-                    <div className="ml-8 space-y-1">
+                    <div className="ml-7 sm:ml-8 space-y-1">
                       <Label className="text-xs">Responsável</Label>
                       <Select
                         value={responsavelTarefa}
@@ -282,7 +282,7 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
                           );
                         }}
                       >
-                        <SelectTrigger className="h-8">
+                        <SelectTrigger className="h-8 text-sm">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -302,11 +302,11 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
             Fechar
           </Button>
-          <Button onClick={handleSalvar}>Salvar Alterações</Button>
+          <Button onClick={handleSalvar} className="w-full sm:w-auto">Salvar Alterações</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

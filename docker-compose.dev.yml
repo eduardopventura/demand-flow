@@ -1,30 +1,68 @@
 # Docker Compose - Development Environment
-# Ambiente paralelo para testes sem interferir na produção
+# Ambiente de desenvolvimento com hot reload
 # 
 # Uso:
-#   docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+#   docker-compose -f docker-compose.dev.yml up --build
+#   ou: ./scripts/start.sh dev
 #
-# Diferenças:
-#   - Portas diferentes (3001 backend, 3061 frontend)
-#   - Rede separada (demand-flow-dev-network)
-#   - Mesmas configs de produção (fidelidade máxima)
+# Características:
+#   - Hot reload no frontend (Vite dev server)
+#   - Volumes para sync de código
+#   - Rede Docker com hostname "backend" resolvido automaticamente
+#   - Database separado (db-dev.json)
 
 version: '3.8'
 
 services:
+  # Backend API - JSON-Server
   backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: demand-flow-backend-dev
+    restart: unless-stopped
     ports:
-      - "3001:3000"  # Porta diferente para não conflitar
+      - "3001:3000"
     volumes:
-      - ./backend/db-dev.json:/app/db.json  # Database separado
+      - ./backend/db-dev.json:/app/db.json
+      - ./backend/server.js:/app/server.js  # Hot reload do servidor
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
     networks:
       - demand-flow-dev-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
+  # Frontend - Vite Dev Server com Hot Reload
   frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
     container_name: demand-flow-frontend-dev
+    restart: unless-stopped
     ports:
-      - "3061:80"  # Porta diferente para não conflitar
+      - "3061:8080"
+    volumes:
+      # Sync do código fonte para hot reload
+      - ./src:/app/src
+      - ./public:/app/public
+      - ./index.html:/app/index.html
+      - ./vite.config.ts:/app/vite.config.ts
+      - ./tailwind.config.ts:/app/tailwind.config.ts
+      - ./tsconfig.json:/app/tsconfig.json
+      - ./tsconfig.app.json:/app/tsconfig.app.json
+      # Evita sobrescrever node_modules do container
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      backend:
+        condition: service_healthy
     networks:
       - demand-flow-dev-network
 
@@ -32,4 +70,3 @@ networks:
   demand-flow-dev-network:
     driver: bridge
     name: demand-flow-dev-network
-

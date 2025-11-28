@@ -232,14 +232,14 @@ export const EditorTemplateModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-full max-w-[calc(100vw-2rem)] sm:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{template ? "Editar Template" : "Novo Template"}</DialogTitle>
+          <DialogTitle className="text-lg sm:text-xl">{template ? "Editar Template" : "Novo Template"}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
+        <div className="space-y-4 sm:space-y-6 py-2 sm:py-4">
           <div className="space-y-2">
-            <Label>Nome do Template *</Label>
+            <Label className="text-sm">Nome do Template *</Label>
             <Input
               value={nome}
               onChange={(e) => setNome(e.target.value)}
@@ -248,7 +248,7 @@ export const EditorTemplateModal = ({
           </div>
 
           <div className="space-y-2">
-            <Label>Prioridade *</Label>
+            <Label className="text-sm">Prioridade *</Label>
             <Select value={prioridade} onValueChange={(v: any) => setPrioridade(v)}>
               <SelectTrigger>
                 <SelectValue />
@@ -262,7 +262,7 @@ export const EditorTemplateModal = ({
           </div>
 
           <div className="space-y-3">
-            <Label className="text-base">Campos de Preenchimento</Label>
+            <Label className="text-sm sm:text-base">Campos de Preenchimento</Label>
 
             <DndContext
               sensors={sensors}
@@ -276,8 +276,8 @@ export const EditorTemplateModal = ({
                 <div className="space-y-3">
                   {campos.map((campo) => (
                     <SortableItem key={campo.id_campo} id={campo.id_campo}>
-                      <div className="flex-1 p-4 border rounded-lg space-y-3">
-                        <div className="grid grid-cols-2 gap-3">
+                      <div className="flex-1 p-3 sm:p-4 border rounded-lg space-y-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div className="space-y-1">
                             <Label className="text-xs">Nome do Campo</Label>
                             <Input
@@ -314,12 +314,13 @@ export const EditorTemplateModal = ({
 
                         {campo.tipo_campo === "dropdown" && (
                           <div className="space-y-2">
-                            <div className="flex items-center justify-between">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                               <Label className="text-xs">Opções da lista</Label>
                               <Button
                                 type="button"
                                 size="sm"
                                 variant="outline"
+                                className="w-full sm:w-auto"
                                 onClick={() => {
                                   const atuais = campo.opcoes_dropdown || [];
                                   handleUpdateCampo(campo.id_campo, {
@@ -354,6 +355,7 @@ export const EditorTemplateModal = ({
                                       type="button"
                                       size="icon"
                                       variant="ghost"
+                                      className="shrink-0"
                                       onClick={() => {
                                         const atuais = campo.opcoes_dropdown || [];
                                         const novas = atuais.filter((_, i) => i !== index);
@@ -372,7 +374,7 @@ export const EditorTemplateModal = ({
                         )}
 
 
-                        <div className="flex items-center gap-4">
+                        <div className="flex flex-wrap items-center gap-3 sm:gap-4">
                           <div className="flex items-center gap-2">
                             <Checkbox
                               id={`obr-${campo.id_campo}`}
@@ -382,6 +384,7 @@ export const EditorTemplateModal = ({
                                   obrigatorio_criacao: !!checked,
                                 })
                               }
+                              className="h-5 w-5 sm:h-4 sm:w-4"
                             />
                             <Label
                               htmlFor={`obr-${campo.id_campo}`}
@@ -400,10 +403,11 @@ export const EditorTemplateModal = ({
                                   complementa_nome: !!checked,
                                 })
                               }
+                              className="h-5 w-5 sm:h-4 sm:w-4"
                             />
                             <Label
                               htmlFor={`comp-${campo.id_campo}`}
-                              className="text-xs font-normal cursor-pointer"
+                              className="text-xs font-normal cursor-pointer whitespace-nowrap"
                             >
                               Complementa nome
                             </Label>
@@ -438,7 +442,7 @@ export const EditorTemplateModal = ({
           </div>
 
           <div className="space-y-3">
-            <Label className="text-base">Tarefas</Label>
+            <Label className="text-sm sm:text-base">Tarefas</Label>
 
             <DndContext
               sensors={sensors}
@@ -452,8 +456,8 @@ export const EditorTemplateModal = ({
                 <div className="space-y-3">
                   {tarefas.map((tarefa) => (
                     <SortableItem key={tarefa.id_tarefa} id={tarefa.id_tarefa}>
-                      <div className="flex-1 p-4 border rounded-lg space-y-3">
-                        <div className="grid grid-cols-2 gap-3">
+                      <div className="flex-1 p-3 sm:p-4 border rounded-lg space-y-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div className="space-y-1">
                             <Label className="text-xs">Nome da Tarefa</Label>
                             <Input
@@ -546,11 +550,11 @@ export const EditorTemplateModal = ({
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
             Cancelar
           </Button>
-          <Button onClick={handleSubmit}>{template ? "Salvar" : "Criar"}</Button>
+          <Button onClick={handleSubmit} className="w-full sm:w-auto">{template ? "Salvar" : "Criar"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

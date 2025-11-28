@@ -16,29 +16,14 @@ import type { Usuario, Template, Demanda } from "@/types";
 /**
  * API Configuration
  * 
- * Configuração adaptativa para funcionar com domínio ou IP:
- * - Usa caminho relativo "/api" quando acessado via domínio
- * - Usa IP direto quando acessado via IP
- * - Fallback localStorage já implementado no DataContext
- * - OPCIONAL: Pode ser sobrescrito via .env
+ * Sempre usa "/api" como caminho relativo:
+ * - Desenvolvimento (Vite): Proxy configurado em vite.config.ts -> http://backend:3000
+ * - Produção (Nginx): Proxy configurado em nginx.conf -> http://backend:3000
+ * 
+ * Ambos os ambientes usam Docker networking com hostname "backend"
+ * Fallback localStorage já implementado no DataContext
  */
-const getApiUrl = (): string => {
-  // 1. Se tem variável de ambiente, usa ela
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
-  }
-
-  // 2. Se está em produção ou acessando via domínio, usa caminho relativo
-  // Nginx fará o proxy para o backend
-  if (import.meta.env.PROD || window.location.hostname.includes('.')) {
-    return '/api';
-  }
-
-  // 3. Fallback para desenvolvimento local
-  return 'http://localhost:3000/api';
-};
-
-const API_URL = getApiUrl();
+const API_URL = '/api';
 
 // Log para debug
 console.log(`🔌 API Service initialized with URL: ${API_URL}`);
@@ -196,10 +181,18 @@ export const apiService = {
 };
 
 /**
+ * Architecture Notes:
+ * 
+ * Frontend -> /api -> Proxy (Vite ou Nginx) -> http://backend:3000
+ * 
+ * - Desenvolvimento: Vite proxy (vite.config.ts) redireciona para backend:3000
+ * - Produção: Nginx proxy (nginx.conf) redireciona para backend:3000
+ * - Docker resolve "backend" automaticamente via DNS interno da rede
+ * 
  * Migration Notes for PostgreSQL Upgrade:
  * 
  * 1. Keep this file structure
- * 2. Update API_URL to point to new backend
+ * 2. API_URL ("/api") não precisa mudar - apenas o backend
  * 3. Add authentication token to headers:
  *    headers: {
  *      "Authorization": `Bearer ${getToken()}`,
@@ -208,13 +201,5 @@ export const apiService = {
  * 4. Add retry logic for failed requests
  * 5. Add request/response interceptors
  * 6. Consider using axios or ky instead of fetch
- * 
- * Example with authentication:
- * 
- * const token = localStorage.getItem('authToken');
- * headers: {
- *   "Content-Type": "application/json",
- *   "Authorization": token ? `Bearer ${token}` : "",
- * }
  */
 

@@ -187,14 +187,14 @@ export const NovaDemandaModal = ({ open, onOpenChange }: NovaDemandaModalProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-full max-w-[calc(100vw-2rem)] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Nova Demanda</DialogTitle>
+          <DialogTitle className="text-lg sm:text-xl">Nova Demanda</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 py-2 sm:py-4">
           <div className="space-y-2">
-            <Label>Template *</Label>
+            <Label className="text-sm">Template *</Label>
             <Select value={templateId} onValueChange={setTemplateId}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione um template" />
@@ -210,7 +210,7 @@ export const NovaDemandaModal = ({ open, onOpenChange }: NovaDemandaModalProps) 
           </div>
 
           <div className="space-y-2">
-            <Label>Responsável *</Label>
+            <Label className="text-sm">Responsável *</Label>
             <Select value={responsavelId} onValueChange={setResponsavelId}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione um responsável" />
@@ -226,7 +226,7 @@ export const NovaDemandaModal = ({ open, onOpenChange }: NovaDemandaModalProps) 
           </div>
 
           <div className="space-y-2">
-            <Label>Tempo Esperado (dias) *</Label>
+            <Label className="text-sm">Tempo Esperado (dias) *</Label>
             <Input
               type="number"
               min="1"
@@ -238,16 +238,16 @@ export const NovaDemandaModal = ({ open, onOpenChange }: NovaDemandaModalProps) 
 
           {templateSelecionado && templateSelecionado.campos_preenchimento.length > 0 && (
             <div className="space-y-3 pt-4 border-t">
-              <Label className="text-base">Campos de Preenchimento</Label>
+              <Label className="text-sm sm:text-base">Campos de Preenchimento</Label>
               {templateSelecionado.campos_preenchimento.map((campo) => (
                 <div key={campo.id_campo} className="space-y-2">
-                  <Label className="flex items-center gap-1">
+                  <Label className="flex flex-wrap items-center gap-1 text-sm">
                     {campo.nome_campo}
                     {(campo.obrigatorio_criacao || campo.complementa_nome) && (
                       <span className="text-destructive">*</span>
                     )}
                     {campo.complementa_nome && (
-                      <span className="text-xs text-muted-foreground ml-1">
+                      <span className="text-xs text-muted-foreground">
                         (complementa nome)
                       </span>
                     )}
@@ -259,11 +259,11 @@ export const NovaDemandaModal = ({ open, onOpenChange }: NovaDemandaModalProps) 
           )}
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
             Cancelar
           </Button>
-          <Button onClick={handleSubmit}>Criar Demanda</Button>
+          <Button onClick={handleSubmit} className="w-full sm:w-auto">Criar Demanda</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

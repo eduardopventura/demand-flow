@@ -765,8 +765,10 @@
         }
       ],
       "data_criacao": "2025-12-03T23:42:35.175Z",
+      "data_previsao": "2025-12-05T23:42:35.175Z",
       "data_finalizacao": null,
       "prazo": true,
+      "observacoes": "",
       "id": 2
     },
     {
@@ -885,8 +887,10 @@
         }
       ],
       "data_criacao": "2025-12-03T23:45:46.181Z",
+      "data_previsao": "2025-12-05T23:45:46.181Z",
       "data_finalizacao": null,
       "prazo": true,
+      "observacoes": "",
       "id": 3
     },
     {
@@ -1005,8 +1009,10 @@
         }
       ],
       "data_criacao": "2025-12-03T23:48:37.364Z",
+      "data_previsao": "2025-12-05T23:48:37.364Z",
       "data_finalizacao": null,
       "prazo": true,
+      "observacoes": "",
       "id": 4
     },
     {
@@ -1125,8 +1131,10 @@
         }
       ],
       "data_criacao": "2025-12-04T17:32:52.857Z",
+      "data_previsao": "2025-12-11T17:32:52.857Z",
       "data_finalizacao": null,
       "prazo": true,
+      "observacoes": "",
       "id": 5
     },
     {
@@ -1245,8 +1253,10 @@
         }
       ],
       "data_criacao": "2025-12-04T17:43:32.505Z",
+      "data_previsao": "2025-12-11T17:43:32.505Z",
       "data_finalizacao": null,
       "prazo": true,
+      "observacoes": "",
       "id": 6
     },
     {
@@ -1365,8 +1375,10 @@
         }
       ],
       "data_criacao": "2025-12-04T19:27:40.797Z",
+      "data_previsao": "2025-12-11T19:27:40.797Z",
       "data_finalizacao": null,
       "prazo": true,
+      "observacoes": "",
       "id": 7
     },
     {
@@ -1465,8 +1477,10 @@
         }
       ],
       "data_criacao": "2025-12-05T13:48:44.770Z",
+      "data_previsao": "2025-12-12T13:48:44.770Z",
       "data_finalizacao": null,
       "prazo": true,
+      "observacoes": "",
       "id": 8
     }
   ]

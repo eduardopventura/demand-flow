@@ -33,7 +33,6 @@
     {
       "nome": "Gerar Contrato",
       "prioridade": "Alta",
-      "tempo_medio": 7,
       "campos_preenchimento": [
         {
           "id_campo": "c1763595733050",
@@ -198,7 +197,6 @@
     {
       "nome": "Atualizar Quadro de Horário ",
       "prioridade": "Média",
-      "tempo_medio": 3,
       "campos_preenchimento": [
         {
           "id_campo": "c1763602673911",
@@ -351,7 +349,6 @@
     {
       "nome": "Solicitar Ausência",
       "prioridade": "Alta",
-      "tempo_medio": 5,
       "campos_preenchimento": [
         {
           "id_campo": "c1763918773356",
@@ -653,32 +650,752 @@
   ],
   "demandas": [
     {
-      "template_id": 1,
-      "nome_demanda": "Gerar Contrato - eduardo",
+      "template_id": 3,
+      "nome_demanda": "Solicitar Ausência - João Luka andrade da Silva",
       "status": "Em Andamento",
+      "prioridade": "Alta",
+      "responsavel_id": "u2",
+      "tempo_esperado": 2,
+      "campos_preenchidos": [
+        {
+          "id_campo": "c1763918773356",
+          "valor": "Transferência"
+        },
+        {
+          "id_campo": "c1763906228831",
+          "valor": "João Luka andrade da Silva"
+        },
+        {
+          "id_campo": "c1763906336289",
+          "valor": "Teddy Andrade Rodrigues"
+        },
+        {
+          "id_campo": "c1763906547043",
+          "valor": "Tradicional"
+        },
+        {
+          "id_campo": "c1763906626548",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763906657967",
+          "valor": "364.00"
+        },
+        {
+          "id_campo": "c1763906858548",
+          "valor": "364.00"
+        },
+        {
+          "id_campo": "c1763906985726",
+          "valor": "Cartão Recorrente"
+        },
+        {
+          "id_campo": "c1763907064111",
+          "valor": "2025-08-19"
+        },
+        {
+          "id_campo": "c1763907084880",
+          "valor": "P"
+        },
+        {
+          "id_campo": "c1763907530271",
+          "valor": "dezembro"
+        },
+        {
+          "id_campo": "c1763907252624",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763907756652",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763908021399",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763908476684",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763908587199",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763908630842",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763908722758",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763908771346",
+          "valor": "2"
+        },
+        {
+          "id_campo": "c1763908815795",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763908869933",
+          "valor": "0"
+        }
+      ],
+      "tarefas_status": [
+        {
+          "id_tarefa": "ta1763908921237",
+          "concluida": true
+        },
+        {
+          "id_tarefa": "ta1763908932911",
+          "concluida": true
+        },
+        {
+          "id_tarefa": "ta1763909015091",
+          "concluida": false
+        },
+        {
+          "id_tarefa": "ta1763917295146",
+          "concluida": false
+        },
+        {
+          "id_tarefa": "ta1763928918579",
+          "concluida": false
+        }
+      ],
+      "data_criacao": "2025-12-03T23:42:35.175Z",
+      "data_finalizacao": null,
+      "prazo": true,
+      "id": 2
+    },
+    {
+      "template_id": 3,
+      "nome_demanda": "Solicitar Ausência - Matheus Molokai de Oliveira",
+      "status": "Em Andamento",
+      "prioridade": "Alta",
+      "responsavel_id": "u2",
+      "tempo_esperado": 2,
+      "campos_preenchidos": [
+        {
+          "id_campo": "c1763918773356",
+          "valor": "Saída da Unidade"
+        },
+        {
+          "id_campo": "c1763906228831",
+          "valor": "Matheus Molokai de Oliveira"
+        },
+        {
+          "id_campo": "c1763906336289",
+          "valor": "Gisele de Oliveira Pinho Alves"
+        },
+        {
+          "id_campo": "c1763906547043",
+          "valor": "Tradicional"
+        },
+        {
+          "id_campo": "c1763906626548",
+          "valor": "0.00"
+        },
+        {
+          "id_campo": "c1763906657967",
+          "valor": "364.00"
+        },
+        {
+          "id_campo": "c1763906858548",
+          "valor": "364.00"
+        },
+        {
+          "id_campo": "c1763906985726",
+          "valor": "Cartão Recorrente"
+        },
+        {
+          "id_campo": "c1763907064111",
+          "valor": "2024-11-11"
+        },
+        {
+          "id_campo": "c1763907084880",
+          "valor": "P"
+        },
+        {
+          "id_campo": "c1763907530271",
+          "valor": "dezembro"
+        },
+        {
+          "id_campo": "c1763907252624",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763907756652",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763908021399",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763908476684",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763908587199",
+          "valor": "2"
+        },
+        {
+          "id_campo": "c1763908630842",
+          "valor": "2"
+        },
+        {
+          "id_campo": "c1763908722758",
+          "valor": "4"
+        },
+        {
+          "id_campo": "c1763908771346",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763908815795",
+          "valor": "1"
+        },
+        {
+          "id_campo": "c1763908869933",
+          "valor": "0"
+        }
+      ],
+      "tarefas_status": [
+        {
+          "id_tarefa": "ta1763908921237",
+          "concluida": true
+        },
+        {
+          "id_tarefa": "ta1763908932911",
+          "concluida": true
+        },
+        {
+          "id_tarefa": "ta1763909015091",
+          "concluida": true
+        },
+        {
+          "id_tarefa": "ta1763917295146",
+          "concluida": false
+        },
+        {
+          "id_tarefa": "ta1763928918579",
+          "concluida": false
+        }
+      ],
+      "data_criacao": "2025-12-03T23:45:46.181Z",
+      "data_finalizacao": null,
+      "prazo": true,
+      "id": 3
+    },
+    {
+      "template_id": 3,
+      "nome_demanda": "Solicitar Ausência - Vitória de Paula Antunes",
+      "status": "Em Andamento",
+      "prioridade": "Alta",
+      "responsavel_id": "u2",
+      "tempo_esperado": 2,
+      "campos_preenchidos": [
+        {
+          "id_campo": "c1763918773356",
+          "valor": "Saída da Unidade"
+        },
+        {
+          "id_campo": "c1763906228831",
+          "valor": "Vitória de Paula Antunes"
+        },
+        {
+          "id_campo": "c1763906336289",
+          "valor": "Cristiane R. de Paula antunes"
+        },
+        {
+          "id_campo": "c1763906547043",
+          "valor": "Tradicional"
+        },
+        {
+          "id_campo": "c1763906626548",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763906657967",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763906858548",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763906985726",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763907064111",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763907084880",
+          "valor": "M"
+        },
+        {
+          "id_campo": "c1763907530271",
+          "valor": "dezembro"
+        },
+        {
+          "id_campo": "c1763907252624",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763907756652",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763908021399",
+          "valor": "2"
+        },
+        {
+          "id_campo": "c1763908476684",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763908587199",
+          "valor": "2"
+        },
+        {
+          "id_campo": "c1763908630842",
+          "valor": "2"
+        },
+        {
+          "id_campo": "c1763908722758",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763908771346",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763908815795",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763908869933",
+          "valor": "0"
+        }
+      ],
+      "tarefas_status": [
+        {
+          "id_tarefa": "ta1763908921237",
+          "concluida": true
+        },
+        {
+          "id_tarefa": "ta1763908932911",
+          "concluida": true
+        },
+        {
+          "id_tarefa": "ta1763909015091",
+          "concluida": true
+        },
+        {
+          "id_tarefa": "ta1763917295146",
+          "concluida": false
+        },
+        {
+          "id_tarefa": "ta1763928918579",
+          "concluida": false
+        }
+      ],
+      "data_criacao": "2025-12-03T23:48:37.364Z",
+      "data_finalizacao": null,
+      "prazo": true,
+      "id": 4
+    },
+    {
+      "template_id": 3,
+      "nome_demanda": "Solicitar Ausência - João Miguel Lamberto de Sousa Oliveira ",
+      "status": "Criada",
+      "prioridade": "Alta",
+      "responsavel_id": "u2",
+      "tempo_esperado": 7,
+      "campos_preenchidos": [
+        {
+          "id_campo": "c1763918773356",
+          "valor": "Saída da Unidade"
+        },
+        {
+          "id_campo": "c1763906228831",
+          "valor": "João Miguel Lamberto de Sousa Oliveira "
+        },
+        {
+          "id_campo": "c1763906336289",
+          "valor": "Jorge Lamberto Romeiro  de Oliveira "
+        },
+        {
+          "id_campo": "c1763906547043",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763906626548",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763906657967",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763906858548",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763906985726",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763907064111",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763907084880",
+          "valor": "P-M"
+        },
+        {
+          "id_campo": "c1763907530271",
+          "valor": "dezembro"
+        },
+        {
+          "id_campo": "c1763907252624",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763907756652",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763908021399",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763908476684",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763908587199",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763908630842",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763908722758",
+          "valor": "5"
+        },
+        {
+          "id_campo": "c1763908771346",
+          "valor": "5"
+        },
+        {
+          "id_campo": "c1763908815795",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763908869933",
+          "valor": "0"
+        }
+      ],
+      "tarefas_status": [
+        {
+          "id_tarefa": "ta1763908921237",
+          "concluida": false
+        },
+        {
+          "id_tarefa": "ta1763908932911",
+          "concluida": false
+        },
+        {
+          "id_tarefa": "ta1763909015091",
+          "concluida": false
+        },
+        {
+          "id_tarefa": "ta1763917295146",
+          "concluida": false
+        },
+        {
+          "id_tarefa": "ta1763928918579",
+          "concluida": false
+        }
+      ],
+      "data_criacao": "2025-12-04T17:32:52.857Z",
+      "data_finalizacao": null,
+      "prazo": true,
+      "id": 5
+    },
+    {
+      "template_id": 3,
+      "nome_demanda": "Solicitar Ausência - João Gabriel Lamberto de Sousa Oliveira ",
+      "status": "Criada",
+      "prioridade": "Alta",
+      "responsavel_id": "u2",
+      "tempo_esperado": 7,
+      "campos_preenchidos": [
+        {
+          "id_campo": "c1763918773356",
+          "valor": "Saída da Unidade"
+        },
+        {
+          "id_campo": "c1763906228831",
+          "valor": "João Gabriel Lamberto de Sousa Oliveira "
+        },
+        {
+          "id_campo": "c1763906336289",
+          "valor": "Jorge Lamberto Romeiro de Oliveira "
+        },
+        {
+          "id_campo": "c1763906547043",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763906626548",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763906657967",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763906858548",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763906985726",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763907064111",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763907084880",
+          "valor": "M"
+        },
+        {
+          "id_campo": "c1763907530271",
+          "valor": "dezembro"
+        },
+        {
+          "id_campo": "c1763907252624",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763907756652",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763908021399",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763908476684",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763908587199",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763908630842",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763908722758",
+          "valor": "5"
+        },
+        {
+          "id_campo": "c1763908771346",
+          "valor": "5"
+        },
+        {
+          "id_campo": "c1763908815795",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763908869933",
+          "valor": "0"
+        }
+      ],
+      "tarefas_status": [
+        {
+          "id_tarefa": "ta1763908921237",
+          "concluida": false
+        },
+        {
+          "id_tarefa": "ta1763908932911",
+          "concluida": false
+        },
+        {
+          "id_tarefa": "ta1763909015091",
+          "concluida": false
+        },
+        {
+          "id_tarefa": "ta1763917295146",
+          "concluida": false
+        },
+        {
+          "id_tarefa": "ta1763928918579",
+          "concluida": false
+        }
+      ],
+      "data_criacao": "2025-12-04T17:43:32.505Z",
+      "data_finalizacao": null,
+      "prazo": true,
+      "id": 6
+    },
+    {
+      "template_id": 3,
+      "nome_demanda": "Solicitar Ausência - Renato Teixeira Rangel Junior ",
+      "status": "Criada",
+      "prioridade": "Alta",
+      "responsavel_id": "u2",
+      "tempo_esperado": 7,
+      "campos_preenchidos": [
+        {
+          "id_campo": "c1763918773356",
+          "valor": "Saída da Unidade"
+        },
+        {
+          "id_campo": "c1763906228831",
+          "valor": "Renato Teixeira Rangel Junior "
+        },
+        {
+          "id_campo": "c1763906336289",
+          "valor": "Izi Karla R. G. Rangel"
+        },
+        {
+          "id_campo": "c1763906547043",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763906626548",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763906657967",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763906858548",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763906985726",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763907064111",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763907084880",
+          "valor": "M"
+        },
+        {
+          "id_campo": "c1763907530271",
+          "valor": "novembro"
+        },
+        {
+          "id_campo": "c1763907252624",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763907756652",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763908021399",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763908476684",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763908587199",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763908630842",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763908722758",
+          "valor": "4"
+        },
+        {
+          "id_campo": "c1763908771346",
+          "valor": "3"
+        },
+        {
+          "id_campo": "c1763908815795",
+          "valor": "0"
+        },
+        {
+          "id_campo": "c1763908869933",
+          "valor": "0"
+        }
+      ],
+      "tarefas_status": [
+        {
+          "id_tarefa": "ta1763908921237",
+          "concluida": false
+        },
+        {
+          "id_tarefa": "ta1763908932911",
+          "concluida": false
+        },
+        {
+          "id_tarefa": "ta1763909015091",
+          "concluida": false
+        },
+        {
+          "id_tarefa": "ta1763917295146",
+          "concluida": false
+        },
+        {
+          "id_tarefa": "ta1763928918579",
+          "concluida": false
+        }
+      ],
+      "data_criacao": "2025-12-04T19:27:40.797Z",
+      "data_finalizacao": null,
+      "prazo": true,
+      "id": 7
+    },
+    {
+      "template_id": 1,
+      "nome_demanda": "Gerar Contrato - Samuel Resende de Assis Gonçalves ",
+      "status": "Criada",
       "prioridade": "Alta",
       "responsavel_id": "u2",
       "tempo_esperado": 7,
       "campos_preenchidos": [
         {
           "id_campo": "c1763595733050",
-          "valor": "eduardo"
+          "valor": "Samuel Resende de Assis Gonçalves "
         },
         {
           "id_campo": "c1763595762675",
-          "valor": "12 Meses"
+          "valor": "6 Meses"
         },
         {
           "id_campo": "c1763595807205",
-          "valor": "Cartão Recorrente"
+          "valor": "Boleto Bancário "
         },
         {
           "id_campo": "c1763595874301",
-          "valor": "360"
+          "valor": "0"
         },
         {
           "id_campo": "c1763595887919",
-          "valor": "80"
+          "valor": "0"
         },
         {
           "id_campo": "c1763595901760",
@@ -706,7 +1423,7 @@
         },
         {
           "id_campo": "c1763595989021",
-          "valor": ""
+          "valor": "2026-01-05"
         },
         {
           "id_campo": "c1763596004668",
@@ -714,13 +1431,13 @@
         },
         {
           "id_campo": "c1763596908733",
-          "valor": ""
+          "valor": "Hélio, ele está se tornando aluno multi. Mês de dezembro será brinde, pagará a primeira mensalidade em janeiro. A princípio ficará 2 meses. Verificar matrícula do ksis com a Cris."
         }
       ],
       "tarefas_status": [
         {
           "id_tarefa": "ta1763596153412",
-          "concluida": true
+          "concluida": false
         },
         {
           "id_tarefa": "ta1763596176158",
@@ -747,12 +1464,10 @@
           "concluida": false
         }
       ],
-      "data_criacao": "2025-12-06T20:21:42.670Z",
-      "data_previsao": "2025-12-11T03:00:00.000Z",
+      "data_criacao": "2025-12-05T13:48:44.770Z",
       "data_finalizacao": null,
       "prazo": true,
-      "observacoes": "",
-      "id": 1
+      "id": 8
     }
   ]
 }

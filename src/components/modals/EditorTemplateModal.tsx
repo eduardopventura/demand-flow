@@ -81,6 +81,7 @@ export const EditorTemplateModal = ({
 }: EditorTemplateModalProps) => {
   const { addTemplate, updateTemplate, usuarios } = useData();
   const [nome, setNome] = useState("");
+  const [tempoMedio, setTempoMedio] = useState<number>(7);
   const [prioridade, setPrioridade] = useState<"Baixa" | "Média" | "Alta">("Média");
   const [campos, setCampos] = useState<CampoPreenchimento[]>([]);
   const [tarefas, setTarefas] = useState<Tarefa[]>([]);
@@ -95,11 +96,13 @@ export const EditorTemplateModal = ({
   useEffect(() => {
     if (template) {
       setNome(template.nome);
+      setTempoMedio(template.tempo_medio || 7);
       setPrioridade(template.prioridade);
       setCampos(template.campos_preenchimento);
       setTarefas(template.tarefas);
     } else {
       setNome("");
+      setTempoMedio(7);
       setPrioridade("Média");
       setCampos([]);
       setTarefas([]);
@@ -191,6 +194,11 @@ export const EditorTemplateModal = ({
       return;
     }
 
+    if (!tempoMedio || tempoMedio < 1) {
+      toast.error("O tempo médio deve ser de pelo menos 1 dia");
+      return;
+    }
+
     const camposInvalidos = campos.filter((c) => !c.nome_campo.trim());
     if (camposInvalidos.length > 0) {
       toast.error("Todos os campos devem ter um nome");
@@ -214,6 +222,7 @@ export const EditorTemplateModal = ({
 
     const templateData = {
       nome,
+      tempo_medio: tempoMedio,
       prioridade,
       campos_preenchimento: campos,
       tarefas,
@@ -245,6 +254,20 @@ export const EditorTemplateModal = ({
               onChange={(e) => setNome(e.target.value)}
               placeholder="Ex: Cadastro de Novo Aluno"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm">Tempo Médio (dias) *</Label>
+            <Input
+              type="number"
+              min={1}
+              value={tempoMedio}
+              onChange={(e) => setTempoMedio(parseInt(e.target.value) || 1)}
+              placeholder="Ex: 7"
+            />
+            <p className="text-xs text-muted-foreground">
+              Número de dias esperado para conclusão de demandas deste template
+            </p>
           </div>
 
           <div className="space-y-2">

@@ -44,32 +44,45 @@ export const diasRestantesPrazo = (
 };
 
 /**
+ * Calcula quantos dias faltam até a data de previsão
+ */
+export const diasRestantesAtePrevisao = (dataPrevisao: string): number => {
+  const previsao = new Date(dataPrevisao);
+  const hoje = new Date();
+  // Zerar horas para comparar apenas dias
+  previsao.setHours(0, 0, 0, 0);
+  hoje.setHours(0, 0, 0, 0);
+  const diffTime = previsao.getTime() - hoje.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays;
+};
+
+/**
  * Determina a cor da borda do card baseado no status do prazo
- * Verde: dentro do prazo
- * Amarelo: faltando 4 dias ou menos
- * Vermelho: fora do prazo
+ * Verde: mais de 1 dia até a data de previsão
+ * Amarelo: falta 1 dia ou menos até a data de previsão
+ * Vermelho: passou da data de previsão e não foi finalizada
  */
 export const getCorBordaPrazo = (
-  dataCriacao: string,
-  dataFinalizacao: string | null,
-  tempoEsperado: number,
-  status: string
+  dataPrevisao: string,
+  dataFinalizacao: string | null
 ): 'verde' | 'amarelo' | 'vermelho' => {
   // Se já foi finalizada, verificar se finalizou dentro do prazo
   if (dataFinalizacao) {
-    const diasUtilizados = calcularDiferencaDias(dataCriacao, dataFinalizacao);
-    return diasUtilizados <= tempoEsperado ? 'verde' : 'vermelho';
+    const finalizacao = new Date(dataFinalizacao);
+    const previsao = new Date(dataPrevisao);
+    return finalizacao <= previsao ? 'verde' : 'vermelho';
   }
   
   // Se ainda não foi finalizada
-  const diasRestantes = diasRestantesPrazo(dataCriacao, tempoEsperado);
+  const diasRestantes = diasRestantesAtePrevisao(dataPrevisao);
   
   if (diasRestantes < 0) {
-    return 'vermelho'; // Passou do prazo
-  } else if (diasRestantes <= 4) {
-    return 'amarelo'; // Faltam 4 dias ou menos
+    return 'vermelho'; // Passou da data de previsão
+  } else if (diasRestantes <= 1) {
+    return 'amarelo'; // Falta 1 dia ou menos
   } else {
-    return 'verde'; // Dentro do prazo
+    return 'verde'; // Mais de 1 dia até a previsão
   }
 };
 
@@ -97,7 +110,7 @@ export const getPrimeiroNome = (nomeCompleto: string): string => {
 /**
  * Ordena demandas por prioridade (Alta > Média > Baixa) e depois por prazo (menos tempo restante primeiro)
  */
-export const ordenarDemandas = <T extends { prioridade: string; data_criacao: string; tempo_esperado: number; data_finalizacao: string | null }>(
+export const ordenarDemandas = <T extends { prioridade: string; data_previsao: string; data_finalizacao: string | null }>(
   demandas: T[]
 ): T[] => {
   const prioridadeValor: Record<string, number> = {
@@ -126,8 +139,8 @@ export const ordenarDemandas = <T extends { prioridade: string; data_criacao: st
     
     // Ambas finalizadas ou ambas não finalizadas
     if (!a.data_finalizacao && !b.data_finalizacao) {
-      const diasRestantesA = diasRestantesPrazo(a.data_criacao, a.tempo_esperado);
-      const diasRestantesB = diasRestantesPrazo(b.data_criacao, b.tempo_esperado);
+      const diasRestantesA = diasRestantesAtePrevisao(a.data_previsao);
+      const diasRestantesB = diasRestantesAtePrevisao(b.data_previsao);
       return diasRestantesA - diasRestantesB; // Ordem crescente (menos dias restantes primeiro)
     }
     

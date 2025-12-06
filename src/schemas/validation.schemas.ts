@@ -50,6 +50,7 @@ export const tarefaSchema = z.object({
 export const templateSchema = z.object({
   nome: z.string().min(3, "Nome do template deve ter no mínimo 3 caracteres"),
   prioridade: z.nativeEnum(Prioridade),
+  tempo_medio: z.number().min(1, "Tempo médio deve ser no mínimo 1 dia"),
   campos_preenchimento: z.array(campoPreenchimentoSchema),
   tarefas: z.array(tarefaSchema),
 });
@@ -80,8 +81,10 @@ export const demandaSchema = z.object({
   campos_preenchidos: z.array(campoPreenchidoSchema),
   tarefas_status: z.array(tarefaStatusSchema),
   data_criacao: z.string(),
+  data_previsao: z.string(), // Data prevista para conclusão (editável)
   data_finalizacao: z.string().nullable(),
   prazo: z.boolean(),
+  observacoes: z.string().max(100, "Observações deve ter no máximo 100 caracteres"),
 });
 
 export type DemandaFormData = z.infer<typeof demandaSchema>;

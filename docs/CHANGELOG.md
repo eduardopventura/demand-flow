@@ -1,5 +1,101 @@
 # Changelog - Demand Flow
 
+## [2.6.0] - 2025-12-06
+
+### 🎯 Sistema de Previsão de Datas e Observações
+
+Esta atualização refatora completamente o sistema de prazos, adicionando data de previsão editável, campo de observações fixo e melhorias de UX.
+
+#### ✨ Novas Funcionalidades
+
+**1. Tempo Médio nos Templates**
+- ✅ Campo "Tempo Médio (dias)" adicionado em cada template
+- ✅ Define o tempo padrão esperado para demandas daquele tipo
+- ✅ Não é mais necessário informar dias na criação da demanda
+- ✅ Valor exibido ao criar nova demanda (informativo)
+
+**2. Data de Previsão (Editável)**
+- ✅ Nova propriedade `data_previsao` nas demandas
+- ✅ Calculada automaticamente: `data_criacao + tempo_medio` do template
+- ✅ Editável a qualquer momento via calendário no card
+- ✅ Editável no modal de detalhes da demanda
+- ✅ Permite ajustes tempestivos para cada situação específica
+
+**3. Sistema de Alertas de Prazo (Atualizado)**
+- ✅ **Verde**: Mais de 1 dia até a data de previsão
+- ✅ **Amarelo**: Falta 1 dia ou menos para data de previsão
+- ✅ **Vermelho**: Passou da data de previsão e não finalizada
+
+**4. Campo de Observações (Fixo)**
+- ✅ Campo disponível em todas as demandas (independente do template)
+- ✅ Tipo texto com limite de 100 caracteres
+- ✅ Contador de caracteres em tempo real
+- ✅ Alerta visual quando limite é atingido
+
+**5. Confirmação ao Reabrir Demandas**
+- ✅ Dialog de confirmação ao arrastar demanda de "Finalizada" para outro status
+- ✅ Dialog de confirmação ao desmarcar tarefa em demanda finalizada
+- ✅ Remove automaticamente a data de finalização ao confirmar
+
+#### 🎨 Melhorias de UI/UX
+
+**1. Modal de Detalhes Compacto**
+- ✅ Reduzido espaçamento vertical entre campos iniciais
+- ✅ Layout mais limpo e organizado
+- ✅ Seção de datas destacada em card
+- ✅ Data de criação (somente leitura)
+- ✅ Data de previsão (editável com calendário)
+- ✅ Data de finalização (quando aplicável)
+
+**2. Card da Demanda**
+- ✅ Exibe "Criação" e "Previsão" com datas formatadas
+- ✅ Data de previsão clicável para edição rápida
+- ✅ Exibe "Concluída" quando finalizada
+- ✅ Calendário em português (pt-BR)
+
+#### 🔧 Mudanças Técnicas
+
+**Interfaces Atualizadas:**
+- `Template`: Adicionado `tempo_medio: number`
+- `Demanda`: Adicionado `data_previsao: string` e `observacoes: string`
+
+**Utilitários Atualizados (`prazoUtils.ts`):**
+- `diasRestantesAtePrevisao()`: Calcula dias até data de previsão
+- `getCorBordaPrazo()`: Usa `data_previsao` ao invés de cálculo com `tempo_esperado`
+- `ordenarDemandas()`: Ordena por `data_previsao`
+
+**Arquivos Modificados:**
+- `src/types/index.ts` - Novos campos
+- `src/schemas/validation.schemas.ts` - Validações atualizadas
+- `src/components/modals/EditorTemplateModal.tsx` - Campo tempo médio
+- `src/components/modals/NovaDemandaModal.tsx` - Cálculo automático de previsão
+- `src/components/modals/DetalhesDemandaModal.tsx` - Datas editáveis + observações
+- `src/components/kanban/DemandaCard.tsx` - Data de previsão editável
+- `src/pages/PainelDemandas.tsx` - Confirmação ao reabrir demanda
+- `src/utils/prazoUtils.ts` - Nova lógica de cores
+- `backend/db.json` - Templates com tempo_medio
+
+#### 📝 Notas de Migração
+
+**Banco de Dados:**
+- Templates devem incluir campo `tempo_medio`
+- Demandas devem incluir campos `data_previsao` e `observacoes`
+- Demandas existentes sem `data_previsao` podem usar fallback
+
+#### 🎯 Benefícios
+
+**Para Gestores:**
+- Flexibilidade para ajustar prazos individualmente
+- Campo de observações para notas rápidas
+- Confirmação antes de reabrir demandas finalizadas
+
+**Para Equipe:**
+- Data de previsão editável diretamente no card
+- Alertas mais precisos (amarelo com 1 dia de antecedência)
+- Visualização clara das datas no modal
+
+---
+
 ## [2.5.0] - 2025-11-24
 
 ### 🎯 Gestão de Responsabilidades, Flexibilidade de Prazos e Melhorias de Usabilidade

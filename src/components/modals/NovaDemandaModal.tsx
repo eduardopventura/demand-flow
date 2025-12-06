@@ -28,7 +28,6 @@ export const NovaDemandaModal = ({ open, onOpenChange }: NovaDemandaModalProps) 
   const { templates, usuarios, addDemanda, getTemplate } = useData();
   const [templateId, setTemplateId] = useState("");
   const [responsavelId, setResponsavelId] = useState("");
-  const [tempoEsperado, setTempoEsperado] = useState<number>(7);
   const [camposValores, setCamposValores] = useState<Record<string, string>>({});
 
   const templateSelecionado = getTemplate(templateId);
@@ -40,8 +39,6 @@ export const NovaDemandaModal = ({ open, onOpenChange }: NovaDemandaModalProps) 
         initialValues[campo.id_campo] = "";
       });
       setCamposValores(initialValues);
-      // Define tempo esperado padrão como 7 dias
-      setTempoEsperado(7);
     }
   }, [templateSelecionado]);
 
@@ -152,6 +149,12 @@ export const NovaDemandaModal = ({ open, onOpenChange }: NovaDemandaModalProps) 
       nomeDemanda = `${templateSelecionado.nome} - ${valorComplemento}`;
     }
 
+    // Calcular data de previsão baseada no tempo médio do template
+    const dataCriacao = new Date();
+    const tempoMedio = templateSelecionado.tempo_medio || 7; // Fallback para 7 dias se não definido
+    const dataPrevisao = new Date(dataCriacao);
+    dataPrevisao.setDate(dataPrevisao.getDate() + tempoMedio);
+
     // Criar demanda
     const novaDemanda = {
       template_id: templateId,
@@ -159,7 +162,7 @@ export const NovaDemandaModal = ({ open, onOpenChange }: NovaDemandaModalProps) 
       status: "Criada" as const,
       prioridade: templateSelecionado.prioridade,
       responsavel_id: responsavelId,
-      tempo_esperado: tempoEsperado,
+      tempo_esperado: tempoMedio, // Derivado do template
       campos_preenchidos: Object.entries(camposValores).map(([id_campo, valor]) => ({
         id_campo,
         valor,
@@ -169,9 +172,11 @@ export const NovaDemandaModal = ({ open, onOpenChange }: NovaDemandaModalProps) 
         concluida: false,
         responsavel_id: t.responsavel_id, // Propaga o responsável do template para a tarefa
       })),
-      data_criacao: new Date().toISOString(),
+      data_criacao: dataCriacao.toISOString(),
+      data_previsao: dataPrevisao.toISOString(),
       data_finalizacao: null,
       prazo: true, // Toda demanda começa dentro do prazo
+      observacoes: "", // Campo fixo de observações
     };
 
     addDemanda(novaDemanda);
@@ -181,7 +186,6 @@ export const NovaDemandaModal = ({ open, onOpenChange }: NovaDemandaModalProps) 
     // Reset
     setTemplateId("");
     setResponsavelId("");
-    setTempoEsperado(7);
     setCamposValores({});
   };
 
@@ -225,16 +229,13 @@ export const NovaDemandaModal = ({ open, onOpenChange }: NovaDemandaModalProps) 
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-sm">Tempo Esperado (dias) *</Label>
-            <Input
-              type="number"
-              min="1"
-              value={tempoEsperado}
-              onChange={(e) => setTempoEsperado(parseInt(e.target.value) || 1)}
-              placeholder="Dias esperados para conclusão"
-            />
-          </div>
+          {templateSelecionado && (
+            <div className="p-3 bg-muted/50 rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                <strong>Tempo Médio:</strong> {templateSelecionado.tempo_medio || 7} dias
+              </p>
+            </div>
+          )}
 
           {templateSelecionado && templateSelecionado.campos_preenchimento.length > 0 && (
             <div className="space-y-3 pt-4 border-t">

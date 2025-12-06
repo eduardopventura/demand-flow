@@ -1,6 +1,6 @@
 import { useDraggable } from "@dnd-kit/core";
 import { Card } from "@/components/ui/card";
-import { User, GripVertical, Trash2, Calendar } from "lucide-react";
+import { User, GripVertical, Trash2, Calendar as CalendarIcon } from "lucide-react";
 import { useData } from "@/contexts/DataContext";
 import type { Demanda } from "@/types";
 import { cn } from "@/lib/utils";
@@ -17,7 +17,10 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { memo } from "react";
+import { memo, useState } from "react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { ptBR } from "date-fns/locale";
 
 interface DemandaCardProps {
   demanda: Demanda;
@@ -26,19 +29,18 @@ interface DemandaCardProps {
 }
 
 const DemandaCardComponent = ({ demanda, onClick, isDragging }: DemandaCardProps) => {
-  const { getUsuario, deleteDemanda, getTemplate } = useData();
+  const { getUsuario, deleteDemanda, getTemplate, updateDemanda } = useData();
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: demanda.id,
   });
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const template = getTemplate(demanda.template_id);
   
   // Calcular cor da borda baseado no prazo
   const corBorda = getCorBordaPrazo(
-    demanda.data_criacao,
-    demanda.data_finalizacao,
-    demanda.tempo_esperado,
-    demanda.status
+    demanda.data_previsao,
+    demanda.data_finalizacao
   );
   
   const classeBorda = {
@@ -46,6 +48,15 @@ const DemandaCardComponent = ({ demanda, onClick, isDragging }: DemandaCardProps
     amarelo: 'border-l-4 border-l-yellow-500',
     vermelho: 'border-l-4 border-l-red-500',
   }[corBorda];
+
+  const handleDateChange = (date: Date | undefined) => {
+    if (date) {
+      updateDemanda(demanda.id, {
+        data_previsao: date.toISOString(),
+      });
+      setIsCalendarOpen(false);
+    }
+  };
 
   // Calcular usuários com tarefas abertas
   const usuariosComTarefas = demanda.tarefas_status
@@ -141,14 +152,37 @@ const DemandaCardComponent = ({ demanda, onClick, isDragging }: DemandaCardProps
         )}
       </div>
 
-      {/* Datas de criação e finalização */}
-      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1.5 sm:mt-2">
-        <Calendar className="w-3 h-3 shrink-0" />
-        <span className="truncate">{formatarData(demanda.data_criacao)}</span>
+      {/* Datas de criação e previsão */}
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1.5 sm:mt-2">
+        <CalendarIcon className="w-3 h-3 shrink-0" />
+        <span className="truncate">Criação: {formatarData(demanda.data_criacao)}</span>
+        <span className="mx-0.5">|</span>
+        <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+          <PopoverTrigger asChild>
+            <button
+              className="text-xs underline underline-offset-2 hover:text-foreground transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsCalendarOpen(true);
+              }}
+            >
+              Previsão: {formatarData(demanda.data_previsao)}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start" onClick={(e) => e.stopPropagation()}>
+            <Calendar
+              mode="single"
+              selected={new Date(demanda.data_previsao)}
+              onSelect={handleDateChange}
+              locale={ptBR}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
         {demanda.data_finalizacao && (
           <>
-            <span>-</span>
-            <span className="truncate">{formatarData(demanda.data_finalizacao)}</span>
+            <span className="mx-0.5">|</span>
+            <span className="truncate text-green-600">Concluída: {formatarData(demanda.data_finalizacao)}</span>
           </>
         )}
       </div>
@@ -165,6 +199,7 @@ export const DemandaCard = memo(DemandaCardComponent, (prevProps, nextProps) => 
     prevProps.demanda.prioridade === nextProps.demanda.prioridade &&
     prevProps.demanda.responsavel_id === nextProps.demanda.responsavel_id &&
     prevProps.demanda.data_criacao === nextProps.demanda.data_criacao &&
+    prevProps.demanda.data_previsao === nextProps.demanda.data_previsao &&
     prevProps.demanda.data_finalizacao === nextProps.demanda.data_finalizacao &&
     prevProps.demanda.prazo === nextProps.demanda.prazo &&
     prevProps.isDragging === nextProps.isDragging

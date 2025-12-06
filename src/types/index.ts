@@ -48,6 +48,7 @@ export interface Template {
   id: string;
   nome: string;
   prioridade: Prioridade;
+  tempo_medio: number; // Tempo médio em dias para conclusão de demandas deste template
   campos_preenchimento: CampoPreenchimento[];
   tarefas: Tarefa[];
 }
@@ -70,12 +71,14 @@ export interface Demanda {
   status: StatusDemanda;
   prioridade: Prioridade;
   responsavel_id: string;
-  tempo_esperado: number; // Tempo esperado em dias para conclusão (específico desta demanda)
+  tempo_esperado: number; // Tempo esperado em dias (derivado do template no momento da criação)
   campos_preenchidos: CampoPreenchido[];
   tarefas_status: TarefaStatus[];
   data_criacao: string; // ISO date string
+  data_previsao: string; // ISO date string - data prevista para conclusão (editável)
   data_finalizacao: string | null; // ISO date string ou null se não finalizada
   prazo: boolean; // true se dentro do prazo, false se fora
+  observacoes: string; // Campo fixo de observações (max 100 caracteres)
 }
 
 // Context types

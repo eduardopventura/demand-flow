@@ -1,25 +1,31 @@
-v2.5.0
+v2.6.0
 
-Data de Release: 24 de Novembro de 2025
+Data de Release: 06 de Dezembro de 2025
 Status: Pronto para Produção ✅
 
 Mudanças Principais:
-- Tempo esperado individual por demanda
-- Responsável específico por tarefa
-- Design mais limpo (sem badges de prioridade)
-- Ordenação automática inteligente (prioridade + prazo)
-- Bug fix: Salvar alterações
+- Tempo médio definido no template (não mais na criação da demanda)
+- Data de previsão calculada automaticamente
+- Data de previsão editável no card e no modal
+- Campo de observações fixo (max 100 caracteres)
+- Confirmação ao reabrir demandas finalizadas
+- Alertas de prazo: amarelo com 1 dia, vermelho após vencimento
+- UI mais compacta no modal de detalhes
 
 Arquivos Modificados: 9
-Testes Realizados: 11 cenários
-Aprovação Cliente: ✅ 100%
+- src/types/index.ts
+- src/schemas/validation.schemas.ts
+- src/components/modals/EditorTemplateModal.tsx
+- src/components/modals/NovaDemandaModal.tsx
+- src/components/modals/DetalhesDemandaModal.tsx
+- src/components/kanban/DemandaCard.tsx
+- src/pages/PainelDemandas.tsx
+- src/utils/prazoUtils.ts
+- backend/db.json
 
 Documentação:
-- docs/releases/v2.5.0/CHANGELOG.md (detalhes técnicos)
-- docs/releases/v2.5.0/RELEASE_NOTES.md (release notes)
-- docs/releases/v2.5.0/SUMMARY.md (resumo executivo)
-- docs/releases/v2.5.0/DOCUMENTATION_INDEX.md (índice completo)
-- CHANGELOG.md (histórico atualizado)
+- docs/CHANGELOG.md (histórico atualizado)
+- docs/FEATURES.md (funcionalidades atualizadas)
 
 Deploy:
 docker-compose down && docker-compose up -d --build

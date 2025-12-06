@@ -6,16 +6,81 @@ O Demand Flow é um sistema completo de gerenciamento de demandas com interface 
 
 ---
 
-## 🆕 Novo em v2.4.0 - Sistema de Prazos
+## 🆕 Novo em v2.6.0 - Data de Previsão Editável e Observações
+
+### 📅 Data de Previsão Inteligente
+
+Cada demanda agora possui uma **Data de Previsão** calculada automaticamente e editável:
+
+```
+┌─────────────────────────────────────────────┐
+│ Gerar Contrato - Eduardo Ventura            │
+│ [Alta] [👤 Eduardo (2)]                     │
+│ 📅 Criação: 06/12/2025 | Previsão: 13/12/2025 │  ← Clicável!
+└─────────────────────────────────────────────┘
+```
+
+**Como funciona:**
+1. Ao criar demanda: `data_previsao = data_criacao + tempo_medio (template)`
+2. A qualquer momento: Clique na data para editar via calendário
+3. Flexibilidade total para ajustes tempestivos
+
+### 📊 Controle Visual de Prazos (Atualizado)
+
+```
+🟢 VERDE     - Mais de 1 dia até a previsão
+🟡 AMARELO   - Falta 1 dia ou menos (atenção!)
+🔴 VERMELHO  - Passou da previsão e não finalizada
+```
+
+### 📝 Campo de Observações
+
+Novo campo fixo disponível em todas as demandas:
+
+```
+┌─────────────────────────────────────────────┐
+│ Observações                           45/100│
+│ ┌─────────────────────────────────────────┐ │
+│ │ Cliente solicitou urgência. Priorizar  │ │
+│ │ antes do feriado.                       │ │
+│ └─────────────────────────────────────────┘ │
+└─────────────────────────────────────────────┘
+```
+
+- Máximo de 100 caracteres
+- Contador em tempo real
+- Alerta visual ao atingir limite
+
+### ⚠️ Confirmação ao Reabrir Demandas
+
+Ao mover uma demanda de "Finalizada" para outro status (arrastando ou desmarcando tarefa):
+
+```
+┌─────────────────────────────────────────────┐
+│ ⚠️ Reabrir Demanda                          │
+├─────────────────────────────────────────────┤
+│ Esta demanda já foi finalizada. Ao movê-la │
+│ para outro status, a data de finalização   │
+│ será removida.                              │
+│                                             │
+│ Tem certeza que deseja continuar?          │
+├─────────────────────────────────────────────┤
+│            [Cancelar] [Sim, reabrir]       │
+└─────────────────────────────────────────────┘
+```
+
+---
+
+## 🕐 Sistema de Prazos (v2.4.0+)
 
 ### 📊 Controle Visual de Prazos
 
 Cada demanda possui um indicador visual colorido que mostra o status do prazo:
 
 ```
-🟢 VERDE     - Dentro do prazo (4+ dias restantes)
-🟡 AMARELO   - Atenção! (≤4 dias restantes)
-🔴 VERMELHO  - Atrasado! (passou do prazo)
+🟢 VERDE     - Dentro do prazo (mais de 1 dia)
+🟡 AMARELO   - Atenção! (≤1 dia restante)
+🔴 VERMELHO  - Atrasado! (passou da previsão)
 ```
 
 ### 🎨 Visual dos Cards
@@ -29,21 +94,22 @@ Cada demanda possui um indicador visual colorido que mostra o status do prazo:
     🟢 Verde = No prazo
 ```
 
-### ⏱️ Tempo Esperado nos Templates
+### ⏱️ Tempo Médio nos Templates
 
-Ao criar um template, você define o **Tempo Esperado** para conclusão:
+Ao criar um template, você define o **Tempo Médio** para conclusão:
 
 ```
 ┌─────────────────────────────────┐
 │ Nome do Template                │
 │ [Gerar Contrato]                │
 │                                 │
+│ Tempo Médio (dias) *            │
+│ [7] dias                        │
+│ Número de dias esperado para    │
+│ conclusão de demandas           │
+│                                 │
 │ Prioridade                      │
 │ [Alta]                          │
-│                                 │
-│ Tempo Esperado *                │
-│ [7] dias                        │
-│ Tempo esperado para conclusão  │
 └─────────────────────────────────┘
 ```
 
@@ -51,19 +117,21 @@ Ao criar um template, você define o **Tempo Esperado** para conclusão:
 
 **Ao criar uma demanda**:
 - `data_criacao` = Data/hora atual
+- `data_previsao` = `data_criacao` + `tempo_medio` do template
 - `prazo` = true (começa verde)
 - Borda = 🟢 Verde
 
 **Durante a execução**:
-- Sistema calcula dias decorridos automaticamente
+- Sistema calcula dias até a data de previsão
+- Data de previsão pode ser editada a qualquer momento!
 - Borda muda conforme prazo se aproxima:
-  - Dia 1-3: 🟢 Verde (tranquilo)
-  - Dia 4-7: 🟡 Amarelo (atenção!)
-  - Dia 8+: 🔴 Vermelho (atrasado!)
+  - Mais de 1 dia: 🟢 Verde (tranquilo)
+  - 1 dia ou menos: 🟡 Amarelo (atenção!)
+  - Passou da previsão: 🔴 Vermelho (atrasado!)
 
 **Ao finalizar**:
 - `data_finalizacao` = Data/hora da conclusão
-- `prazo` = true (se dentro do tempo) ou false (se atrasado)
+- `prazo` = true (se finalizou antes da previsão) ou false (se atrasado)
 - Borda = 🟢 Verde (sucesso) ou 🔴 Vermelho (atrasado)
 
 ### 🎯 Exemplo Prático
@@ -72,19 +140,26 @@ Ao criar um template, você define o **Tempo Esperado** para conclusão:
 
 **Cenário 1 - Sucesso**:
 ```
-Criada:     14/11/2025 🟢
-Em Trabalho: 15/11/2025 🟢
-Atenção:    18/11/2025 🟡 (4 dias restantes)
-Finalizada: 20/11/2025 🟢 (6 dias = dentro do prazo!)
+Criada:     06/12/2025 🟢 (previsão: 13/12/2025)
+Em Trabalho: 07/12/2025 🟢
+Atenção:    12/12/2025 🟡 (1 dia restante!)
+Finalizada: 12/12/2025 🟢 (dentro do prazo!)
 ```
 
 **Cenário 2 - Atraso**:
 ```
-Criada:     14/11/2025 🟢
-Em Trabalho: 15/11/2025 🟢
-Atenção:    18/11/2025 🟡 (4 dias restantes)
-Atrasada:   22/11/2025 🔴 (passou de 7 dias)
-Finalizada: 25/11/2025 🔴 (11 dias = fora do prazo!)
+Criada:     06/12/2025 🟢 (previsão: 13/12/2025)
+Em Trabalho: 07/12/2025 🟢
+Atenção:    12/12/2025 🟡 (1 dia restante!)
+Atrasada:   14/12/2025 🔴 (passou da previsão!)
+Finalizada: 16/12/2025 🔴 (fora do prazo!)
+```
+
+**Cenário 3 - Previsão Ajustada**:
+```
+Criada:     06/12/2025 🟢 (previsão: 13/12/2025)
+Editada:    07/12/2025 🟢 (previsão alterada para 20/12/2025)
+Finalizada: 18/12/2025 🟢 (dentro da nova previsão!)
 ```
 
 ---
@@ -283,7 +358,7 @@ DELETE /api/demandas/:id
 
 ---
 
-**Versão**: 2.4.0  
-**Data**: 2025-11-21  
+**Versão**: 2.6.0  
+**Data**: 2025-12-06  
 **Status**: ✅ Produção
 

@@ -8,6 +8,16 @@ import { DemandaCard } from "@/components/kanban/DemandaCard";
 import { NovaDemandaModal } from "@/components/modals/NovaDemandaModal";
 import { DetalhesDemandaModal } from "@/components/modals/DetalhesDemandaModal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { Demanda } from "@/types";
 import { StatusDemanda } from "@/types";
 import { STATUS_CONFIG } from "@/constants";
@@ -20,6 +30,9 @@ export default function PainelDemandas() {
   const [demandaSelecionada, setDemandaSelecionada] = useState<Demanda | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<StatusDemanda>(StatusDemanda.CRIADA);
+  
+  // State for confirmation dialog when moving from Finalizada
+  const [pendingMove, setPendingMove] = useState<{ demandaId: string; newStatus: StatusDemanda } | null>(null);
 
   // Memoize filtered and sorted demandas to prevent unnecessary recalculations
   const demandaPorStatus = useMemo(() => ({
@@ -43,9 +56,28 @@ export default function PainelDemandas() {
 
     const demanda = demandas.find((d) => d.id === demandaId);
     if (demanda && demanda.status !== newStatus) {
-      updateDemanda(demandaId, { status: newStatus });
+      // Se está saindo de Finalizada, mostrar confirmação
+      if (demanda.status === StatusDemanda.FINALIZADA) {
+        setPendingMove({ demandaId, newStatus });
+      } else {
+        updateDemanda(demandaId, { status: newStatus });
+      }
     }
   }, [demandas, updateDemanda]);
+
+  const handleConfirmMoveFromFinalizada = useCallback(() => {
+    if (pendingMove) {
+      updateDemanda(pendingMove.demandaId, { 
+        status: pendingMove.newStatus,
+        data_finalizacao: null, // Remove a data de finalização
+      });
+      setPendingMove(null);
+    }
+  }, [pendingMove, updateDemanda]);
+
+  const handleCancelMoveFromFinalizada = useCallback(() => {
+    setPendingMove(null);
+  }, []);
 
   const activeDemanda = useMemo(
     () => (activeId ? demandas.find((d) => d.id === activeId) : null),
@@ -172,6 +204,28 @@ export default function PainelDemandas() {
         open={!!demandaSelecionada}
         onOpenChange={(open) => !open && setDemandaSelecionada(null)}
       />
+
+      {/* Confirmation Dialog for moving from Finalizada */}
+      <AlertDialog open={!!pendingMove} onOpenChange={(open) => !open && setPendingMove(null)}>
+        <AlertDialogContent className="mx-4 sm:mx-auto max-w-[calc(100vw-2rem)] sm:max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reabrir Demanda</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta demanda já foi finalizada. Ao movê-la para outro status, a data de finalização será removida e as regras de prazo serão aplicadas novamente.
+              <br /><br />
+              Tem certeza que deseja continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+            <AlertDialogCancel onClick={handleCancelMoveFromFinalizada} className="w-full sm:w-auto">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmMoveFromFinalizada} className="w-full sm:w-auto">
+              Sim, reabrir demanda
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

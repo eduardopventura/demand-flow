@@ -7,11 +7,22 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -19,9 +30,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Calendar as CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { Demanda, TarefaStatus } from "@/contexts/DataContext";
-import { calcularDiferencaDias } from "@/utils/prazoUtils";
+import { formatarData } from "@/utils/prazoUtils";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 interface DetalhesDemandaModalProps {
   demanda: Demanda | null;
@@ -34,6 +50,11 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
   const [responsavelId, setResponsavelId] = useState("");
   const [camposValores, setCamposValores] = useState<Record<string, string>>({});
   const [tarefasStatus, setTarefasStatus] = useState<TarefaStatus[]>([]);
+  const [showReopenConfirm, setShowReopenConfirm] = useState(false);
+  const [pendingTaskToggle, setPendingTaskToggle] = useState<{ tarefaId: string; concluida: boolean } | null>(null);
+  const [dataPrevisao, setDataPrevisao] = useState<Date | undefined>(undefined);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [observacoes, setObservacoes] = useState("");
 
   const template = demanda ? getTemplate(demanda.template_id) : null;
 
@@ -48,14 +69,39 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
       setCamposValores(valores);
       
       setTarefasStatus([...demanda.tarefas_status]);
+      setDataPrevisao(new Date(demanda.data_previsao));
+      setObservacoes(demanda.observacoes || "");
     }
   }, [demanda]);
 
   const handleTarefaToggle = (tarefaId: string, concluida: boolean) => {
+    // Se a demanda está finalizada e está desmarcando uma tarefa, mostrar confirmação
+    if (demanda?.status === "Finalizada" && !concluida) {
+      setPendingTaskToggle({ tarefaId, concluida });
+      setShowReopenConfirm(true);
+      return;
+    }
+
     const novoStatus = tarefasStatus.map((t) =>
       t.id_tarefa === tarefaId ? { ...t, concluida } : t
     );
     setTarefasStatus(novoStatus);
+  };
+
+  const handleConfirmReopenFromTaskToggle = () => {
+    if (pendingTaskToggle) {
+      const novoStatus = tarefasStatus.map((t) =>
+        t.id_tarefa === pendingTaskToggle.tarefaId ? { ...t, concluida: pendingTaskToggle.concluida } : t
+      );
+      setTarefasStatus(novoStatus);
+    }
+    setShowReopenConfirm(false);
+    setPendingTaskToggle(null);
+  };
+
+  const handleCancelReopenFromTaskToggle = () => {
+    setShowReopenConfirm(false);
+    setPendingTaskToggle(null);
   };
 
   const handleSalvar = () => {
@@ -74,12 +120,17 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
       // Define data de finalização se ainda não foi definida
       if (!dataFinalizacao) {
         dataFinalizacao = new Date().toISOString();
-        // Calcula se está dentro do prazo
-        const diasUtilizados = calcularDiferencaDias(demanda.data_criacao, dataFinalizacao);
-        prazo = diasUtilizados <= demanda.tempo_esperado;
+        // Calcula se está dentro do prazo baseado na data de previsão
+        const finalizacao = new Date(dataFinalizacao);
+        const previsao = new Date(demanda.data_previsao);
+        prazo = finalizacao <= previsao;
       }
     } else if (algumaConcluida) {
       novoStatusDemanda = "Em Andamento";
+      // Se estava finalizada e voltou para andamento, remove data de finalização
+      if (demanda.status === "Finalizada") {
+        dataFinalizacao = null;
+      }
     } else {
       novoStatusDemanda = "Criada";
       // Se voltou para criada, remove data de finalização
@@ -114,6 +165,8 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
       status: novoStatusDemanda,
       data_finalizacao: dataFinalizacao,
       prazo: prazo,
+      data_previsao: dataPrevisao?.toISOString() || demanda.data_previsao,
+      observacoes: observacoes,
     });
 
     toast.success("Demanda atualizada com sucesso!");
@@ -143,9 +196,79 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 sm:space-y-6 py-2 sm:py-4">
-          <div className="space-y-2">
-            <Label>Responsável</Label>
+        <div className="space-y-3 py-2">
+          {/* Datas */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2 bg-muted/50 rounded-lg">
+            <div className="space-y-0.5">
+              <Label className="text-xs text-muted-foreground">Data de Criação</Label>
+              <p className="text-sm font-medium">{formatarData(demanda.data_criacao)}</p>
+            </div>
+            <div className="space-y-0.5">
+              <Label className="text-xs text-muted-foreground">Data de Previsão</Label>
+              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal h-8",
+                      !dataPrevisao && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dataPrevisao ? formatarData(dataPrevisao.toISOString()) : "Selecione uma data"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={dataPrevisao}
+                    onSelect={(date) => {
+                      setDataPrevisao(date);
+                      setIsCalendarOpen(false);
+                    }}
+                    locale={ptBR}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            {demanda.data_finalizacao && (
+              <div className="space-y-0.5 sm:col-span-2">
+                <Label className="text-xs text-muted-foreground">Data de Finalização</Label>
+                <p className="text-sm font-medium text-green-600">{formatarData(demanda.data_finalizacao)}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Observações */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm">Observações</Label>
+              <span className={cn(
+                "text-xs",
+                observacoes.length > 100 ? "text-destructive" : "text-muted-foreground"
+              )}>
+                {observacoes.length}/100
+              </span>
+            </div>
+            <Textarea
+              value={observacoes}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value.length > 100) {
+                  toast.error("Observações deve ter no máximo 100 caracteres");
+                  return;
+                }
+                setObservacoes(value);
+              }}
+              placeholder="Adicione observações sobre esta demanda..."
+              className="resize-none"
+              rows={2}
+            />
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-sm">Responsável</Label>
             <Select value={responsavelId} onValueChange={setResponsavelId}>
               <SelectTrigger>
                 <SelectValue />
@@ -309,6 +432,28 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
           <Button onClick={handleSalvar} className="w-full sm:w-auto">Salvar Alterações</Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Confirmation Dialog for reopening a finalized demand */}
+      <AlertDialog open={showReopenConfirm} onOpenChange={setShowReopenConfirm}>
+        <AlertDialogContent className="mx-4 sm:mx-auto max-w-[calc(100vw-2rem)] sm:max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reabrir Demanda</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta demanda já foi finalizada. Ao desmarcar esta tarefa, a demanda será reaberta e a data de finalização será removida.
+              <br /><br />
+              Tem certeza que deseja continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+            <AlertDialogCancel onClick={handleCancelReopenFromTaskToggle} className="w-full sm:w-auto">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmReopenFromTaskToggle} className="w-full sm:w-auto">
+              Sim, reabrir demanda
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 };

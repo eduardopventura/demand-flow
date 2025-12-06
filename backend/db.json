@@ -33,6 +33,7 @@
     {
       "nome": "Gerar Contrato",
       "prioridade": "Alta",
+      "tempo_medio": 7,
       "campos_preenchimento": [
         {
           "id_campo": "c1763595733050",
@@ -197,6 +198,7 @@
     {
       "nome": "Atualizar Quadro de Horário ",
       "prioridade": "Média",
+      "tempo_medio": 3,
       "campos_preenchimento": [
         {
           "id_campo": "c1763602673911",
@@ -349,6 +351,7 @@
     {
       "nome": "Solicitar Ausência",
       "prioridade": "Alta",
+      "tempo_medio": 5,
       "campos_preenchimento": [
         {
           "id_campo": "c1763918773356",
@@ -648,5 +651,108 @@
       "id": 3
     }
   ],
-  "demandas": []
+  "demandas": [
+    {
+      "template_id": 1,
+      "nome_demanda": "Gerar Contrato - eduardo",
+      "status": "Em Andamento",
+      "prioridade": "Alta",
+      "responsavel_id": "u2",
+      "tempo_esperado": 7,
+      "campos_preenchidos": [
+        {
+          "id_campo": "c1763595733050",
+          "valor": "eduardo"
+        },
+        {
+          "id_campo": "c1763595762675",
+          "valor": "12 Meses"
+        },
+        {
+          "id_campo": "c1763595807205",
+          "valor": "Cartão Recorrente"
+        },
+        {
+          "id_campo": "c1763595874301",
+          "valor": "360"
+        },
+        {
+          "id_campo": "c1763595887919",
+          "valor": "80"
+        },
+        {
+          "id_campo": "c1763595901760",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763595914567",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763595923376",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763595929524",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763595938785",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763595966268",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763595989021",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763596004668",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763596908733",
+          "valor": ""
+        }
+      ],
+      "tarefas_status": [
+        {
+          "id_tarefa": "ta1763596153412",
+          "concluida": true
+        },
+        {
+          "id_tarefa": "ta1763596176158",
+          "concluida": false
+        },
+        {
+          "id_tarefa": "ta1763596184432",
+          "concluida": false
+        },
+        {
+          "id_tarefa": "ta1763596193984",
+          "concluida": false
+        },
+        {
+          "id_tarefa": "ta1763596205089",
+          "concluida": false
+        },
+        {
+          "id_tarefa": "ta1763596251594",
+          "concluida": false
+        },
+        {
+          "id_tarefa": "ta1763596273253",
+          "concluida": false
+        }
+      ],
+      "data_criacao": "2025-12-06T20:21:42.670Z",
+      "data_previsao": "2025-12-11T03:00:00.000Z",
+      "data_finalizacao": null,
+      "prazo": true,
+      "observacoes": "",
+      "id": 1
+    }
+  ]
 }

@@ -24,8 +24,11 @@ export interface Usuario {
   id: string;
   nome: string;
   email: string;
+  telefone: string; // Número com código país e região (ex: "5561999999999")
   login: string;
   senha: string; // TODO: Will be improved with proper authentication
+  notificar_email: boolean; // Receber notificações por email
+  notificar_telefone: boolean; // Receber notificações por WhatsApp
 }
 
 export interface CampoPreenchimento {
@@ -79,6 +82,7 @@ export interface Demanda {
   data_finalizacao: string | null; // ISO date string ou null se não finalizada
   prazo: boolean; // true se dentro do prazo, false se fora
   observacoes: string; // Campo fixo de observações (max 100 caracteres)
+  notificacao_prazo_enviada?: boolean; // Controle para enviar notificação de prazo apenas uma vez
 }
 
 // Context types

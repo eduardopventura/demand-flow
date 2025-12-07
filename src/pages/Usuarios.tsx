@@ -19,7 +19,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, Edit, Trash2, Mail, User } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Plus, Edit, Trash2, Mail, User, Phone, Bell, BellOff } from "lucide-react";
 import { toast } from "sonner";
 import type { Usuario } from "@/contexts/DataContext";
 
@@ -30,8 +31,11 @@ export default function Usuarios() {
   const [formData, setFormData] = useState({
     nome: "",
     email: "",
+    telefone: "",
     login: "",
     senha: "",
+    notificar_email: false,
+    notificar_telefone: false,
   });
 
   const handleOpenModal = (usuario?: Usuario) => {
@@ -40,12 +44,23 @@ export default function Usuarios() {
       setFormData({
         nome: usuario.nome,
         email: usuario.email,
+        telefone: usuario.telefone || "",
         login: usuario.login,
         senha: usuario.senha,
+        notificar_email: usuario.notificar_email || false,
+        notificar_telefone: usuario.notificar_telefone || false,
       });
     } else {
       setUsuarioEditando(null);
-      setFormData({ nome: "", email: "", login: "", senha: "" });
+      setFormData({ 
+        nome: "", 
+        email: "", 
+        telefone: "",
+        login: "", 
+        senha: "",
+        notificar_email: false,
+        notificar_telefone: false,
+      });
     }
     setModalOpen(true);
   };
@@ -100,7 +115,15 @@ export default function Usuarios() {
                   <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-1">
                     <Mail className="w-3.5 h-3.5 shrink-0" />
                     <span className="truncate">{usuario.email}</span>
+                    {usuario.notificar_email && <Bell className="w-3 h-3 text-green-500" />}
                   </div>
+                  {usuario.telefone && (
+                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-1">
+                      <Phone className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">{usuario.telefone}</span>
+                      {usuario.notificar_telefone && <Bell className="w-3 h-3 text-green-500" />}
+                    </div>
+                  )}
                   <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-1">
                     <User className="w-3.5 h-3.5 shrink-0" />
                     <span>@{usuario.login}</span>
@@ -141,7 +164,9 @@ export default function Usuarios() {
               <TableRow>
                 <TableHead>Nome</TableHead>
                 <TableHead>Email</TableHead>
+                <TableHead>Telefone</TableHead>
                 <TableHead>Login</TableHead>
+                <TableHead>Notificações</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -150,7 +175,27 @@ export default function Usuarios() {
                 <TableRow key={usuario.id}>
                   <TableCell className="font-medium">{usuario.nome}</TableCell>
                   <TableCell>{usuario.email}</TableCell>
+                  <TableCell>{usuario.telefone || "-"}</TableCell>
                   <TableCell>{usuario.login}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      {usuario.notificar_email && (
+                        <span className="flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                          <Mail className="w-3 h-3" /> Email
+                        </span>
+                      )}
+                      {usuario.notificar_telefone && (
+                        <span className="flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
+                          <Phone className="w-3 h-3" /> WhatsApp
+                        </span>
+                      )}
+                      {!usuario.notificar_email && !usuario.notificar_telefone && (
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <BellOff className="w-3 h-3" /> Desativadas
+                        </span>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button
@@ -202,12 +247,59 @@ export default function Usuarios() {
 
             <div className="space-y-2">
               <Label>Email</Label>
-              <Input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="email@exemplo.com"
-              />
+              <div className="flex gap-2">
+                <Input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="email@exemplo.com"
+                  className="flex-1"
+                />
+                <div className="flex items-center gap-2 px-3 border rounded-md bg-muted/30">
+                  <Checkbox
+                    id="notificar_email"
+                    checked={formData.notificar_email}
+                    onCheckedChange={(checked) => 
+                      setFormData({ ...formData, notificar_email: checked as boolean })
+                    }
+                  />
+                  <Label htmlFor="notificar_email" className="text-xs cursor-pointer whitespace-nowrap">
+                    Notificar
+                  </Label>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Telefone (WhatsApp)</Label>
+              <div className="flex gap-2">
+                <Input
+                  type="tel"
+                  value={formData.telefone}
+                  onChange={(e) => {
+                    // Remove tudo que não é número
+                    const value = e.target.value.replace(/\D/g, '');
+                    setFormData({ ...formData, telefone: value });
+                  }}
+                  placeholder="5561999999999"
+                  className="flex-1"
+                />
+                <div className="flex items-center gap-2 px-3 border rounded-md bg-muted/30">
+                  <Checkbox
+                    id="notificar_telefone"
+                    checked={formData.notificar_telefone}
+                    onCheckedChange={(checked) => 
+                      setFormData({ ...formData, notificar_telefone: checked as boolean })
+                    }
+                  />
+                  <Label htmlFor="notificar_telefone" className="text-xs cursor-pointer whitespace-nowrap">
+                    Notificar
+                  </Label>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Formato: código do país + DDD + número (ex: 5561999999999)
+              </p>
             </div>
 
             <div className="space-y-2">

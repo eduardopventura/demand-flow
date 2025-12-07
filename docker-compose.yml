@@ -1,4 +1,4 @@
-# Docker Compose - Demand Flow MVP
+# Docker Compose - Demand Flow
 # JSON-Server backend with React frontend
 # Ready for future PostgreSQL upgrade
 
@@ -6,7 +6,6 @@ version: '3.8'
 
 services:
   # Backend API - JSON-Server (MVP)
-  # TODO: Replace with PostgreSQL + Express when scaling
   backend:
     build:
       context: ./backend
@@ -16,10 +15,9 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      # Persist database file
       - ./backend/db.json:/app/db.json
-      # Hot reload in development (uncomment for dev)
-      # - ./backend/server.js:/app/server.js
+    env_file:
+      - ./backend/.env
     environment:
       - NODE_ENV=production
       - PORT=3000
@@ -53,8 +51,4 @@ networks:
     driver: bridge
     name: demand-flow-network
 
-# Volumes for data persistence
-volumes:
-  backend-data:
-    driver: local
 

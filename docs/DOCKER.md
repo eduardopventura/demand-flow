@@ -1,149 +1,232 @@
 # 🐳 Docker - Guia Completo
 
-> **Consolidação de**: DOCKER_MVP.md, DOCKER_GUIDE.md, DOCKER_FIX.md, REBUILD_FORCE.md
+Documentação completa da infraestrutura Docker do projeto Demand Flow.
 
 ---
 
 ## 📋 Índice
 
-1. [Quick Start](#quick-start)
-2. [Arquitetura](#arquitetura)
-3. [Ambientes](#ambientes)
-4. [Comandos Úteis](#comandos-úteis)
-5. [Troubleshooting](#troubleshooting)
-6. [Rebuild e Manutenção](#rebuild-e-manutenção)
+1. [Visão Geral](#-visão-geral)
+2. [Arquivos Docker](#-arquivos-docker)
+3. [Arquitetura](#-arquitetura)
+4. [Comandos](#-comandos)
+5. [Volumes e Persistência](#-volumes-e-persistência)
+6. [Rede Docker](#-rede-docker)
+7. [Troubleshooting](#-troubleshooting)
 
 ---
 
-## 🚀 Quick Start
+## 🔍 Visão Geral
 
-### Setup Inicial
+O projeto é 100% dockerizado:
 
-```bash
-# 1. Clone o repositório
-git clone <seu-repo>
-cd demand-flow
+| Serviço | Porta | Descrição |
+|---------|-------|-----------|
+| Frontend | 3060 | React + Nginx |
+| Backend | 3000 | Node.js + JSON-Server |
+| Database | - | db.json (volume persistente) |
 
-# 2. (Opcional) Ajuste o IP se necessário
-# Edite: src/services/api.service.ts linha ~17
-# const API_URL = "http://SEU-IP:3000/api";
+**URLs de Acesso:**
+- Frontend: http://localhost:3060
+- Backend: http://localhost:3000
+- API: http://localhost:3060/api (via proxy)
 
-# 3. Subir aplicação
-docker-compose up -d --build
+---
 
-# 4. Acessar
-# Frontend: http://192.168.1.4:3060
-# Backend:  http://192.168.1.4:3000
+## 📁 Arquivos Docker
+
+### Estrutura de Arquivos
+
+```
+demand-flow/
+├── docker-compose.yml        # Configuração Docker
+├── Dockerfile                # Build do frontend
+├── nginx.conf                # Configuração Nginx (frontend)
+├── backend/
+│   └── Dockerfile            # Build do backend
 ```
 
-### Verificar Status
+### `docker-compose.yml`
 
-```bash
-# Status dos containers
-docker-compose ps
+Arquivo principal que define os serviços:
 
-# Logs em tempo real
-docker-compose logs -f
+```yaml
+version: '3.8'
 
-# Health check do backend
-curl http://192.168.1.4:3000/health
+services:
+  backend:
+    build: ./backend
+    container_name: demand-flow-backend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./backend/db.json:/app/db.json
+    env_file:
+      - ./backend/.env
+    healthcheck:
+      test: ["CMD", "node", "-e", "..."]
+      interval: 30s
+
+  frontend:
+    build: .
+    container_name: demand-flow-frontend
+    ports:
+      - "3060:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+networks:
+  demand-flow-network:
+    driver: bridge
 ```
+
+### `Dockerfile` (Frontend)
+
+Build multi-stage para o frontend React:
+
+```dockerfile
+# Stage 1: Build
+FROM node:20-alpine as builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+# Stage 2: Produção
+FROM nginx:alpine
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
+```
+
+**Características:**
+- Multi-stage build (imagem final pequena)
+- Node 20 Alpine para build
+- Nginx Alpine para servir
+- Health check configurado
+
+### `backend/Dockerfile` (Backend)
+
+Container Node.js para o backend:
+
+```dockerfile
+FROM node:20-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm install --omit=dev
+COPY . .
+EXPOSE 3000
+CMD ["npm", "start"]
+```
+
+**Características:**
+- Node 20 Alpine
+- Apenas dependências de produção
+- Health check configurado
+
+### `nginx.conf`
+
+Configuração do Nginx para o frontend:
+
+```nginx
+server {
+    listen 80;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Gzip compression
+    gzip on;
+    gzip_types text/plain text/css application/javascript application/json;
+
+    # SPA fallback
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Proxy para API
+    location /api {
+        proxy_pass http://backend:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+
+**Importantes:**
+- Proxy `/api` → backend:3000 (resolve CORS)
+- SPA fallback para React Router
+- Gzip para performance
+- Security headers
 
 ---
 
 ## 🏗️ Arquitetura
 
-### Componentes
+### Fluxo de Requisições
 
 ```
 ┌─────────────────────────────────────────┐
-│         Navegador (Cliente)             │
-│    http://192.168.1.4:3060              │
+│           Navegador (Cliente)           │
+│      http://localhost:3060              │
 └──────────────┬──────────────────────────┘
                │
                ▼
 ┌─────────────────────────────────────────┐
-│   Frontend Container (Nginx)            │
-│   - React + Vite build                  │
-│   - Servido por Nginx                   │
-│   - Porta: 3060 → 80                    │
+│      Frontend Container (Nginx)         │
+│                                         │
+│  ┌─────────────────────────────────┐   │
+│  │ /          → index.html (React) │   │
+│  │ /api/*     → proxy → backend    │   │
+│  │ /health    → 200 OK             │   │
+│  └─────────────────────────────────┘   │
+│                                         │
+│  - Porta interna: 80                    │
+│  - Porta exposta: 3060                  │
 └──────────────┬──────────────────────────┘
-               │ HTTP Requests
-               │ http://192.168.1.4:3000/api
+               │ HTTP (via proxy)
+               │ http://backend:3000
                ▼
 ┌─────────────────────────────────────────┐
-│   Backend Container (JSON-Server)       │
-│   - Express + JSON-Server               │
-│   - API REST completa                   │
-│   - Porta: 3000                         │
+│      Backend Container (Node.js)        │
+│                                         │
+│  ┌─────────────────────────────────┐   │
+│  │ Express + JSON-Server           │   │
+│  │ API REST                        │   │
+│  │ Lógica de Negócio               │   │
+│  │ Notificações (Email, WhatsApp)  │   │
+│  │ Cron Jobs (prazo)               │   │
+│  └─────────────────────────────────┘   │
+│                                         │
+│  - Porta: 3000                          │
 └──────────────┬──────────────────────────┘
                │
                ▼
 ┌─────────────────────────────────────────┐
-│   Volume Persistente                    │
-│   backend/db.json                       │
-│   - Dados persistidos no host           │
+│          Volume: db.json                │
+│    (Persistido no host)                 │
 └─────────────────────────────────────────┘
 ```
 
-### Rede Docker
+### Por que o Proxy?
 
-```yaml
-Network: demand-flow-network (bridge)
-  ├── backend (demand-flow-backend)
-  └── frontend (demand-flow-frontend)
-```
+O Nginx faz proxy das requisições `/api` para o backend porque:
 
----
-
-## 🌍 Ambientes
-
-### Produção (Padrão)
-
-```bash
-# Subir
-docker-compose up -d
-
-# Parar
-docker-compose down
-```
-
-**Configuração**:
-- Frontend: `192.168.1.4:3060`
-- Backend: `192.168.1.4:3000`
-- Database: `backend/db.json`
-- Rede: `demand-flow-network`
-
-### Desenvolvimento (Paralelo)
-
-```bash
-# Subir (roda em paralelo com produção)
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
-
-# Parar
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml down
-```
-
-**Configuração**:
-- Frontend: `192.168.1.4:3061` (porta diferente)
-- Backend: `192.168.1.4:3001` (porta diferente)
-- Database: `backend/db-dev.json` (arquivo separado)
-- Rede: `demand-flow-dev-network` (rede separada)
-
-**Vantagens**:
-- Testa mudanças sem afetar produção
-- Database completamente separado
-- Mesmas configurações (alta fidelidade)
-- Comparação lado a lado
+1. **Evita CORS:** Requisições vêm do mesmo domínio
+2. **HTTPS:** Não há Mixed Content (HTTPS → HTTP)
+3. **Simplifica:** Frontend usa apenas `/api` (path relativo)
+4. **DNS Docker:** Nginx resolve "backend" via DNS interno
 
 ---
 
-## 🛠️ Comandos Úteis
+## 🛠️ Comandos
 
 ### Gerenciamento Básico
 
 ```bash
-# Subir (detached mode)
+# Subir (background)
 docker-compose up -d
 
 # Subir com rebuild
@@ -155,7 +238,7 @@ docker-compose down
 # Parar e remover volumes
 docker-compose down -v
 
-# Restart de um serviço específico
+# Restart específico
 docker-compose restart backend
 docker-compose restart frontend
 ```
@@ -163,14 +246,14 @@ docker-compose restart frontend
 ### Logs e Debug
 
 ```bash
-# Ver todos os logs
+# Todos os logs
 docker-compose logs
 
 # Logs em tempo real
 docker-compose logs -f
 
-# Logs de um serviço específico
-docker-compose logs backend
+# Logs de serviço específico
+docker-compose logs -f backend
 docker-compose logs -f frontend
 
 # Últimas 100 linhas
@@ -183,27 +266,23 @@ docker-compose logs --tail=100
 # Status dos containers
 docker-compose ps
 
-# Listar redes
-docker network ls | grep demand-flow
+# Uso de recursos
+docker stats
 
 # Inspecionar container
 docker inspect demand-flow-backend
-docker inspect demand-flow-frontend
-
-# Ver uso de recursos
-docker stats
 ```
 
 ### Acesso aos Containers
 
 ```bash
-# Entrar no container backend
+# Shell no backend
 docker exec -it demand-flow-backend sh
 
-# Entrar no container frontend
+# Shell no frontend
 docker exec -it demand-flow-frontend sh
 
-# Executar comando específico
+# Executar comando
 docker exec demand-flow-backend ls -la /app
 ```
 
@@ -216,11 +295,69 @@ docker container prune
 # Remover imagens não utilizadas
 docker image prune
 
-# Remover tudo (cuidado!)
+# Limpar tudo (cuidado!)
 docker system prune -a
 
-# Limpar build cache
+# Limpar cache de build
 docker builder prune -a
+```
+
+---
+
+## 💾 Volumes e Persistência
+
+### Volume Principal
+
+```yaml
+volumes:
+  - ./backend/db.json:/app/db.json
+```
+
+O arquivo `db.json` é montado diretamente do host:
+- Dados persistem mesmo após `docker-compose down`
+- Fácil de fazer backup
+- Editável manualmente se necessário
+
+### Backup
+
+```bash
+# Backup com timestamp
+cp backend/db.json backend/db.backup.$(date +%Y%m%d_%H%M%S).json
+
+# Restore
+cp backend/db.backup.20241207_150000.json backend/db.json
+docker-compose restart backend
+```
+
+---
+
+## 🌐 Rede Docker
+
+### Configuração
+
+```yaml
+networks:
+  demand-flow-network:
+    driver: bridge
+    name: demand-flow-network
+```
+
+### DNS Interno
+
+Dentro da rede Docker, os serviços se encontram por nome:
+- `backend` → resolve para IP do container backend
+- `frontend` → resolve para IP do container frontend
+
+**Exemplo:** Nginx usa `proxy_pass http://backend:3000`
+
+### Verificar Rede
+
+```bash
+# Listar redes
+docker network ls | grep demand-flow
+
+# Inspecionar rede
+docker network inspect demand-flow-network
 ```
 
 ---
@@ -229,11 +366,8 @@ docker builder prune -a
 
 ### Container não inicia
 
-**Sintoma**: `docker-compose ps` mostra container como `Exit` ou `Restarting`
-
-**Solução**:
 ```bash
-# Ver logs do erro
+# Ver erro
 docker-compose logs backend
 
 # Forçar rebuild
@@ -241,334 +375,109 @@ docker-compose down
 docker-compose up --build --force-recreate
 ```
 
-### Porta já em uso
+### Porta em uso
 
-**Sintoma**: `Error: bind: address already in use`
-
-**Opção 1 - Mudar porta no docker-compose.yml**:
-```yaml
-services:
-  frontend:
-    ports:
-      - "3061:80"  # Mudou de 3060 para 3061
-  backend:
-    ports:
-      - "3001:3000"  # Mudou de 3000 para 3001
-```
-
-**Opção 2 - Matar processo na porta**:
 ```bash
-# Windows
-netstat -ano | findstr :3060
-taskkill /PID <PID> /F
-
-# Linux
+# Linux - verificar processo
 lsof -i :3060
 kill -9 <PID>
+
+# Ou mudar porta no docker-compose.yml
+ports:
+  - "3061:80"  # Nova porta
 ```
 
-### Backend não responde (ERR_CONNECTION_REFUSED)
+### Backend não responde
 
-**Verificação**:
 ```bash
-# 1. Container está rodando?
+# Verificar se está rodando
 docker-compose ps
-# Deve mostrar: backend (healthy)
 
-# 2. Health check funciona?
-curl http://192.168.1.4:3000/health
+# Verificar health
+curl http://localhost:3000/health
 
-# 3. Ver logs
+# Ver logs
 docker-compose logs backend
 ```
 
-**Soluções**:
-```bash
-# Restart backend
-docker-compose restart backend
+### Frontend não conecta ao backend
 
-# Rebuild backend
-docker-compose stop backend
-docker-compose rm backend
-docker-compose up -d --build backend
+**Verificar:**
+1. Backend está healthy? `docker-compose ps`
+2. Console do browser mostra erro?
+3. Nginx está fazendo proxy?
+
+```bash
+# Testar API diretamente
+curl http://localhost:3000/api/usuarios
+
+# Testar via frontend (proxy)
+curl http://localhost:3060/api/usuarios
 ```
 
-### Frontend mostra "Usando dados locais"
+### Cache antigo
 
-**Causa**: Frontend não consegue conectar no backend
-
-**Verificação**:
 ```bash
-# 1. Backend está healthy?
-docker-compose ps
-
-# 2. IP está correto?
-# Abrir F12 → Console
-# Procurar: "API Service initialized with URL: http://192.168.1.4:3000/api"
-# Se mostrar localhost ou outro IP, está errado
-
-# 3. Backend responde?
-curl http://192.168.1.4:3000/api/usuarios
-```
-
-**Soluções**:
-```bash
-# Se IP estiver errado:
-# 1. Editar src/services/api.service.ts (linha ~17)
-# 2. Rebuild frontend
-docker-compose down
-docker-compose up -d --build
-```
-
-### Cache antigo persistindo
-
-**Sintoma**: Mudanças no código não aparecem após rebuild
-
-**Solução**:
-```bash
-# Limpar tudo e rebuild do zero
+# Limpar tudo e rebuild
 docker-compose down --rmi all --volumes
 docker builder prune -a -f
 docker-compose up -d --build
 ```
 
-### Database corrompido ou vazio
+### Database corrompido
 
-**Solução**:
 ```bash
-# Resetar database para estado inicial
-cd backend
-npm run seed
+# Verificar JSON válido
+cat backend/db.json | python -m json.tool
 
-# Ou copiar backup
-cp db.backup.json db.json
-
-# Restart backend
+# Restaurar backup
+cp backend/db.backup.json backend/db.json
 docker-compose restart backend
 ```
 
 ---
 
-## 🔄 Rebuild e Manutenção
+## 📋 Checklist de Deploy
 
-### Rebuild Completo (Recomendado após mudanças)
-
-```bash
-cd /caminho/para/demand-flow
-
-# 1. Parar tudo
-docker-compose down
-
-# 2. Remover imagens antigas (opcional)
-docker-compose down --rmi all
-
-# 3. Rebuild sem cache
-docker-compose build --no-cache
-
-# 4. Subir
-docker-compose up -d
-
-# 5. Ver logs
-docker-compose logs -f
-```
-
-### Rebuild Apenas Frontend
-
-```bash
-# Parar frontend
-docker-compose stop frontend
-
-# Remover container e imagem
-docker rm demand-flow-frontend
-docker rmi demand-flow-frontend
-
-# Rebuild
-docker-compose build --no-cache frontend
-
-# Subir
-docker-compose up -d frontend
-```
-
-### Rebuild Apenas Backend
-
-```bash
-# Parar backend
-docker-compose stop backend
-
-# Remover container e imagem
-docker rm demand-flow-backend
-docker rmi demand-flow-backend
-
-# Rebuild
-docker-compose build --no-cache backend
-
-# Subir
-docker-compose up -d backend
-```
-
-### Atualizar após mudança no código
-
-```bash
-# Se mudou APENAS código fonte (não docker-compose.yml ou Dockerfile)
-docker-compose up -d --build
-
-# Se mudou Dockerfile ou docker-compose.yml
-docker-compose down
-docker-compose up -d --build
-```
-
-### Backup e Restore
-
-```bash
-# Backup do database
-cp backend/db.json backend/db.backup.$(date +%Y%m%d_%H%M%S).json
-
-# Restore
-cp backend/db.backup.20240119_150000.json backend/db.json
-docker-compose restart backend
-
-# Backup completo (incluindo imagens Docker)
-docker save demand-flow-frontend > frontend-image.tar
-docker save demand-flow-backend > backend-image.tar
-
-# Restore de imagens
-docker load < frontend-image.tar
-docker load < backend-image.tar
-```
-
----
-
-## 📊 Monitoramento
-
-### Health Checks
-
-```bash
-# Backend health
-curl http://192.168.1.4:3000/health
-# Deve retornar: {"status":"healthy","timestamp":"..."}
-
-# Ver health no Docker
-docker-compose ps
-# Backend deve mostrar: "healthy"
-```
-
-### Uso de Recursos
-
-```bash
-# Ver uso de CPU/RAM em tempo real
-docker stats
-
-# Ver uso de disco
-docker system df
-
-# Ver logs de um período específico
-docker-compose logs --since 1h backend
-docker-compose logs --since "2024-01-19T10:00:00"
-```
-
----
-
-## 🎯 Checklist de Verificação
-
-### Após Subir Containers
+### Após subir containers
 
 - [ ] Containers rodando: `docker-compose ps`
 - [ ] Backend healthy: Status mostra "(healthy)"
-- [ ] Backend responde: `curl http://192.168.1.4:3000/health`
-- [ ] Frontend carrega: Abrir `http://192.168.1.4:3060`
+- [ ] Backend responde: `curl http://localhost:3000/health`
+- [ ] Frontend carrega: Abrir http://localhost:3060
 - [ ] Console sem erros: F12 → Console
-- [ ] API URL correta: Console mostra `http://192.168.1.4:3000/api`
-- [ ] Dados persistem: Criar demanda → Reload → Ainda está lá
+- [ ] Criar demanda e verificar persistência
 
-### Após Mudanças no Código
+### Após mudanças no código
 
-- [ ] Rebuild executado: `docker-compose up -d --build`
-- [ ] Sem erros de build: Ver logs durante build
-- [ ] Cache limpo (se necessário): `docker builder prune`
-- [ ] Containers reiniciados: `docker-compose ps`
-- [ ] Mudanças visíveis: Testar no navegador
+- [ ] Rebuild: `docker-compose up -d --build`
+- [ ] Sem erros de build nos logs
+- [ ] Cache limpo se necessário
+- [ ] Mudanças visíveis no browser
 
 ---
 
-## 📚 Referências Rápidas
+## 📊 Referências Rápidas
+
+### Portas
+
+| Serviço | Porta |
+|---------|-------|
+| Frontend | 3060 |
+| Backend | 3000 |
 
 ### Arquivos Importantes
 
 | Arquivo | Descrição |
 |---------|-----------|
-| `docker-compose.yml` | Configuração de produção |
-| `docker-compose.dev.yml` | Override para desenvolvimento |
-| `Dockerfile` | Build do frontend |
-| `backend/Dockerfile` | Build do backend |
-| `nginx.conf` | Configuração do Nginx |
-| `backend/db.json` | Database de produção |
-| `backend/db-dev.json` | Database de desenvolvimento |
-
-### Portas
-
-| Ambiente | Frontend | Backend | Database |
-|----------|----------|---------|----------|
-| Produção | 3060 | 3000 | db.json |
-| Dev | 3061 | 3001 | db-dev.json |
-
-### URLs
-
-```bash
-# Produção
-Frontend: http://192.168.1.4:3060
-Backend:  http://192.168.1.4:3000
-API:      http://192.168.1.4:3000/api
-Health:   http://192.168.1.4:3000/health
-
-# Dev
-Frontend: http://192.168.1.4:3061
-Backend:  http://192.168.1.4:3001
-API:      http://192.168.1.4:3001/api
-Health:   http://192.168.1.4:3001/health
-```
+| `docker-compose.yml` | Configuração Docker |
+| `Dockerfile` | Build frontend |
+| `backend/Dockerfile` | Build backend |
+| `nginx.conf` | Config Nginx |
+| `backend/db.json` | Database JSON |
+| `backend/.env` | Variáveis de ambiente |
 
 ---
 
-## 🚀 Deploy em Servidor
-
-### Preparação
-
-```bash
-# 1. Instalar Docker e Docker Compose no servidor
-curl -fsSL https://get.docker.com | sh
-sudo usermod -aG docker $USER
-
-# 2. Clonar projeto
-git clone <seu-repo>
-cd demand-flow
-
-# 3. Ajustar IP se necessário
-# Editar src/services/api.service.ts
-```
-
-### Deploy
-
-```bash
-# Build e subir
-docker-compose up -d --build
-
-# Verificar
-docker-compose ps
-docker-compose logs -f
-```
-
-### Configuração de Firewall
-
-```bash
-# Permitir portas no firewall (exemplo Ubuntu)
-sudo ufw allow 3000/tcp
-sudo ufw allow 3060/tcp
-sudo ufw reload
-```
-
----
-
-**Versão**: 2.3.0  
-**Última atualização**: 2025-11-19  
-**Consolidação de**: DOCKER_MVP.md, DOCKER_GUIDE.md, DOCKER_FIX.md, REBUILD_FORCE.md
-
+**Versão:** 2.6.0  
+**Última Atualização:** 07/12/2025

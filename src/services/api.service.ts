@@ -161,6 +161,40 @@ export const apiService = {
   },
 
   // ============================================================================
+  // DEMANDAS - Custom Endpoints com lógica de negócio no backend
+  // ============================================================================
+
+  /**
+   * Criar demanda via endpoint customizado
+   * O backend calcula: nome_demanda, data_previsao, tarefas_status
+   * E dispara notificações automaticamente
+   */
+  async criarDemandaCustom(dados: {
+    template_id: string;
+    responsavel_id: string;
+    campos_valores: Record<string, string>;
+  }): Promise<Demanda> {
+    return fetchAPI<Demanda>("/demandas/criar", {
+      method: "POST",
+      body: JSON.stringify(dados),
+    });
+  },
+
+  /**
+   * Atualizar demanda via endpoint customizado
+   * O backend detecta mudanças e dispara notificações:
+   * - Mudança de responsável de tarefa
+   * - Tarefa concluída por responsável diferente
+   * - Calcula status automaticamente
+   */
+  async atualizarDemandaCustom(id: string, demanda: Partial<Demanda>): Promise<Demanda> {
+    return fetchAPI<Demanda>(`/demandas/${id}/atualizar`, {
+      method: "PATCH",
+      body: JSON.stringify(demanda),
+    });
+  },
+
+  // ============================================================================
   // AUTHENTICATION (Placeholder - implement properly when migrating)
   // ============================================================================
 

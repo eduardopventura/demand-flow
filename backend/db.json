@@ -3,30 +3,42 @@
     {
       "id": "u1",
       "nome": "Eduardo",
-      "email": "eduardopventura@hotmail.com",
+      "email": "eduardopventura@gmail.com",
+      "telefone": "5561981691889",
       "login": "eduardopventura",
-      "senha": "Dem@andas960609"
+      "senha": "Dem@andas960609",
+      "notificar_email": true,
+      "notificar_telefone": true
     },
     {
       "id": "u2",
       "nome": "Helio Ramos Ventura",
       "email": "helioramosv@gmail.com",
+      "telefone": "5561982545440",
       "login": "helio",
-      "senha": "123"
+      "senha": "123",
+      "notificar_email": true,
+      "notificar_telefone": false
     },
     {
       "id": "u3",
       "nome": "Cristina de Souza Patricio Ventura",
       "email": "crispventura@gmail.com",
+      "telefone": "5561981814601",
       "login": "cristina",
-      "senha": "123"
+      "senha": "123",
+      "notificar_email": false,
+      "notificar_telefone": true
     },
     {
+      "id": "20iCy01",
       "nome": "Nubia",
       "email": "nubia@gmail.com",
+      "telefone": "",
       "login": "Nubia",
       "senha": "123",
-      "id": "20iCy01"
+      "notificar_email": false,
+      "notificar_telefone": false
     }
   ],
   "templates": [
@@ -1482,6 +1494,84 @@
       "prazo": true,
       "observacoes": "",
       "id": 8
+    },
+    {
+      "template_id": 2,
+      "nome_demanda": "Atualizar Quadro de Horário  - Teste 5",
+      "status": "Criada",
+      "prioridade": "Média",
+      "responsavel_id": "u1",
+      "tempo_esperado": 7,
+      "campos_preenchidos": [
+        {
+          "id_campo": "c1763602673911",
+          "valor": "Teste 5"
+        },
+        {
+          "id_campo": "c1763603050028",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763603050910",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763603051692",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763603187103",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763603188201",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763603264562",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763603297001",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763603315611",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763603340441",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763603357440",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763603365631",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763603380346",
+          "valor": ""
+        },
+        {
+          "id_campo": "c1763603429216",
+          "valor": ""
+        }
+      ],
+      "tarefas_status": [
+        {
+          "id_tarefa": "ta1763603449637",
+          "concluida": false
+        }
+      ],
+      "data_criacao": "2025-12-07T20:50:36.996Z",
+      "data_previsao": "2025-12-14T20:50:36.996Z",
+      "data_finalizacao": null,
+      "prazo": true,
+      "observacoes": "",
+      "id": 9
     }
   ]
 }

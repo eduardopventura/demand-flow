@@ -7,17 +7,33 @@
 - Builds são gerenciados pelo pipeline de CI/CD, não pelo desenvolvedor local
 - NUNCA execute `npm install` ou `bun install` localmente - as dependências são instaladas dentro do container Docker
 
-### Ambiente de Desenvolvimento (Docker)
+### Como Subir o Projeto (Docker)
 - Sempre use Docker para rodar o projeto
-- Comando para desenvolvimento: `docker-compose -f docker-compose.dev.yml up --build`
-- Comando alternativo: `./scripts/start.sh dev`
+- Comando para subir: `docker-compose up -d --build`
 - NÃO é necessário instalar Node.js ou npm localmente
-- O hot reload funciona automaticamente via volumes do Docker
-- Acesso: http://localhost:3061 (frontend) e http://localhost:3001 (backend)
+- Acesso: http://localhost:3060 (frontend) e http://localhost:3000 (backend)
+
+### Comandos Docker Úteis
+```bash
+# Subir projeto
+docker-compose up -d --build
+
+# Ver logs
+docker-compose logs -f
+
+# Parar projeto
+docker-compose down
+
+# Reiniciar
+docker-compose restart
+
+# Rebuild completo
+docker-compose down && docker-compose up -d --build
+```
 
 ### Arquitetura de Rede Docker
 - Frontend e Backend se comunicam via hostname Docker "backend"
-- Frontend usa "/api" que é redirecionado via proxy (Vite em dev, Nginx em prod)
+- Frontend usa "/api" que é redirecionado via proxy (Nginx)
 - NÃO hardcode IPs - use sempre os hostnames Docker
 
 ### Documentação
@@ -48,3 +64,4 @@
 ### Commits e Versionamento
 - Não gere arquivos de build ou dist
 - Não commite node_modules ou arquivos temporários
+- Não commite arquivos .env com credenciais

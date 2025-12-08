@@ -246,17 +246,17 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
               <Label className="text-sm">Observações</Label>
               <span className={cn(
                 "text-xs",
-                observacoes.length > 100 ? "text-destructive" : "text-muted-foreground"
+                observacoes.length > 250 ? "text-destructive" : "text-muted-foreground"
               )}>
-                {observacoes.length}/100
+                {observacoes.length}/250
               </span>
             </div>
             <Textarea
               value={observacoes}
               onChange={(e) => {
                 const value = e.target.value;
-                if (value.length > 100) {
-                  toast.error("Observações deve ter no máximo 100 caracteres");
+                if (value.length > 250) {
+                  toast.error("Observações deve ter no máximo 250 caracteres");
                   return;
                 }
                 setObservacoes(value);

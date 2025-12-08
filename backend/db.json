@@ -158,13 +158,6 @@
             "Sim",
             "Não"
           ]
-        },
-        {
-          "id_campo": "c1763596908733",
-          "nome_campo": "Observações",
-          "tipo_campo": "texto",
-          "obrigatorio_criacao": false,
-          "complementa_nome": false
         }
       ],
       "tarefas": [
@@ -195,19 +188,20 @@
         },
         {
           "id_tarefa": "ta1763596251594",
-          "nome_tarefa": "Preencher Ksis",
+          "nome_tarefa": "Preencher Teste Diagnóstico no Ksis",
           "link_pai": "ta1763596184432"
         },
         {
           "id_tarefa": "ta1763596273253",
-          "nome_tarefa": "Gerar Demanda \"Atualizar Quadro de Horário\" ",
+          "nome_tarefa": "Gerar Demanda \"Preencher Quadro de Horário\" ",
           "link_pai": "ta1763596184432"
         }
       ],
-      "id": 1
+      "id": 1,
+      "tempo_medio": 7
     },
     {
-      "nome": "Atualizar Quadro de Horário ",
+      "nome": "Preencher Quadro de Horário ",
       "prioridade": "Média",
       "campos_preenchimento": [
         {
@@ -356,7 +350,8 @@
           "link_pai": null
         }
       ],
-      "id": 2
+      "id": 2,
+      "tempo_medio": 7
     },
     {
       "nome": "Solicitar Ausência",
@@ -412,7 +407,7 @@
         },
         {
           "id_campo": "c1763906657967",
-          "nome_campo": "Valor da Mensalidade ",
+          "nome_campo": "Valor Total da Mensalidade",
           "tipo_campo": "numero",
           "obrigatorio_criacao": false,
           "complementa_nome": false
@@ -657,7 +652,111 @@
           "link_pai": "ta1763917295146"
         }
       ],
-      "id": 3
+      "id": 3,
+      "tempo_medio": 7
+    },
+    {
+      "nome": "Demanda Extraordinaria",
+      "tempo_medio": 7,
+      "prioridade": "Alta",
+      "campos_preenchimento": [
+        {
+          "id_campo": "c1765148967009",
+          "nome_campo": "Nome do Aluno",
+          "tipo_campo": "texto",
+          "obrigatorio_criacao": false,
+          "complementa_nome": false
+        }
+      ],
+      "tarefas": [
+        {
+          "id_tarefa": "ta1765148874020",
+          "nome_tarefa": "Realizar Demanda",
+          "link_pai": null
+        }
+      ],
+      "id": 4
+    },
+    {
+      "nome": "Matricular/Atualizar Ksis",
+      "tempo_medio": 7,
+      "prioridade": "Média",
+      "campos_preenchimento": [
+        {
+          "id_campo": "c1765149340450",
+          "nome_campo": "Nome do Aluno",
+          "tipo_campo": "texto",
+          "obrigatorio_criacao": true,
+          "complementa_nome": true
+        },
+        {
+          "id_campo": "c1765151255643",
+          "nome_campo": "Motivo",
+          "tipo_campo": "dropdown",
+          "obrigatorio_criacao": true,
+          "complementa_nome": false,
+          "opcoes_dropdown": [
+            "Troca de Dsiciplina",
+            "Nova Dsciplina Aluno Multi",
+            "Novo Teste Diagnóstico"
+          ]
+        },
+        {
+          "id_campo": "c1765149342279",
+          "nome_campo": "Mesmo Valor da Mensalidade?",
+          "tipo_campo": "dropdown",
+          "obrigatorio_criacao": false,
+          "complementa_nome": false,
+          "opcoes_dropdown": [
+            "Sim",
+            "Não"
+          ]
+        },
+        {
+          "id_campo": "c1765149343762",
+          "nome_campo": "Novo Valor Mensalidade",
+          "tipo_campo": "numero",
+          "obrigatorio_criacao": false,
+          "complementa_nome": false
+        },
+        {
+          "id_campo": "c1765149607345",
+          "nome_campo": "Data 1º Pagamento",
+          "tipo_campo": "data",
+          "obrigatorio_criacao": false,
+          "complementa_nome": false
+        },
+        {
+          "id_campo": "c1765154100038",
+          "nome_campo": "Data de Inclusão no Ksis",
+          "tipo_campo": "data",
+          "obrigatorio_criacao": false,
+          "complementa_nome": false
+        },
+        {
+          "id_campo": "c1765149857206",
+          "nome_campo": "Disciplina",
+          "tipo_campo": "dropdown",
+          "obrigatorio_criacao": false,
+          "complementa_nome": false,
+          "opcoes_dropdown": [
+            "P-I",
+            "P-M",
+            "I-M",
+            "P",
+            "I",
+            "M"
+          ]
+        }
+      ],
+      "tarefas": [
+        {
+          "id_tarefa": "ta1765154144211",
+          "nome_tarefa": "Matricular/Atualizar Ksis",
+          "link_pai": null
+        }
+      ],
+      "id": 5
     }
   ],
   "demandas": [
@@ -1387,11 +1486,12 @@
         }
       ],
       "data_criacao": "2025-12-04T19:27:40.797Z",
-      "data_previsao": "2025-12-11T19:27:40.797Z",
+      "data_previsao": "2025-12-08T03:00:00.000Z",
       "data_finalizacao": null,
       "prazo": true,
       "observacoes": "",
-      "id": 7
+      "id": 7,
+      "notificacao_prazo_enviada": true
     },
     {
       "template_id": 1,
@@ -1492,85 +1592,33 @@
       "data_previsao": "2025-12-12T13:48:44.770Z",
       "data_finalizacao": null,
       "prazo": true,
-      "observacoes": "",
+      "observacoes": "Helio, esse aluno a proposta é ficar apenas dois meses.Brinde dezembro.\nVamos lançar o K-SIS, certo?",
       "id": 8
     },
     {
-      "template_id": 2,
-      "nome_demanda": "Atualizar Quadro de Horário  - Teste 5",
+      "template_id": 4,
+      "nome_demanda": "Demanda Extraordinaria",
       "status": "Criada",
-      "prioridade": "Média",
-      "responsavel_id": "u1",
+      "prioridade": "Alta",
+      "responsavel_id": "u2",
       "tempo_esperado": 7,
       "campos_preenchidos": [
         {
-          "id_campo": "c1763602673911",
-          "valor": "Teste 5"
-        },
-        {
-          "id_campo": "c1763603050028",
-          "valor": ""
-        },
-        {
-          "id_campo": "c1763603050910",
-          "valor": ""
-        },
-        {
-          "id_campo": "c1763603051692",
-          "valor": ""
-        },
-        {
-          "id_campo": "c1763603187103",
-          "valor": ""
-        },
-        {
-          "id_campo": "c1763603188201",
-          "valor": ""
-        },
-        {
-          "id_campo": "c1763603264562",
-          "valor": ""
-        },
-        {
-          "id_campo": "c1763603297001",
-          "valor": ""
-        },
-        {
-          "id_campo": "c1763603315611",
-          "valor": ""
-        },
-        {
-          "id_campo": "c1763603340441",
-          "valor": ""
-        },
-        {
-          "id_campo": "c1763603357440",
-          "valor": ""
-        },
-        {
-          "id_campo": "c1763603365631",
-          "valor": ""
-        },
-        {
-          "id_campo": "c1763603380346",
-          "valor": ""
-        },
-        {
-          "id_campo": "c1763603429216",
-          "valor": ""
+          "id_campo": "c1765148967009",
+          "valor": "Isabela Monteiro Evangelista"
         }
       ],
       "tarefas_status": [
         {
-          "id_tarefa": "ta1763603449637",
+          "id_tarefa": "ta1765148874020",
           "concluida": false
         }
       ],
-      "data_criacao": "2025-12-07T20:50:36.996Z",
-      "data_previsao": "2025-12-14T20:50:36.996Z",
+      "data_criacao": "2025-12-08T14:21:51.424Z",
+      "data_previsao": "2025-12-15T14:21:51.424Z",
       "data_finalizacao": null,
       "prazo": true,
-      "observacoes": "",
+      "observacoes": "Solicitou rescisão. Resolveu continuar, dúvida? foi feito rescisão no K-SIS?\nNão lembro como ficou.",
       "id": 9
     }
   ]

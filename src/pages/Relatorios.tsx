@@ -40,7 +40,6 @@ export default function Relatorios() {
         Nome: demanda.nome_demanda,
         Template: template?.nome || "",
         Status: demanda.status,
-        Prioridade: demanda.prioridade,
       };
     });
 

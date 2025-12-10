@@ -108,28 +108,13 @@ export const getPrimeiroNome = (nomeCompleto: string): string => {
 };
 
 /**
- * Ordena demandas por prioridade (Alta > Média > Baixa) e depois por prazo (menos tempo restante primeiro)
+ * Ordena demandas por dias até a data de previsão (menos dias = topo, atrasadas no topo)
  */
-export const ordenarDemandas = <T extends { prioridade: string; data_previsao: string; data_finalizacao: string | null }>(
+export const ordenarDemandas = <T extends { data_previsao: string; data_finalizacao: string | null }>(
   demandas: T[]
 ): T[] => {
-  const prioridadeValor: Record<string, number> = {
-    'Alta': 3,
-    'Média': 2,
-    'Baixa': 1,
-  };
-
   return [...demandas].sort((a, b) => {
-    // 1º critério: Prioridade (Alta > Média > Baixa)
-    const prioridadeA = prioridadeValor[a.prioridade] || 0;
-    const prioridadeB = prioridadeValor[b.prioridade] || 0;
-    
-    if (prioridadeA !== prioridadeB) {
-      return prioridadeB - prioridadeA; // Ordem decrescente (Alta primeiro)
-    }
-
-    // 2º critério: Prazo (menos tempo restante primeiro)
-    // Para demandas finalizadas, colocar por último dentro da mesma prioridade
+    // Para demandas finalizadas, colocar por último
     if (a.data_finalizacao && !b.data_finalizacao) {
       return 1; // a vai depois de b
     }
@@ -137,11 +122,11 @@ export const ordenarDemandas = <T extends { prioridade: string; data_previsao: s
       return -1; // a vai antes de b
     }
     
-    // Ambas finalizadas ou ambas não finalizadas
+    // Ambas não finalizadas - ordenar por dias restantes (menos dias = topo)
     if (!a.data_finalizacao && !b.data_finalizacao) {
       const diasRestantesA = diasRestantesAtePrevisao(a.data_previsao);
       const diasRestantesB = diasRestantesAtePrevisao(b.data_previsao);
-      return diasRestantesA - diasRestantesB; // Ordem crescente (menos dias restantes primeiro)
+      return diasRestantesA - diasRestantesB; // Ordem crescente (menos dias restantes primeiro, atrasadas no topo)
     }
     
     // Ambas finalizadas - ordenar por data de finalização (mais recente primeiro)

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useData } from "@/contexts/DataContext";
 import {
   Dialog,
@@ -21,7 +21,6 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -30,11 +29,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
-import type { Demanda, TarefaStatus } from "@/contexts/DataContext";
+import type { Demanda, TarefaStatus, CampoPreenchimento, CondicaoVisibilidade } from "@/types";
 import { formatarData } from "@/utils/prazoUtils";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -44,6 +44,29 @@ interface DetalhesDemandaModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
+
+// Função para avaliar condição de visibilidade
+const avaliarCondicaoVisibilidade = (
+  condicao: CondicaoVisibilidade | undefined,
+  camposValores: Record<string, string>
+): boolean => {
+  if (!condicao) return true; // Sem condição = sempre visível
+
+  const valorCampoPai = camposValores[condicao.campo_id] || "";
+
+  switch (condicao.operador) {
+    case "igual":
+      return valorCampoPai === condicao.valor;
+    case "diferente":
+      return valorCampoPai !== condicao.valor;
+    case "preenchido":
+      return valorCampoPai.trim() !== "";
+    case "vazio":
+      return valorCampoPai.trim() === "";
+    default:
+      return true;
+  }
+};
 
 export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDemandaModalProps) => {
   const { updateDemanda, getTemplate, usuarios } = useData();
@@ -55,8 +78,17 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
   const [dataPrevisao, setDataPrevisao] = useState<Date | undefined>(undefined);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [observacoes, setObservacoes] = useState("");
+  const [abaAtiva, setAbaAtiva] = useState<string>("geral");
 
   const template = demanda ? getTemplate(demanda.template_id) : null;
+
+  // Abas do template (com fallback para aba Geral)
+  const abas = useMemo(() => {
+    if (!template?.abas?.length) {
+      return [{ id: "geral", nome: "Geral", ordem: 0 }];
+    }
+    return [...template.abas].sort((a, b) => a.ordem - b.ordem);
+  }, [template]);
 
   useEffect(() => {
     if (demanda) {
@@ -71,8 +103,27 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
       setTarefasStatus([...demanda.tarefas_status]);
       setDataPrevisao(new Date(demanda.data_previsao));
       setObservacoes(demanda.observacoes || "");
+      
+      // Selecionar primeira aba
+      if (abas.length > 0) {
+        setAbaAtiva(abas[0].id);
+      }
     }
-  }, [demanda]);
+  }, [demanda, abas]);
+
+  // Filtrar campos visíveis para uma aba específica
+  const getCamposVisiveis = (abaId: string): CampoPreenchimento[] => {
+    if (!template) return [];
+
+    return template.campos_preenchimento.filter((campo) => {
+      // Verificar se pertence à aba
+      const pertenceAba = campo.abas_ids?.includes(abaId) ?? abaId === "geral";
+      if (!pertenceAba) return false;
+
+      // Verificar condição de visibilidade
+      return avaliarCondicaoVisibilidade(campo.condicao_visibilidade, camposValores);
+    });
+  };
 
   const handleTarefaToggle = (tarefaId: string, concluida: boolean) => {
     // Se a demanda está finalizada e está desmarcando uma tarefa, mostrar confirmação
@@ -184,6 +235,78 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
     });
   };
 
+  const renderCampoInput = (campo: CampoPreenchimento) => {
+    const value = camposValores[campo.id_campo] || "";
+
+    switch (campo.tipo_campo) {
+      case "numero":
+        return (
+          <Input
+            type="number"
+            value={value}
+            onChange={(e) =>
+              setCamposValores({ ...camposValores, [campo.id_campo]: e.target.value })
+            }
+          />
+        );
+      case "data":
+        return (
+          <Input
+            type="date"
+            value={value}
+            onChange={(e) =>
+              setCamposValores({ ...camposValores, [campo.id_campo]: e.target.value })
+            }
+          />
+        );
+      case "arquivo":
+        return (
+          <div className="space-y-2">
+            <Input type="text" value={value} disabled />
+            <Input
+              type="file"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  setCamposValores({ ...camposValores, [campo.id_campo]: file.name });
+                }
+              }}
+            />
+          </div>
+        );
+      case "dropdown":
+        return (
+          <Select
+            value={value}
+            onValueChange={(v) =>
+              setCamposValores({ ...camposValores, [campo.id_campo]: v })
+            }
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione uma opção" />
+            </SelectTrigger>
+            <SelectContent>
+              {campo.opcoes_dropdown?.map((opcao: string) => (
+                <SelectItem key={opcao} value={opcao}>
+                  {opcao}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        );
+      default:
+        return (
+          <Input
+            type="text"
+            value={value}
+            onChange={(e) =>
+              setCamposValores({ ...camposValores, [campo.id_campo]: e.target.value })
+            }
+          />
+        );
+    }
+  };
+
   if (!demanda || !template) return null;
 
   return (
@@ -192,7 +315,6 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
         <DialogHeader>
           <DialogTitle className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 pr-6">
             <span className="text-base sm:text-lg line-clamp-2">{demanda.nome_demanda}</span>
-            <Badge variant="secondary" className="w-fit">{demanda.prioridade}</Badge>
           </DialogTitle>
         </DialogHeader>
 
@@ -283,75 +405,55 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
             </Select>
           </div>
 
+          {/* Campos de Preenchimento com Abas */}
           <div className="space-y-3 border-t pt-4">
             <Label className="text-sm sm:text-base">Campos de Preenchimento</Label>
-            {template.campos_preenchimento.map((campo) => {
-              const value = camposValores[campo.id_campo] || "";
-              
-              return (
-                <div key={campo.id_campo} className="space-y-2">
-                  <Label className="text-sm">{campo.nome_campo}</Label>
-                  {campo.tipo_campo === "numero" ? (
-                    <Input
-                      type="number"
-                      value={value}
-                      onChange={(e) =>
-                        setCamposValores({ ...camposValores, [campo.id_campo]: e.target.value })
-                      }
-                    />
-                  ) : campo.tipo_campo === "data" ? (
-                    <Input
-                      type="date"
-                      value={value}
-                      onChange={(e) =>
-                        setCamposValores({ ...camposValores, [campo.id_campo]: e.target.value })
-                      }
-                    />
-                  ) : campo.tipo_campo === "arquivo" ? (
-                    <div className="space-y-2">
-                      <Input type="text" value={value} disabled />
-                      <Input
-                        type="file"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            setCamposValores({ ...camposValores, [campo.id_campo]: file.name });
-                          }
-                        }}
-                      />
-                    </div>
-                  ) : campo.tipo_campo === "dropdown" ? (
-                    <Select
-                      value={value}
-                      onValueChange={(v) =>
-                        setCamposValores({ ...camposValores, [campo.id_campo]: v })
-                      }
+            
+            {abas.length > 1 ? (
+              <Tabs value={abaAtiva} onValueChange={setAbaAtiva}>
+                <TabsList className="w-full flex-wrap h-auto gap-1 bg-muted/50 p-1.5 rounded-lg">
+                  {abas.map((aba) => (
+                    <TabsTrigger 
+                      key={aba.id} 
+                      value={aba.id}
+                      className="flex-1 min-w-fit px-4 py-2 text-sm font-medium transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted data-[state=inactive]:text-muted-foreground rounded-md"
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione uma opção" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {campo.opcoes_dropdown?.map((opcao: string) => (
-                          <SelectItem key={opcao} value={opcao}>
-                            {opcao}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Input
-                      type="text"
-                      value={value}
-                      onChange={(e) =>
-                        setCamposValores({ ...camposValores, [campo.id_campo]: e.target.value })
-                      }
-                    />
-                  )}
-                </div>
-              );
-            })}
+                      {aba.nome}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+                
+                {abas.map((aba) => (
+                  <TabsContent key={aba.id} value={aba.id} className="space-y-3 mt-3">
+                    {getCamposVisiveis(aba.id).length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        Nenhum campo nesta aba
+                      </p>
+                    ) : (
+                      getCamposVisiveis(aba.id).map((campo) => (
+                        <div key={campo.id_campo} className="space-y-2">
+                          <Label className="text-sm">{campo.nome_campo}</Label>
+                          {renderCampoInput(campo)}
+                        </div>
+                      ))
+                    )}
+                  </TabsContent>
+                ))}
+              </Tabs>
+            ) : (
+              // Se só tem uma aba, mostra sem tabs
+              <div className="space-y-3">
+                {getCamposVisiveis(abas[0]?.id || "geral").map((campo) => (
+                  <div key={campo.id_campo} className="space-y-2">
+                    <Label className="text-sm">{campo.nome_campo}</Label>
+                    {renderCampoInput(campo)}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
+          {/* Tarefas - Sempre visíveis abaixo das abas */}
           <div className="space-y-3 border-t pt-4">
             <div className="flex items-center justify-between">
               <Label className="text-sm sm:text-base">Tarefas</Label>

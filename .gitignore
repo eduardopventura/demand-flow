@@ -28,3 +28,6 @@ backend/.env
 *.njsproj
 *.sln
 *.sw?
+
+# Database file - cada ambiente mantém o seu próprio
+backend/db.json

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { TipoCampo, Prioridade, StatusDemanda } from "@/types";
+import { TipoCampo, StatusDemanda } from "@/types";
 
 /**
  * Validation schemas using Zod
@@ -49,7 +49,6 @@ export const tarefaSchema = z.object({
 // Template schema
 export const templateSchema = z.object({
   nome: z.string().min(3, "Nome do template deve ter no mínimo 3 caracteres"),
-  prioridade: z.nativeEnum(Prioridade),
   tempo_medio: z.number().min(1, "Tempo médio deve ser no mínimo 1 dia"),
   campos_preenchimento: z.array(campoPreenchimentoSchema),
   tarefas: z.array(tarefaSchema),
@@ -75,7 +74,6 @@ export const demandaSchema = z.object({
   template_id: z.string().min(1, "Template é obrigatório"),
   nome_demanda: z.string().min(3, "Nome da demanda deve ter no mínimo 3 caracteres"),
   status: z.nativeEnum(StatusDemanda),
-  prioridade: z.nativeEnum(Prioridade),
   responsavel_id: z.string().min(1, "Responsável é obrigatório"),
   tempo_esperado: z.number().min(1, "Tempo esperado deve ser no mínimo 1 dia"),
   campos_preenchidos: z.array(campoPreenchidoSchema),

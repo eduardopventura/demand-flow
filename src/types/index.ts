@@ -5,12 +5,6 @@ export enum StatusDemanda {
   FINALIZADA = "Finalizada",
 }
 
-export enum Prioridade {
-  BAIXA = "Baixa",
-  MEDIA = "Média",
-  ALTA = "Alta",
-}
-
 export enum TipoCampo {
   TEXTO = "texto",
   NUMERO = "numero",
@@ -31,6 +25,12 @@ export interface Usuario {
   notificar_telefone: boolean; // Receber notificações por WhatsApp
 }
 
+export interface CondicaoVisibilidade {
+  campo_id: string; // ID do campo do qual este depende
+  operador: "igual" | "diferente" | "preenchido" | "vazio";
+  valor?: string; // Valor para comparação (ex: "Sim", "Não")
+}
+
 export interface CampoPreenchimento {
   id_campo: string;
   nome_campo: string;
@@ -38,6 +38,8 @@ export interface CampoPreenchimento {
   opcoes_dropdown?: string[];
   obrigatorio_criacao: boolean;
   complementa_nome: boolean;
+  abas_ids: string[]; // IDs das abas onde o campo aparece
+  condicao_visibilidade?: CondicaoVisibilidade; // Condição para exibir o campo
 }
 
 export interface Tarefa {
@@ -47,11 +49,17 @@ export interface Tarefa {
   responsavel_id?: string; // Responsável específico da tarefa no template (opcional)
 }
 
+export interface AbaTemplate {
+  id: string;
+  nome: string;
+  ordem: number; // Para ordenação visual
+}
+
 export interface Template {
   id: string;
   nome: string;
-  prioridade: Prioridade;
   tempo_medio: number; // Tempo médio em dias para conclusão de demandas deste template
+  abas: AbaTemplate[]; // Abas do template
   campos_preenchimento: CampoPreenchimento[];
   tarefas: Tarefa[];
 }
@@ -72,7 +80,6 @@ export interface Demanda {
   template_id: string;
   nome_demanda: string;
   status: StatusDemanda;
-  prioridade: Prioridade;
   responsavel_id: string;
   tempo_esperado: number; // Tempo esperado em dias (derivado do template no momento da criação)
   campos_preenchidos: CampoPreenchido[];

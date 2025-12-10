@@ -1,4 +1,4 @@
-import { Prioridade, StatusDemanda } from "@/types";
+import { StatusDemanda } from "@/types";
 
 // LocalStorage keys
 export const STORAGE_KEYS = {
@@ -23,22 +23,6 @@ export const STATUS_CONFIG = {
     bg: "bg-kanban-finished",
     border: "border-success/20",
     label: "Finalizada",
-  },
-} as const;
-
-// Priority configuration
-export const PRIORIDADE_CONFIG = {
-  [Prioridade.BAIXA]: {
-    className: "bg-secondary text-secondary-foreground",
-    label: "Baixa",
-  },
-  [Prioridade.MEDIA]: {
-    className: "bg-warning text-warning-foreground",
-    label: "Média",
-  },
-  [Prioridade.ALTA]: {
-    className: "bg-destructive text-destructive-foreground",
-    label: "Alta",
   },
 } as const;
 
@@ -67,10 +51,4 @@ export const FIELD_TYPE_OPTIONS = [
   { value: "dropdown", label: "Lista Dropdown" },
 ] as const;
 
-// Priority options
-export const PRIORITY_OPTIONS = [
-  { value: Prioridade.BAIXA, label: "Baixa" },
-  { value: Prioridade.MEDIA, label: "Média" },
-  { value: Prioridade.ALTA, label: "Alta" },
-] as const;
 

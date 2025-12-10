@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -19,8 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, GripVertical } from "lucide-react";
-import type { Template, CampoPreenchimento, Tarefa } from "@/contexts/DataContext";
+import { Plus, Trash2, GripVertical, Eye, EyeOff, Pencil } from "lucide-react";
+import type { Template, CampoPreenchimento, Tarefa, AbaTemplate, CondicaoVisibilidade } from "@/types";
 import { toast } from "sonner";
 import {
   DndContext,
@@ -39,12 +38,20 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { Badge } from "@/components/ui/badge";
 
 interface EditorTemplateModalProps {
   template: Template | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
+
+const ABA_GERAL_ID = "geral";
 
 const SortableItem = ({ id, children }: { id: string; children: React.ReactNode }) => {
   const {
@@ -82,9 +89,12 @@ export const EditorTemplateModal = ({
   const { addTemplate, updateTemplate, usuarios } = useData();
   const [nome, setNome] = useState("");
   const [tempoMedio, setTempoMedio] = useState<number>(7);
-  const [prioridade, setPrioridade] = useState<"Baixa" | "Média" | "Alta">("Média");
+  const [abas, setAbas] = useState<AbaTemplate[]>([{ id: ABA_GERAL_ID, nome: "Geral", ordem: 0 }]);
   const [campos, setCampos] = useState<CampoPreenchimento[]>([]);
   const [tarefas, setTarefas] = useState<Tarefa[]>([]);
+  const [novaAbaNome, setNovaAbaNome] = useState("");
+  const [editandoAba, setEditandoAba] = useState<string | null>(null);
+  const [nomeAbaEditando, setNomeAbaEditando] = useState("");
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -97,17 +107,64 @@ export const EditorTemplateModal = ({
     if (template) {
       setNome(template.nome);
       setTempoMedio(template.tempo_medio || 7);
-      setPrioridade(template.prioridade);
-      setCampos(template.campos_preenchimento);
+      setAbas(template.abas?.length > 0 ? template.abas : [{ id: ABA_GERAL_ID, nome: "Geral", ordem: 0 }]);
+      setCampos(template.campos_preenchimento.map(c => ({
+        ...c,
+        abas_ids: c.abas_ids || [ABA_GERAL_ID],
+      })));
       setTarefas(template.tarefas);
     } else {
       setNome("");
       setTempoMedio(7);
-      setPrioridade("Média");
+      setAbas([{ id: ABA_GERAL_ID, nome: "Geral", ordem: 0 }]);
       setCampos([]);
       setTarefas([]);
     }
   }, [template, open]);
+
+  // Gerenciamento de Abas
+  const handleAddAba = () => {
+    if (!novaAbaNome.trim()) {
+      toast.error("Nome da aba é obrigatório");
+      return;
+    }
+    const novaAba: AbaTemplate = {
+      id: `aba_${Date.now()}`,
+      nome: novaAbaNome.trim(),
+      ordem: abas.length,
+    };
+    setAbas([...abas, novaAba]);
+    setNovaAbaNome("");
+    toast.success("Aba adicionada");
+  };
+
+  const handleRemoveAba = (abaId: string) => {
+    if (abaId === ABA_GERAL_ID) {
+      toast.error("A aba 'Geral' não pode ser removida");
+      return;
+    }
+    // Remover aba da lista de abas dos campos
+    // Se campo ficar sem aba, adiciona automaticamente a aba "Geral"
+    setCampos(campos.map(c => {
+      const novasAbas = c.abas_ids.filter(id => id !== abaId);
+      return {
+        ...c,
+        abas_ids: novasAbas.length === 0 ? [ABA_GERAL_ID] : novasAbas,
+      };
+    }));
+    setAbas(abas.filter(a => a.id !== abaId));
+    toast.success("Aba removida");
+  };
+
+  const handleRenameAba = (abaId: string) => {
+    if (!nomeAbaEditando.trim()) {
+      toast.error("Nome da aba é obrigatório");
+      return;
+    }
+    setAbas(abas.map(a => a.id === abaId ? { ...a, nome: nomeAbaEditando.trim() } : a));
+    setEditandoAba(null);
+    setNomeAbaEditando("");
+  };
 
   const handleAddCampo = () => {
     const novoCampo: CampoPreenchimento = {
@@ -116,12 +173,17 @@ export const EditorTemplateModal = ({
       tipo_campo: "texto",
       obrigatorio_criacao: false,
       complementa_nome: false,
+      abas_ids: [ABA_GERAL_ID], // Padrão: aba Geral
     };
     setCampos([...campos, novoCampo]);
   };
 
   const handleRemoveCampo = (idCampo: string) => {
-    setCampos(campos.filter((c) => c.id_campo !== idCampo));
+    // Também remover condições que dependem deste campo
+    setCampos(campos.filter((c) => c.id_campo !== idCampo).map(c => ({
+      ...c,
+      condicao_visibilidade: c.condicao_visibilidade?.campo_id === idCampo ? undefined : c.condicao_visibilidade,
+    })));
   };
 
   const handleUpdateCampo = (
@@ -147,6 +209,35 @@ export const EditorTemplateModal = ({
         return c;
       })
     );
+  };
+
+  const handleToggleAbaInCampo = (idCampo: string, abaId: string) => {
+    setCampos(campos.map(c => {
+      if (c.id_campo !== idCampo) return c;
+      
+      const abasAtuais = c.abas_ids || [];
+      if (abaId === "todas") {
+        // Se selecionou "Todas", adiciona todas as abas
+        return { ...c, abas_ids: abas.map(a => a.id) };
+      }
+      
+      if (abasAtuais.includes(abaId)) {
+        // Remover aba - se ficar vazio, adiciona automaticamente a aba "Geral"
+        const novas = abasAtuais.filter(id => id !== abaId);
+        if (novas.length === 0) {
+          return { ...c, abas_ids: [ABA_GERAL_ID] };
+        }
+        return { ...c, abas_ids: novas };
+      } else {
+        // Adicionar aba
+        return { ...c, abas_ids: [...abasAtuais, abaId] };
+      }
+    }));
+  };
+
+  // Condições de Visibilidade
+  const handleSetCondicao = (idCampo: string, condicao: CondicaoVisibilidade | undefined) => {
+    setCampos(campos.map(c => c.id_campo === idCampo ? { ...c, condicao_visibilidade: condicao } : c));
   };
 
   const handleAddTarefa = () => {
@@ -220,11 +311,17 @@ export const EditorTemplateModal = ({
       return;
     }
 
+    // Garantir que todos os campos tenham pelo menos uma aba (padrão: Geral)
+    const camposComAbas = campos.map(c => ({
+      ...c,
+      abas_ids: (!c.abas_ids || c.abas_ids.length === 0) ? [ABA_GERAL_ID] : c.abas_ids,
+    }));
+
     const templateData = {
       nome,
       tempo_medio: tempoMedio,
-      prioridade,
-      campos_preenchimento: campos,
+      abas,
+      campos_preenchimento: camposComAbas,
       tarefas,
     };
 
@@ -237,6 +334,17 @@ export const EditorTemplateModal = ({
     }
 
     onOpenChange(false);
+  };
+
+  // Obter opções para condição baseado no campo pai
+  const getOpcoesCondicao = (campoPaiId: string): string[] => {
+    const campoPai = campos.find(c => c.id_campo === campoPaiId);
+    if (!campoPai) return [];
+    
+    if (campoPai.tipo_campo === "dropdown") {
+      return campoPai.opcoes_dropdown || [];
+    }
+    return [];
   };
 
   return (
@@ -270,18 +378,73 @@ export const EditorTemplateModal = ({
             </p>
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-sm">Prioridade *</Label>
-            <Select value={prioridade} onValueChange={(v: any) => setPrioridade(v)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Baixa">Baixa</SelectItem>
-                <SelectItem value="Média">Média</SelectItem>
-                <SelectItem value="Alta">Alta</SelectItem>
-              </SelectContent>
-            </Select>
+          {/* Seção de Gerenciamento de Abas */}
+          <div className="space-y-3 p-3 border rounded-lg bg-muted/30">
+            <Label className="text-sm sm:text-base font-semibold">Gerenciar Abas</Label>
+            <p className="text-xs text-muted-foreground">
+              Organize os campos em abas para melhor visualização. A aba "Geral" é padrão e não pode ser removida.
+            </p>
+            
+            <div className="flex flex-wrap gap-2">
+              {abas.map((aba) => (
+                <div key={aba.id} className="flex items-center gap-1">
+                  {editandoAba === aba.id ? (
+                    <div className="flex items-center gap-1">
+                      <Input
+                        value={nomeAbaEditando}
+                        onChange={(e) => setNomeAbaEditando(e.target.value)}
+                        className="h-8 w-24"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleRenameAba(aba.id);
+                          if (e.key === "Escape") setEditandoAba(null);
+                        }}
+                      />
+                      <Button size="sm" variant="ghost" onClick={() => handleRenameAba(aba.id)}>
+                        OK
+                      </Button>
+                    </div>
+                  ) : (
+                    <Badge variant={aba.id === ABA_GERAL_ID ? "default" : "secondary"} className="gap-1">
+                      {aba.nome}
+                      <button
+                        onClick={() => {
+                          setEditandoAba(aba.id);
+                          setNomeAbaEditando(aba.nome);
+                        }}
+                        className="ml-1 hover:bg-background/20 rounded p-0.5"
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </button>
+                      {aba.id !== ABA_GERAL_ID && (
+                        <button
+                          onClick={() => handleRemoveAba(aba.id)}
+                          className="ml-0.5 hover:bg-destructive/20 rounded p-0.5"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      )}
+                    </Badge>
+                  )}
+                </div>
+              ))}
+            </div>
+            
+            <div className="flex gap-2">
+              <Input
+                value={novaAbaNome}
+                onChange={(e) => setNovaAbaNome(e.target.value)}
+                placeholder="Nome da nova aba"
+                className="flex-1"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleAddAba();
+                }}
+              />
+              <Button size="sm" variant="outline" onClick={handleAddAba}>
+                <Plus className="w-4 h-4 mr-1" />
+                Adicionar
+              </Button>
+            </div>
           </div>
 
           <div className="space-y-3">
@@ -366,7 +529,6 @@ export const EditorTemplateModal = ({
                                     onChange={(e) => {
                                       const novas = [...(campo.opcoes_dropdown || [])];
                                       novas[index] = e.target.value;
-                                      // Remove vazias no final
                                       const filtradas = novas.filter((o, i) => o.trim() !== "" || i < novas.length - 1);
                                       handleUpdateCampo(campo.id_campo, {
                                         opcoes_dropdown: filtradas,
@@ -396,6 +558,168 @@ export const EditorTemplateModal = ({
                           </div>
                         )}
 
+                        {/* Seleção de Abas para o Campo */}
+                        <div className="space-y-2">
+                          <Label className="text-xs">Abas onde este campo aparece</Label>
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant={campo.abas_ids?.length === abas.length ? "default" : "outline"}
+                              className="h-7 text-xs"
+                              onClick={() => handleToggleAbaInCampo(campo.id_campo, "todas")}
+                            >
+                              Todas
+                            </Button>
+                            {abas.map((aba) => (
+                              <Button
+                                key={aba.id}
+                                type="button"
+                                size="sm"
+                                variant={campo.abas_ids?.includes(aba.id) ? "default" : "outline"}
+                                className="h-7 text-xs"
+                                onClick={() => handleToggleAbaInCampo(campo.id_campo, aba.id)}
+                              >
+                                {aba.nome}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Condição de Visibilidade */}
+                        <Collapsible>
+                          <CollapsibleTrigger asChild>
+                            <Button type="button" variant="ghost" size="sm" className="gap-2 h-7 text-xs">
+                              {campo.condicao_visibilidade ? (
+                                <>
+                                  <Eye className="w-3 h-3" />
+                                  Condição ativa
+                                </>
+                              ) : (
+                                <>
+                                  <EyeOff className="w-3 h-3" />
+                                  Adicionar condição de visibilidade
+                                </>
+                              )}
+                            </Button>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent className="pt-2 space-y-2">
+                            <div className="p-2 border rounded bg-muted/30 space-y-2">
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <div className="space-y-1">
+                                  <Label className="text-xs">Campo pai</Label>
+                                  <Select
+                                    value={campo.condicao_visibilidade?.campo_id || "none"}
+                                    onValueChange={(v) => {
+                                      if (v === "none") {
+                                        handleSetCondicao(campo.id_campo, undefined);
+                                      } else {
+                                        handleSetCondicao(campo.id_campo, {
+                                          campo_id: v,
+                                          operador: "igual",
+                                          valor: "",
+                                        });
+                                      }
+                                    }}
+                                  >
+                                    <SelectTrigger className="h-8">
+                                      <SelectValue placeholder="Selecione" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="none">Sem condição</SelectItem>
+                                      {campos
+                                        .filter((c) => c.id_campo !== campo.id_campo)
+                                        .map((c) => (
+                                          <SelectItem key={c.id_campo} value={c.id_campo}>
+                                            {c.nome_campo || "Sem nome"}
+                                          </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+
+                                {campo.condicao_visibilidade && (
+                                  <>
+                                    <div className="space-y-1">
+                                      <Label className="text-xs">Operador</Label>
+                                      <Select
+                                        value={campo.condicao_visibilidade.operador}
+                                        onValueChange={(v: CondicaoVisibilidade["operador"]) =>
+                                          handleSetCondicao(campo.id_campo, {
+                                            ...campo.condicao_visibilidade!,
+                                            operador: v,
+                                          })
+                                        }
+                                      >
+                                        <SelectTrigger className="h-8">
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="igual">Igual a</SelectItem>
+                                          <SelectItem value="diferente">Diferente de</SelectItem>
+                                          <SelectItem value="preenchido">Preenchido</SelectItem>
+                                          <SelectItem value="vazio">Vazio</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+
+                                    {(campo.condicao_visibilidade.operador === "igual" ||
+                                      campo.condicao_visibilidade.operador === "diferente") && (
+                                      <div className="space-y-1">
+                                        <Label className="text-xs">Valor</Label>
+                                        {getOpcoesCondicao(campo.condicao_visibilidade.campo_id).length > 0 ? (
+                                          <Select
+                                            value={campo.condicao_visibilidade.valor || ""}
+                                            onValueChange={(v) =>
+                                              handleSetCondicao(campo.id_campo, {
+                                                ...campo.condicao_visibilidade!,
+                                                valor: v,
+                                              })
+                                            }
+                                          >
+                                            <SelectTrigger className="h-8">
+                                              <SelectValue placeholder="Selecione" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              {getOpcoesCondicao(campo.condicao_visibilidade.campo_id).map((op) => (
+                                                <SelectItem key={op} value={op}>
+                                                  {op}
+                                                </SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                        ) : (
+                                          <Input
+                                            className="h-8"
+                                            value={campo.condicao_visibilidade.valor || ""}
+                                            onChange={(e) =>
+                                              handleSetCondicao(campo.id_campo, {
+                                                ...campo.condicao_visibilidade!,
+                                                valor: e.target.value,
+                                              })
+                                            }
+                                            placeholder="Valor esperado"
+                                          />
+                                        )}
+                                      </div>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+                              {campo.condicao_visibilidade && (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 text-xs text-destructive"
+                                  onClick={() => handleSetCondicao(campo.id_campo, undefined)}
+                                >
+                                  Remover condição
+                                </Button>
+                              )}
+                            </div>
+                          </CollapsibleContent>
+                        </Collapsible>
 
                         <div className="flex flex-wrap items-center gap-3 sm:gap-4">
                           <div className="flex items-center gap-2">

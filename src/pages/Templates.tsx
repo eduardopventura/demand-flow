@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useData } from "@/contexts/DataContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { EditorTemplateModal } from "@/components/modals/EditorTemplateModal";
 import type { Template } from "@/contexts/DataContext";
@@ -54,7 +53,7 @@ export default function Templates() {
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <h3 className="text-xl font-semibold mb-2">{template.nome}</h3>
-                  <Badge variant="secondary">{template.prioridade}</Badge>
+                  <p className="text-sm text-muted-foreground">Tempo médio: {template.tempo_medio} dias</p>
                 </div>
                 <div className="flex gap-2">
                   <Button

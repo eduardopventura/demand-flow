@@ -196,7 +196,6 @@ export const DemandaCard = memo(DemandaCardComponent, (prevProps, nextProps) => 
     prevProps.demanda.id === nextProps.demanda.id &&
     prevProps.demanda.status === nextProps.demanda.status &&
     prevProps.demanda.nome_demanda === nextProps.demanda.nome_demanda &&
-    prevProps.demanda.prioridade === nextProps.demanda.prioridade &&
     prevProps.demanda.responsavel_id === nextProps.demanda.responsavel_id &&
     prevProps.demanda.data_criacao === nextProps.demanda.data_criacao &&
     prevProps.demanda.data_previsao === nextProps.demanda.data_previsao &&

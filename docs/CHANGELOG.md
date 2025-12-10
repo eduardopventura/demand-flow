@@ -1,5 +1,62 @@
 # Changelog - Demand Flow
 
+## [2.7.0] - 2025-12-10
+
+### 🎯 Organização por Abas, Visibilidade Condicional e Refatoração de Prioridade
+
+Esta atualização traz melhorias significativas na organização visual de demandas complexas, flexibilidade nos formulários e simplificação do sistema de prioridades.
+
+#### ✨ Novas Funcionalidades
+
+**1. Organização por Abas nos Templates**
+- ✅ Agrupamento de campos em abas (ex: "Dados Pessoais", "Financeiro", "Acadêmico")
+- ✅ Aba "Geral" padrão e inamovível para garantir integridade
+- ✅ Gerenciamento dinâmico de abas no Editor de Template
+- ✅ Navegação por abas nos modais de Nova Demanda e Detalhes
+- ✅ Campos podem pertencer a múltiplas abas (ou "Todas")
+- ✅ Visualização mais limpa e organizada para formulários extensos
+
+**2. Visibilidade Condicional de Campos**
+- ✅ Campos podem ser exibidos ou ocultados dinamicamente
+- ✅ Regras baseadas em valores de outros campos (ex: Mostrar "Valor Multa" se "Tem Multa?" = "Sim")
+- ✅ Configuração visual no Editor de Template
+- ✅ Suporte a operadores: igual, diferente, preenchido, vazio
+- ✅ Avaliação em tempo real durante o preenchimento
+
+**3. Simplificação de Prioridades**
+- ✅ Removido conceito de "Prioridade" (Alta/Média/Baixa) do sistema
+- ✅ Foco total na data de previsão como indicador de urgência
+- ✅ Interface mais limpa sem badges de prioridade desnecessárias
+
+**4. Melhorias na Ordenação e Prazos**
+- ✅ Ordenação inteligente por dias restantes até a previsão
+- ✅ Demandas com prazo estourado ou próximo aparecem primeiro
+- ✅ Cores de prazo refinadas:
+  - 🟢 **Verde**: Mais de 1 dia restante
+  - 🟡 **Amarelo**: 1 dia restante ou hoje
+  - 🔴 **Vermelho**: Atrasada (data de previsão passada)
+
+#### 🔧 Mudanças Técnicas
+
+**Banco de Dados e Configuração:**
+- `backend/db.json` adicionado ao `.gitignore` para facilitar dev vs prod
+- Migração automática do `db.json`:
+  - Removido campo `prioridade`
+  - Adicionado array `abas` em Templates
+  - Adicionado array `abas_ids` em Campos
+
+**Interfaces Atualizadas:**
+- `Template`: Adicionado `abas: AbaTemplate[]`
+- `CampoPreenchimento`: Adicionado `abas_ids: string[]` e `condicao_visibilidade`
+- Removido `Prioridade` enum e campos relacionados
+
+**Componentes Atualizados:**
+- `EditorTemplateModal`: Suporte completo a abas e condições
+- `NovaDemandaModal` / `DetalhesDemandaModal`: Renderização baseada em abas e condições
+- `prazoUtils.ts`: Lógica de ordenação e cores baseada exclusivamente em datas
+
+---
+
 ## [2.6.0] - 2025-12-06
 
 ### 🎯 Sistema de Previsão de Datas e Observações

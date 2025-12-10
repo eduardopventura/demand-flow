@@ -7,7 +7,6 @@ import {
   Template,
   Demanda,
   DataContextType,
-  Prioridade,
   StatusDemanda,
   TipoCampo,
 } from "@/types";

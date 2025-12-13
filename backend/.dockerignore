@@ -8,4 +8,7 @@ README.md
 *.md
 .vscode
 .idea
+# Arquivos que são montados como volumes
+db.json
+uploads/
 

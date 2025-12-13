@@ -31,3 +31,7 @@ backend/.env
 
 # Database file - cada ambiente mantém o seu próprio
 backend/db.json
+
+# Uploaded files - manter apenas .gitkeep
+backend/uploads/*
+!backend/uploads/.gitkeep

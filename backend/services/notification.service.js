@@ -3,24 +3,13 @@
  * 
  * Gerencia o envio de notificações por diferentes canais
  * baseado nas preferências do usuário
+ * Suporta notificação por cargo (notifica todos os usuários do cargo individualmente)
  */
 
 const emailService = require('./email.service');
 const whatsappService = require('./whatsapp.service');
-
-/**
- * Formata uma data ISO para formato brasileiro
- * @param {string} isoDate - Data em formato ISO
- * @returns {string} - Data formatada (DD/MM/YYYY)
- */
-function formatarData(isoDate) {
-  const date = new Date(isoDate);
-  return date.toLocaleDateString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  });
-}
+const { isCargo, resolverResponsavelParaUsuarios } = require('../utils/db.helpers');
+const { formatarData } = require('../utils/status.utils');
 
 /**
  * Envia notificação para um usuário pelos canais habilitados
@@ -71,6 +60,32 @@ async function notificarUsuario(usuario, emailContent, whatsappContent, demandaD
 }
 
 /**
+ * Notifica múltiplos usuários individualmente
+ * @param {Array} usuarios - Lista de usuários a notificar
+ * @param {Function} getEmailContent - Função que recebe o usuário e retorna o conteúdo do email
+ * @param {Function} getWhatsappContent - Função que recebe o usuário e retorna o conteúdo do WhatsApp
+ * @param {Object} demandaData - Dados da demanda para o webhook
+ * @returns {Promise<Array>} - Array de resultados
+ */
+async function notificarMultiplosUsuarios(usuarios, getEmailContent, getWhatsappContent, demandaData) {
+  const resultados = [];
+  
+  for (const usuario of usuarios) {
+    try {
+      const emailContent = getEmailContent(usuario);
+      const whatsappContent = getWhatsappContent(usuario);
+      const resultado = await notificarUsuario(usuario, emailContent, whatsappContent, demandaData);
+      resultados.push({ usuario: usuario.id, ...resultado });
+    } catch (err) {
+      console.error(`   ❌ Erro ao notificar ${usuario.nome}:`, err.message);
+      resultados.push({ usuario: usuario.id, error: err.message });
+    }
+  }
+  
+  return resultados;
+}
+
+/**
  * Notifica sobre nova demanda criada
  * @param {Object} demanda - Objeto da demanda
  * @param {Object} responsavel - Objeto do usuário responsável
@@ -96,12 +111,37 @@ async function notificarNovaDemanda(demanda, responsavel) {
     nome: demanda.nome_demanda,
     data_previsao: dataFormatada
   };
-
-  console.log(`\n🔔 NOTIFICAÇÃO: Nova Demanda`);
-  console.log(`   Demanda: ${demanda.nome_demanda}`);
-  console.log(`   Responsável: ${responsavel.nome}`);
   
   return notificarUsuario(responsavel, emailContent, whatsappContent, demandaData);
+}
+
+/**
+ * Notifica sobre nova demanda para múltiplos usuários (resolvidos de cargo ou usuário)
+ * @param {Object} db - Instância do lowdb
+ * @param {Object} demanda - Objeto da demanda
+ * @param {string} responsavelId - ID do responsável (usuário ou cargo)
+ * @returns {Promise<Array>} - Resultados dos envios
+ */
+async function notificarNovaDemandaParaResponsavel(db, demanda, responsavelId) {
+  const usuarios = resolverResponsavelParaUsuarios(db, responsavelId);
+  
+  if (usuarios.length === 0) {
+    return [];
+  }
+  
+  const dataFormatada = formatarData(demanda.data_previsao);
+  const demandaData = {
+    id: demanda.id,
+    nome: demanda.nome_demanda,
+    data_previsao: dataFormatada
+  };
+  
+  return notificarMultiplosUsuarios(
+    usuarios,
+    (usuario) => emailService.templates.novaDemanda(demanda.nome_demanda, dataFormatada, usuario.nome),
+    (usuario) => whatsappService.templates.novaDemanda(demanda.nome_demanda, dataFormatada, usuario.nome),
+    demandaData
+  );
 }
 
 /**
@@ -128,14 +168,37 @@ async function notificarTarefaAtribuida(nomeTarefa, demanda, novoResponsavel) {
     id: demanda.id,
     nome: demanda.nome_demanda,
     tarefa: nomeTarefa
-  };
-
-  console.log(`\n🔔 NOTIFICAÇÃO: Tarefa Atribuída`);
-  console.log(`   Tarefa: ${nomeTarefa}`);
-  console.log(`   Demanda: ${demanda.nome_demanda}`);
-  console.log(`   Novo Responsável: ${novoResponsavel.nome}`);
-  
+  };  
   return notificarUsuario(novoResponsavel, emailContent, whatsappContent, demandaData);
+}
+
+/**
+ * Notifica sobre tarefa atribuída para múltiplos usuários (resolvidos de cargo ou usuário)
+ * @param {Object} db - Instância do lowdb
+ * @param {string} nomeTarefa - Nome da tarefa
+ * @param {Object} demanda - Objeto da demanda
+ * @param {string} responsavelId - ID do responsável (usuário ou cargo)
+ * @returns {Promise<Array>} - Resultados dos envios
+ */
+async function notificarTarefaAtribuidaParaResponsavel(db, nomeTarefa, demanda, responsavelId) {
+  const usuarios = resolverResponsavelParaUsuarios(db, responsavelId);
+  
+  if (usuarios.length === 0) {
+    return [];
+  }
+  
+  const demandaData = {
+    id: demanda.id,
+    nome: demanda.nome_demanda,
+    tarefa: nomeTarefa
+  };
+  
+  return notificarMultiplosUsuarios(
+    usuarios,
+    (usuario) => emailService.templates.tarefaAtribuida(nomeTarefa, demanda.nome_demanda, usuario.nome),
+    (usuario) => whatsappService.templates.tarefaAtribuida(nomeTarefa, demanda.nome_demanda, usuario.nome),
+    demandaData
+  );
 }
 
 /**
@@ -167,12 +230,6 @@ async function notificarTarefaConcluida(nomeTarefa, demanda, responsavelDemanda,
     tarefa: nomeTarefa,
     concluida_por: quemConcluiu.nome
   };
-
-  console.log(`\n🔔 NOTIFICAÇÃO: Tarefa Concluída`);
-  console.log(`   Tarefa: ${nomeTarefa}`);
-  console.log(`   Demanda: ${demanda.nome_demanda}`);
-  console.log(`   Responsável da Demanda: ${responsavelDemanda.nome}`);
-  console.log(`   Concluída por: ${quemConcluiu.nome}`);
   
   return notificarUsuario(responsavelDemanda, emailContent, whatsappContent, demandaData);
 }
@@ -203,21 +260,18 @@ async function notificarPrazoProximo(demanda, responsavel) {
     nome: demanda.nome_demanda,
     data_previsao: dataFormatada
   };
-
-  console.log(`\n🔔 NOTIFICAÇÃO: Prazo Próximo`);
-  console.log(`   Demanda: ${demanda.nome_demanda}`);
-  console.log(`   Prazo: ${dataFormatada}`);
-  console.log(`   Responsável: ${responsavel.nome}`);
   
   return notificarUsuario(responsavel, emailContent, whatsappContent, demandaData);
 }
 
 module.exports = {
   notificarUsuario,
+  notificarMultiplosUsuarios,
   notificarNovaDemanda,
+  notificarNovaDemandaParaResponsavel,
   notificarTarefaAtribuida,
+  notificarTarefaAtribuidaParaResponsavel,
   notificarTarefaConcluida,
-  notificarPrazoProximo,
-  formatarData
+  notificarPrazoProximo
 };
 

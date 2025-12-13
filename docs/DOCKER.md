@@ -40,8 +40,9 @@ O projeto é 100% dockerizado:
 ```
 demand-flow/
 ├── docker-compose.yml        # Configuração Docker
-├── Dockerfile                # Build do frontend
-├── nginx.conf                # Configuração Nginx (frontend)
+├── frontend/
+│   ├── Dockerfile            # Build do frontend
+│   └── nginx.conf            # Configuração Nginx (frontend)
 ├── backend/
 │   └── Dockerfile            # Build do backend
 ```
@@ -68,7 +69,7 @@ services:
       interval: 30s
 
   frontend:
-    build: .
+    build: ./frontend
     container_name: demand-flow-frontend
     ports:
       - "3060:80"
@@ -81,7 +82,7 @@ networks:
     driver: bridge
 ```
 
-### `Dockerfile` (Frontend)
+### `frontend/Dockerfile` (Frontend)
 
 Build multi-stage para o frontend React:
 
@@ -479,5 +480,5 @@ docker-compose restart backend
 
 ---
 
-**Versão:** 2.6.0  
-**Última Atualização:** 07/12/2025
+**Versão:** 0.2.11  
+**Última Atualização:** 13/12/2025

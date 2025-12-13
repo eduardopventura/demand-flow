@@ -1,6 +1,288 @@
 # Changelog - Demand Flow
 
-## [2.7.0] - 2025-12-10
+## [0.2.11] - 2025-12-13
+
+### 🎨 Melhorias de UX e Correções de Bugs
+
+Esta atualização foca em melhorias de experiência do usuário, correções de bugs e novos tipos de campos.
+
+#### ✨ Melhorias de UX
+
+**1. Painel de Finalizadas**
+- ✅ Limitação de exibição: apenas 15 últimas finalizadas no painel (ordenadas por data de finalização decrescente)
+- ✅ Nova página `/finalizadas` com lista completa de demandas finalizadas
+- ✅ Filtros por busca, template e responsável na página de finalizadas
+- ✅ Ordenação configurável (data, nome) na página de finalizadas
+- ✅ Link "Ver todas" na coluna de finalizadas quando houver mais de 15
+- ✅ Adicionado item "Finalizadas" no menu lateral
+
+**2. Indicadores de Validação nas Abas**
+- ✅ Asterisco (*) no canto superior direito de cada aba no modal de criação
+- ✅ Cor vermelha quando há campos obrigatórios não preenchidos na aba
+- ✅ Cor verde quando todos os campos obrigatórios estão preenchidos
+- ✅ Validação em tempo real conforme o usuário preenche os campos
+
+**3. Classificação de Demandas no Painel**
+- ✅ **Criadas e Em Andamento**: Ordenação por data de previsão crescente, depois alfabética (ignorando nome do template)
+- ✅ **Finalizadas**: Ordenação por data de finalização decrescente, depois alfabética (ignorando nome do template)
+- ✅ Demandas que só têm nome do template ficam por último na ordenação alfabética
+- ✅ Função `extrairNomeSemTemplate` para extrair apenas a parte após " - " do nome
+
+**4. Correções de Scroll**
+- ✅ Removido scroll horizontal ao arrastar cards entre colunas do Kanban
+- ✅ Adicionado `overflow-x-hidden` nas colunas para evitar scroll indesejado
+
+#### 🐛 Correções de Bugs
+
+**1. Condição de Visibilidade "Diferente de"**
+- ✅ Corrigido bug onde campo vazio era considerado "true" para operador "diferente de"
+- ✅ Agora retorna `false` quando campo pai está vazio (não aplica a regra)
+- ✅ Regra só se aplica se o campo pai tiver valor preenchido
+
+**2. Regra de Status "Criada"**
+- ✅ Prevenido retorno ao status "Criada" após demanda ter outro status
+- ✅ Se todas as tarefas não estão concluídas, mantém status atual (não volta para "Criada")
+- ✅ Modificada função `calcularNovoStatus` para receber status atual como parâmetro
+- ✅ Lógica implementada: uma vez que a demanda sai de "Criada", nunca mais retorna para esse status
+- ✅ Garantia de progressão unidirecional: Criada → Em Andamento → Finalizada (ou mantém status atual)
+
+**3. Condição de Visibilidade em Grupos**
+- ✅ Campo "Valor" da condição agora usa Select quando campo pai é dropdown (ao invés de sempre Input)
+- ✅ Campo "Campo Pai" mostra apenas campos do mesmo grupo e bloco
+- ✅ Condições de visibilidade agora funcionam corretamente para campos dentro de grupos
+- ✅ Avaliação considera valores dos campos da mesma réplica do grupo
+
+**4. Campos Numéricos**
+- ✅ Validação para impedir digitação de texto em campos tipo "numero"
+- ✅ Uso de `inputMode="numeric"` e validação em `onKeyPress` e `onChange`
+- ✅ Campos numéricos agora só aceitam números
+
+#### 🆕 Novos Tipos de Campo
+
+**1. Número Decimal**
+- ✅ Novo tipo `NUMERO_DECIMAL` no enum `TipoCampo`
+- ✅ Formato brasileiro: vírgula como separador decimal, sempre 2 casas decimais
+- ✅ Digitação da direita: 200 = 2,00, 20000 = 200,00
+- ✅ Formatação automática ao perder o foco
+- ✅ Validação para aceitar apenas números e vírgula
+
+**2. Campo Tempo Médio nos Templates**
+- ✅ Permite campo vazio (não força valor padrão "1")
+- ✅ Validação impede salvar template com tempo médio vazio
+- ✅ Mensagem de erro clara quando tentar salvar sem preencher
+
+#### 📊 Dashboard de Relatórios
+
+**Melhorias e Funcionalidades:**
+- ✅ Dashboard completo com métricas avançadas e visualizações
+- ✅ Gráficos de demandas por período (buckets mensais)
+- ✅ Taxa de cumprimento de prazos
+- ✅ Desempenho por responsável (agrupamento por usuário)
+- ✅ Tempo médio de conclusão por template
+- ✅ Filtros avançados: período, usuário, template, status, prazo
+- ✅ KPIs em tempo real: Total, Taxa de Conclusão, Criadas, Em Andamento, Finalizadas, Em Atraso
+- ✅ Gráficos interativos: barras, pizza, linhas
+- ✅ Top usuários por volume e taxa de conclusão
+- ✅ Agrupamento por template com distribuição de status
+
+#### 🐳 Infraestrutura Docker
+
+**Melhorias:**
+- ✅ Arquitetura Docker completa e documentada
+- ✅ Comunicação entre containers via hostname Docker
+- ✅ Frontend usa proxy Nginx para `/api` → `backend:3000`
+- ✅ Volumes persistentes para `db.json` e `/uploads`
+- ✅ Health checks configurados para ambos os containers
+- ✅ Build multi-stage otimizado para produção
+- ✅ Documentação completa em `docs/DOCKER.md`
+
+#### 🔧 Arquivos Modificados
+
+**Backend:**
+- `utils/status.utils.js` - Modificada função `calcularNovoStatus` para prevenir retorno a "Criada"
+
+**Frontend:**
+- `pages/PainelDemandas.tsx` - Limitação de finalizadas, ordenação personalizada
+- `pages/Finalizadas.tsx` - Nova página com filtros e ordenação
+- `components/modals/NovaDemandaModal.tsx` - Indicadores de validação nas abas
+- `components/modals/EditorTemplateModal.tsx` - Ajustes em condições de visibilidade, campo tempo médio, novo tipo decimal
+- `components/form/CampoInput.tsx` - Validação numérica, novo tipo decimal
+- `components/form/GrupoCampos.tsx` - Aplicação de condições de visibilidade
+- `components/kanban/KanbanColumn.tsx` - Remoção de scroll horizontal, link "Ver todas"
+- `components/Layout.tsx` - Adicionado item "Finalizadas" no menu
+- `utils/campoUtils.ts` - Correção bug "diferente de" com campo vazio
+- `utils/prazoUtils.ts` - Novas funções de ordenação personalizadas
+- `types/index.ts` - Adicionado tipo `NUMERO_DECIMAL`
+- `App.tsx` - Adicionada rota `/finalizadas`
+
+---
+
+## [0.2.10] - 2025-12-12
+
+### 🏗️ Refatoração de Arquitetura e Código
+
+Esta atualização foca em melhorar a qualidade do código, modularidade e reusabilidade, preparando o projeto para maior escalabilidade.
+
+#### ✨ Melhorias no Backend
+
+**1. Middleware de Erro Centralizado**
+- ✅ Criado sistema robusto de tratamento de erros (`backend/middlewares/error.middleware.js`)
+- ✅ Classes de erro padronizadas (`AppError`)
+- ✅ Wrapper `asyncHandler` para rotas limpas
+- ✅ Respostas de erro consistentes em toda a API
+
+**2. Organização de Serviços e Utils**
+- ✅ Templates de email extraídos para arquivos HTML (`backend/templates/emails/`)
+- ✅ Lógica de campos centralizada em `backend/utils/campo.utils.js`
+- ✅ Remoção de código duplicado entre services e utils
+- ✅ Limpeza de imports e dependências circulares
+
+#### ⚛️ Melhorias no Frontend
+
+**1. Novos Hooks Personalizados**
+- ✅ `useCamposForm`: Gerencia estado, validação e visibilidade de campos dinâmicos
+- ✅ `useGrupoReplicas`: Gerencia lógica complexa de campos repetíveis (grupos)
+- ✅ Documentação completa em `docs/frontend/HOOKS.md`
+
+**2. Componentes de Formulário Reutilizáveis**
+- ✅ Nova pasta `src/components/form/`
+- ✅ `CampoInput`: Renderiza inputs baseados em tipo (texto, data, arquivo, etc.)
+- ✅ `ResponsavelSelect`: Select unificado de usuários e cargos
+- ✅ `GrupoCampos`: Gerenciador visual de réplicas de campos
+- ✅ Documentação em `docs/frontend/COMPONENTS_FORM.md`
+
+**3. Otimização e Performance**
+- ✅ Uso de `React.memo` em componentes de formulário para evitar re-renders
+- ✅ Limpeza de props desnecessárias e imports não usados
+- ✅ Tipagem TypeScript reforçada
+
+#### 🔧 Arquivos Modificados
+
+**Backend:**
+- `server.js` (Adicionado middleware de erro)
+- `routes/demandas.routes.js` (Uso de asyncHandler)
+- `services/demanda.service.js` (Uso de utils centralizados)
+- `services/email.service.js` (Uso de templates externos)
+- `services/notification.service.js` (Limpeza de duplicatas)
+
+**Frontend:**
+- `components/modals/NovaDemandaModal.tsx` (Refatorado com novos hooks e componentes)
+- `components/modals/DetalhesDemandaModal.tsx` (Refatorado com novos componentes)
+- `contexts/DataContext.tsx` (Limpeza de exports)
+
+---
+
+## [0.2.9] - 2025-12-10
+
+### ⚡ Sistema de Ações e Upload de Arquivos
+
+Esta atualização adiciona duas funcionalidades importantes: Sistema de Ações para Tarefas e Upload de Arquivos Reais.
+
+#### ✨ Novas Funcionalidades
+
+**1. Sistema de Ações para Tarefas**
+- ✅ Nova página `/acoes` para gerenciamento de ações
+- ✅ Cada ação possui: nome, URL do webhook e campos configuráveis
+- ✅ Tipos de campos suportados: texto, número, data, arquivo, dropdown
+- ✅ Associação de ações a tarefas nos templates
+- ✅ Mapeamento inteligente de campos (demanda → ação) com filtro por tipo
+- ✅ Execução de webhooks (n8n, Zapier, Make, etc.)
+- ✅ Suporte a envio de arquivos via multipart/form-data
+- ✅ Marcação automática de tarefa como concluída após execução bem-sucedida
+- ✅ Indicadores visuais de campos preenchidos/pendentes no painel de demandas
+
+**2. Upload de Arquivos**
+- ✅ Novo tipo de campo "arquivo" nos templates
+- ✅ Endpoint `POST /api/upload` para upload de arquivos
+- ✅ Armazenamento local em `/uploads` com nomes únicos
+- ✅ Feedback visual com loading durante upload
+- ✅ Persistência via volume Docker
+- ✅ Integração com Sistema de Ações para envio via webhook
+
+**3. API Expandida**
+- ✅ CRUD completo para ações: `GET/POST/PATCH/DELETE /api/acoes`
+- ✅ Execução de ação: `POST /api/demandas/:id/tarefas/:taskId/executar`
+- ✅ Upload de arquivo: `POST /api/upload`
+- ✅ Servir arquivos: `GET /uploads/:filename`
+
+#### 🔧 Detalhes Técnicos
+
+**Backend:**
+- Multer configurado para upload de arquivos
+- Axios para chamadas de webhook
+- FormData para envio multipart com arquivos
+- Tratamento de erros com mensagens claras (404, 500, timeout)
+
+**Frontend:**
+- Página `Acoes.tsx` com CRUD completo
+- Componente `CampoInput` atualizado para upload real
+- Modal de detalhes com painel de ação e botão executar
+- Editor de template com seleção de ação e mapeamento de campos
+
+**Docker:**
+- Volume `./backend/uploads:/app/uploads` para persistência
+- Arquivo `.gitkeep` para manter pasta no repositório
+
+---
+
+## [0.2.8] - 2025-12-10
+
+### 🧹 Refatoração e Limpeza de Código
+
+Esta atualização foca na manutenção, organização e escalabilidade do projeto, reorganizando a estrutura de pastas e consolidando a lógica de negócios.
+
+#### ✨ Principais Mudanças
+
+**1. Reorganização Estrutural**
+- ✅ Criada pasta `frontend/` para isolar todos os arquivos do cliente
+- ✅ Backend mantido na pasta `backend/`
+- ✅ Raiz do projeto limpa, contendo apenas configurações globais (Docker, Docs)
+- ✅ `docker-compose.yml` atualizado para refletir nova estrutura
+
+**2. Limpeza de Código (Dead Code Removal)**
+- 🗑️ Removidos hooks não utilizados: `useLocalStorage`, `useConfirm`, `useDebounce`
+- 🗑️ Removidos arquivos desnecessários: `src/App.css`, `src/pages/Index.tsx`
+- ✅ Dependências limpas (remoção de `node_modules` na raiz)
+
+**3. Consolidação de Lógica de Negócio**
+- ✅ Lógica de cálculo de status movida inteiramente para o Backend
+- ✅ Middleware no backend (`PATCH /api/demandas/:id`) agora calcula automaticamente:
+  - Status (Criada/Em Andamento/Finalizada)
+  - Data de Finalização
+  - Prazo
+- ✅ Frontend simplificado, apenas enviando dados brutos
+
+**4. Melhorias na Qualidade de Código**
+- ✅ Criação de `src/components/CampoInput.tsx` reutilizável
+- ✅ Extração de utilitários em `src/utils/campoUtils.ts`
+- ✅ Correção de imports inconsistentes em todo o projeto
+- ✅ Centralização de constantes e tipos
+
+**5. Atualização de Schemas e Dados**
+- ✅ `validation.schemas.ts` atualizado com todos os campos (telefone, notificações, abas)
+- ✅ `seed.js` reescrito com dados de exemplo completos e realistas
+- ✅ Garantia de integridade dos dados iniciais
+
+#### 🔧 Detalhes Técnicos
+
+**Nova Estrutura de Pastas:**
+```
+demand-flow/
+├── frontend/           # React + Vite
+├── backend/            # Node.js + JSON-Server
+├── docs/               # Documentação
+└── docker-compose.yml
+```
+
+**Arquivos Modificados:**
+- `docker-compose.yml`: Contexto do build frontend atualizado para `./frontend`
+- `backend/server.js`: Adicionada lógica de cálculo de status no middleware
+- `frontend/src/components/*`: Refatoração para usar novos utilitários
+- `frontend/src/schemas/validation.schemas.ts`: Sincronização com backend
+
+---
+
+## [0.2.7] - 2025-12-10
 
 ### 🎯 Organização por Abas, Visibilidade Condicional e Refatoração de Prioridade
 
@@ -57,7 +339,7 @@ Esta atualização traz melhorias significativas na organização visual de dema
 
 ---
 
-## [2.6.0] - 2025-12-06
+## [0.2.6] - 2025-12-06
 
 ### 🎯 Sistema de Previsão de Datas e Observações
 
@@ -153,7 +435,7 @@ Esta atualização refatora completamente o sistema de prazos, adicionando data 
 
 ---
 
-## [2.5.0] - 2025-11-24
+## [0.2.5] - 2025-11-24
 
 ### 🎯 Gestão de Responsabilidades, Flexibilidade de Prazos e Melhorias de Usabilidade
 
@@ -248,7 +530,7 @@ Ver `CHANGELOG_v2.5.0.md` para detalhes completos da implementação.
 
 ---
 
-## [2.4.0] - 2025-11-21
+## [0.2.4] - 2025-11-21
 
 ### 🎯 Sistema de Prazos e Melhorias Visuais
 
@@ -419,7 +701,7 @@ Não requer ação manual. Ao atualizar:
 
 ---
 
-## [2.3.3] - 2025-11-19
+## [0.2.3.3] - 2025-11-19
 
 ### 🌐 Correção de Acesso via Domínio (CORS + Proxy)
 
@@ -469,7 +751,7 @@ docker-compose up -d
 
 ---
 
-## [2.3.2] - 2025-11-19
+## [0.2.3.2] - 2025-11-19
 
 ### 🎨 Favicons e Ícones Personalizados
 
@@ -504,7 +786,7 @@ docker-compose up -d
 
 ---
 
-## [2.3.1] - 2025-11-19
+## [0.2.3.1] - 2025-11-19
 
 ### 📚 Organização e Consolidação da Documentação
 
@@ -571,7 +853,7 @@ docs/
 
 ---
 
-## [2.3.0] - 2025-11-19
+## [0.2.3] - 2025-11-19
 
 ### 🎯 Simplificação Pragmática - MVP Hardcoded
 
@@ -639,7 +921,7 @@ docker-compose up -d
 
 ---
 
-## [2.2.2] - 2025-11-19
+## [0.2.2.2] - 2025-11-19
 
 ### 🔧 Fixed - Lógica de Auto-detecção Simplificada
 
@@ -681,7 +963,7 @@ docker-compose up -d
 
 ---
 
-## [2.2.1] - 2025-11-19
+## [0.2.2.1] - 2025-11-19
 
 ### 🔧 Fixed - Frontend-Backend Connection no Docker
 
@@ -714,7 +996,7 @@ docker-compose up -d --build
 
 ---
 
-## [2.2.0] - 2025-11-19
+## [0.2.2] - 2025-11-19
 
 ### 🔌 API Integration - Sistema Fullstack Completo
 
@@ -769,7 +1051,7 @@ Esta atualização completa a migração do localStorage para uma API REST real,
 
 ---
 
-## [2.1.0] - 2025-11-19
+## [0.2.1] - 2025-11-19
 
 ### 🐳 Docker MVP
 
@@ -794,7 +1076,7 @@ Backend JSON-Server e infraestrutura Docker completa.
 
 ---
 
-## [2.0.0] - 2024-11-19
+## [0.2.0] - 2024-11-19
 
 ### 🎉 Refatoração Completa
 
@@ -1126,4 +1408,3 @@ Para dúvidas sobre as melhorias:
 ---
 
 **Desenvolvido com ❤️ por [Lovable](https://lovable.dev)**
-

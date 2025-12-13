@@ -89,8 +89,12 @@ async function enviarEmail({ para, assunto, mensagem, html }) {
   }
 }
 
+// Importar módulo de templates HTML
+const emailTemplates = require('../templates/emails');
+
 /**
  * Templates de email para notificações
+ * Usa o módulo de templates para gerar HTML, mantendo texto simples como fallback
  */
 const templates = {
   /**
@@ -109,20 +113,7 @@ Acesse o sistema para mais detalhes.
 
 --
 Gestor de Demandas Kumon`,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2563eb;">📋 Nova Demanda Atribuída</h2>
-        <p>Olá <strong>${nomeResponsavel}</strong>,</p>
-        <p>Uma nova demanda foi atribuída a você:</p>
-        <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 15px 0;">
-          <p style="margin: 5px 0;"><strong>📋 Demanda:</strong> ${nomeDemanda}</p>
-          <p style="margin: 5px 0;"><strong>📅 Prazo:</strong> ${dataPrevisao}</p>
-        </div>
-        <p>Acesse o sistema para mais detalhes.</p>
-        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
-        <p style="color: #6b7280; font-size: 12px;">Gestor de Demandas Kumon</p>
-      </div>
-    `
+    html: emailTemplates.html.novaDemanda(nomeDemanda, dataPrevisao, nomeResponsavel)
   }),
 
   /**
@@ -141,20 +132,7 @@ Acesse o sistema para mais detalhes.
 
 --
 Gestor de Demandas Kumon`,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #16a34a;">✅ Tarefa Atribuída</h2>
-        <p>Olá <strong>${nomeResponsavel}</strong>,</p>
-        <p>Uma tarefa foi atribuída a você:</p>
-        <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 15px 0;">
-          <p style="margin: 5px 0;"><strong>✅ Tarefa:</strong> ${nomeTarefa}</p>
-          <p style="margin: 5px 0;"><strong>📋 Demanda:</strong> ${nomeDemanda}</p>
-        </div>
-        <p>Acesse o sistema para mais detalhes.</p>
-        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
-        <p style="color: #6b7280; font-size: 12px;">Gestor de Demandas Kumon</p>
-      </div>
-    `
+    html: emailTemplates.html.tarefaAtribuida(nomeTarefa, nomeDemanda, nomeResponsavel)
   }),
 
   /**
@@ -174,21 +152,7 @@ Acesse o sistema para mais detalhes.
 
 --
 Gestor de Demandas Kumon`,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #16a34a;">🎉 Tarefa Concluída</h2>
-        <p>Olá <strong>${nomeResponsavelDemanda}</strong>,</p>
-        <p>Uma tarefa da sua demanda foi concluída:</p>
-        <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 15px 0;">
-          <p style="margin: 5px 0;"><strong>✅ Tarefa:</strong> ${nomeTarefa}</p>
-          <p style="margin: 5px 0;"><strong>📋 Demanda:</strong> ${nomeDemanda}</p>
-          <p style="margin: 5px 0;"><strong>👤 Concluída por:</strong> ${nomeQuemConcluiu}</p>
-        </div>
-        <p>Acesse o sistema para mais detalhes.</p>
-        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
-        <p style="color: #6b7280; font-size: 12px;">Gestor de Demandas Kumon</p>
-      </div>
-    `
+    html: emailTemplates.html.tarefaConcluida(nomeTarefa, nomeDemanda, nomeResponsavelDemanda, nomeQuemConcluiu)
   }),
 
   /**
@@ -207,20 +171,7 @@ Acesse o sistema e verifique o status das tarefas.
 
 --
 Gestor de Demandas Kumon`,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #dc2626;">⚠️ Prazo Próximo!</h2>
-        <p>Olá <strong>${nomeResponsavel}</strong>,</p>
-        <p><strong>ATENÇÃO!</strong> A demanda abaixo vence amanhã:</p>
-        <div style="background: #fef2f2; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #dc2626;">
-          <p style="margin: 5px 0;"><strong>📋 Demanda:</strong> ${nomeDemanda}</p>
-          <p style="margin: 5px 0;"><strong>📅 Prazo:</strong> ${dataPrevisao}</p>
-        </div>
-        <p>Acesse o sistema e verifique o status das tarefas.</p>
-        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
-        <p style="color: #6b7280; font-size: 12px;">Gestor de Demandas Kumon</p>
-      </div>
-    `
+    html: emailTemplates.html.prazoProximo(nomeDemanda, dataPrevisao, nomeResponsavel)
   })
 };
 

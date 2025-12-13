@@ -113,6 +113,16 @@ demand-flow/
 | [CHANGELOG.md](./CHANGELOG.md) | Histórico de versões |
 | [SECURITY.md](./SECURITY.md) | Políticas de segurança |
 
+### 🔧 Documentação Técnica
+
+| Documento | Descrição |
+|-----------|-----------|
+| [backend/REFACTORING.md](./backend/REFACTORING.md) | Detalhes da refatoração do Backend |
+| [frontend/HOOKS.md](./frontend/HOOKS.md) | Documentação dos Custom Hooks |
+| [frontend/COMPONENTS_FORM.md](./frontend/COMPONENTS_FORM.md) | Documentação de Componentes de Formulário |
+| [frontend/DASHBOARD.md](./frontend/DASHBOARD.md) | Documentação do Dashboard de Relatórios |
+| [frontend/FINALIZADAS.md](./frontend/FINALIZADAS.md) | Documentação da Página de Finalizadas |
+
 ### 🔗 Links Rápidos
 
 - **Subir ambiente:** `docker-compose up -d --build`
@@ -129,6 +139,7 @@ demand-flow/
 | Feature | Frontend | Backend |
 |---------|----------|---------|
 | Quadro Kanban | `src/pages/PainelDemandas.tsx`, `src/components/kanban/` | - |
+| Finalizadas | `src/pages/Finalizadas.tsx` | - |
 | Templates | `src/pages/Templates.tsx`, `src/components/modals/EditorTemplateModal.tsx` | - |
 | Demandas | `src/components/modals/NovaDemandaModal.tsx`, `DetalhesDemandaModal.tsx` | `backend/server.js` |
 | Usuários | `src/pages/Usuarios.tsx` | - |
@@ -207,5 +218,5 @@ docker system prune -a
 
 ---
 
-**Versão:** 2.6.0  
-**Última Atualização:** 07/12/2025
+**Versão:** 0.2.11  
+**Última Atualização:** 13/12/2025

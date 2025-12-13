@@ -48,12 +48,46 @@ docker-compose down && docker-compose up -d --build
 - Mantenha a responsividade mobile-first em novos componentes
 - Use variáveis CSS do design system definidas em index.css
 
-### Estrutura de Código
-- Componentes devem estar em `src/components/`
-- Páginas devem estar em `src/pages/`
-- Hooks customizados em `src/hooks/`
-- Tipos TypeScript em `src/types/`
-- Utilitários em `src/utils/`
+### Estrutura de Código (Frontend)
+- Componentes devem estar em `frontend/src/components/`
+- Páginas devem estar em `frontend/src/pages/`
+- Hooks customizados em `frontend/src/hooks/`
+- Tipos TypeScript em `frontend/src/types/`
+- Utilitários em `frontend/src/utils/`
+- Modais ficam em `frontend/src/components/modals/`
+- Componentes UI base (shadcn) em `frontend/src/components/ui/`
+
+### Estrutura de Código (Backend)
+- Servidor Express em `backend/server.js`
+- Dados JSON em `backend/data/`
+
+### Padrões Visuais de Modais (Dialog/AlertDialog)
+Os componentes Dialog e AlertDialog seguem uma estrutura de layout específica:
+
+**Estrutura Base (dialog.tsx / alert-dialog.tsx)**:
+- `DialogContent`: padding zero (`p-0`), gap zero (`gap-0`), sombra forte (`shadow-xl`)
+- `DialogHeader`: padding interno (`px-6 py-4`), borda inferior (`border-b`), fundo sutil (`bg-muted/30`)
+- `DialogFooter`: padding interno (`px-6 py-4`), borda superior (`border-t`), fundo sutil (`bg-muted/30`)
+
+**Corpo da Modal (entre Header e Footer)**:
+- Sempre envolva o conteúdo em `<div className="flex-1 overflow-y-auto px-6 py-4">` para scroll interno
+- Use `flex flex-col` no `DialogContent` e `max-h-[90vh]` para limitar altura
+
+**Organização do Conteúdo**:
+- Agrupe seções relacionadas em cards: `<div className="p-4 rounded-lg border bg-card space-y-4">`
+- Use títulos de seção: `<h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">`
+- Elementos informativos/metadados: fundo sutil (`bg-muted/30`, `bg-muted/20`) com `border-dashed`
+- Tarefas concluídas: indicador visual com `bg-green-500/5 border-green-500/30`
+
+**Seleção de Abas/Tags em Formulários**:
+- Use chips/badges ao invés de botões para evitar hover confuso
+- Estilo: `rounded-full border transition-colors` sem hover forte
+- Estado ativo: `bg-primary text-primary-foreground border-primary`
+- Estado inativo: `bg-background text-muted-foreground border-border`
+
+**AlertDialog sem AlertDialogDescription**:
+- Coloque texto descritivo em `<div className="px-6 py-4">` separado do header
+- Use `<p className="text-sm text-muted-foreground">` para o texto
 
 ### Padrões de Responsividade
 - Mobile: < 640px (default)

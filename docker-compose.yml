@@ -16,6 +16,7 @@ services:
       - "3000:3000"
     volumes:
       - ./backend/db.json:/app/db.json
+      - ./backend/uploads:/app/uploads
     env_file:
       - ./backend/.env
     environment:
@@ -33,7 +34,7 @@ services:
   # Frontend - React + Vite
   frontend:
     build:
-      context: .
+      context: ./frontend
       dockerfile: Dockerfile
       # No VITE_API_URL needed - auto-detected via window.location.hostname
     container_name: demand-flow-frontend

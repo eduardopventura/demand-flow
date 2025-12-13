@@ -18,6 +18,9 @@ O **Demand Flow** é uma solução moderna para gerenciamento de processos e dem
 - 📅 **Controle de Prazos** - Alertas visuais e notificações automáticas
 - 🔔 **Notificações** - Email e WhatsApp para responsáveis
 - 📈 **Relatórios** - Métricas de desempenho e cumprimento de prazos
+- 📄 **Página de Finalizadas** - Consulta completa com filtros e ordenação
+- 🎯 **Indicadores de Validação** - Feedback visual nas abas do formulário
+- 🔢 **Campos Numéricos** - Validação e novo tipo decimal brasileiro
 
 ---
 
@@ -165,18 +168,22 @@ docker-compose down && docker-compose up -d --build
 
 ```
 demand-flow/
-├── src/                    # Frontend React
-│   ├── components/         # Componentes UI
-│   ├── pages/              # Páginas da aplicação
-│   ├── services/           # Serviços (API)
-│   ├── contexts/           # Context API
-│   ├── hooks/              # Custom hooks
-│   ├── types/              # TypeScript types
-│   └── utils/              # Utilitários
+├── frontend/               # Frontend React
+│   ├── src/                # Código fonte
+│   │   ├── components/     # Componentes UI
+│   │   ├── pages/          # Páginas da aplicação
+│   │   ├── services/       # Serviços (API)
+│   │   ├── contexts/       # Context API
+│   │   ├── hooks/          # Custom hooks
+│   │   ├── types/          # TypeScript types
+│   │   └── utils/          # Utilitários
+│   ├── Dockerfile          # Build frontend
+│   └── nginx.conf          # Config Nginx
 ├── backend/                # Backend Node.js
 │   ├── services/           # Serviços (Email, WhatsApp)
 │   ├── db.json             # Banco de dados JSON
-│   └── server.js           # Servidor principal
+│   ├── server.js           # Servidor principal
+│   └── Dockerfile          # Build backend
 ├── docs/                   # Documentação
 └── docker-compose.yml      # Configuração Docker
 ```
@@ -201,10 +208,6 @@ demand-flow/
 
 | Feature | Descrição | Status |
 |---------|-----------|--------|
-| 🚫 Sistema de Cancelamento | Cancelar demandas com motivo e histórico | Planejado |
-| ⚡ Sistema de Ações | Ações customizadas para tarefas | Planejado |
-| 📎 Anexos Reais | Upload de arquivos em demandas | Planejado |
-| 📊 Dashboard Reestruturado | Métricas avançadas e gráficos | Planejado |
 | 📤 Exportação de Relatórios | PDF e Excel do dashboard | Planejado |
 | 🔐 Sistema de Login | Autenticação + PostgreSQL | Planejado |
 
@@ -223,7 +226,7 @@ Detalhes das features em [docs/FEATURES.md](./docs/FEATURES.md#-próximas-funcio
 
 ## 📝 Versão Atual
 
-**v2.6.0** - 06 de Dezembro de 2025
+**v0.2.11** - 13 de Dezembro de 2025
 
 Ver [CHANGELOG.md](./docs/CHANGELOG.md) para histórico completo.
 

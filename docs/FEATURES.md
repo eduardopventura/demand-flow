@@ -25,7 +25,11 @@ Interface visual com três colunas para gerenciamento de demandas:
 - ✅ Status atualizado automaticamente
 - ✅ Contadores por coluna
 - ✅ Indicadores visuais de prazo (verde/amarelo/vermelho)
-- ✅ Ordenação automática por prioridade e urgência
+- ✅ Ordenação inteligente:
+  - **Criadas/Em Andamento**: Data de previsão crescente → Alfabética (ignorando template)
+  - **Finalizadas**: Data de finalização decrescente → Alfabética (ignorando template)
+- ✅ Limitação de exibição: 15 últimas finalizadas no painel
+- ✅ Link "Ver todas" para página completa de finalizadas
 
 ---
 
@@ -34,10 +38,19 @@ Interface visual com três colunas para gerenciamento de demandas:
 Crie modelos reutilizáveis para tipos de demanda:
 
 **Componentes:**
-- **Campos de Preenchimento:** Texto, Número, Data, Arquivo, Dropdown
-- **Tempo Médio:** Dias esperados para conclusão (calcula previsão)
+- **Campos de Preenchimento:** Texto, Número, Número Decimal, Data, Arquivo, Dropdown
+- **Tempo Médio:** Dias esperados para conclusão (calcula previsão) - obrigatório
 - **Tarefas:** Lista pré-definida com dependências
 - **Responsáveis:** Por tarefa (opcional)
+
+**Tipos de Campo:**
+- `texto` - Input de texto simples
+- `numero` - Input numérico (validação para aceitar apenas números)
+- `numero_decimal` - Número decimal brasileiro (vírgula, 2 decimais, digitação da direita)
+- `data` - Date picker
+- `arquivo` - Upload de arquivo com preview
+- `dropdown` - Select com opções pré-definidas
+- `grupo` - Agrupamento de campos com múltiplas réplicas
 
 **Exemplo - Template "Gerar Contrato":**
 ```yaml
@@ -73,8 +86,14 @@ Tarefas:
 ```
 
 **Ordenação Automática:**
-1. Por prioridade (Alta > Média > Baixa)
-2. Por prazo restante (mais urgente no topo)
+- **Criadas e Em Andamento:**
+  1. Data de previsão crescente (mais próxima primeiro)
+  2. Ordem alfabética do nome (ignorando template)
+  3. Demandas só com nome do template ficam por último
+- **Finalizadas:**
+  1. Data de finalização decrescente (mais recente primeiro)
+  2. Ordem alfabética do nome (ignorando template)
+  3. Demandas só com nome do template ficam por último
 
 ---
 
@@ -103,6 +122,25 @@ Tarefas:
 
 ---
 
+### 📑 Organização por Abas e Visibilidade Condicional
+
+**Organização por Abas:**
+- Agrupamento de campos em abas temáticas nos templates
+- Aba "Geral" padrão para garantir integridade
+- Interface limpa para formulários extensos
+- Configuração visual no editor de templates
+
+**Visibilidade Condicional:**
+- Exibição dinâmica de campos baseada em regras
+- Operadores suportados: igual, diferente, preenchido, vazio
+- Avaliação em tempo real durante o preenchimento
+- Ideal para formulários complexos com fluxos variáveis
+- **Correção**: Operador "diferente de" ignora campos vazios (não aplica regra)
+- **Suporte em Grupos**: Condições funcionam para campos dentro de grupos
+- **Campo Valor**: Usa Select quando campo pai é dropdown (ao invés de Input)
+
+---
+
 ### 🔔 Sistema de Notificações
 
 **Canais:**
@@ -124,12 +162,63 @@ Tarefas:
 
 ---
 
-### 📊 Relatórios
+### 🔒 Regras de Status
 
-- Total de demandas por status
-- Demandas por prioridade
-- Taxa de conclusão
-- Métricas de cumprimento de prazos
+**Prevenção de Regressão:**
+- ✅ Demandas nunca voltam para status "Criada" após ter outro status
+- ✅ Se todas as tarefas não estão concluídas, mantém status atual
+- ✅ Lógica: Finalizada → Em Andamento → (mantém) → nunca volta para Criada
+
+---
+
+### 📊 Dashboard de Relatórios
+
+Dashboard completo com métricas avançadas e visualizações:
+
+**Funcionalidades:**
+- ✅ Gráficos de demandas por período (buckets mensais)
+- ✅ Taxa de cumprimento de prazos
+- ✅ Desempenho por responsável (agrupamento por usuário)
+- ✅ Tempo médio de conclusão por template
+- ✅ Filtros avançados: período, usuário, template, status, prazo
+- ✅ KPIs em tempo real: Total, Taxa de Conclusão, Criadas, Em Andamento, Finalizadas, Em Atraso
+- ✅ Gráficos interativos: barras, pizza, linhas
+- ✅ Top usuários por volume e taxa de conclusão
+- ✅ Agrupamento por template com distribuição de status
+- ✅ Período customizado com seleção de datas
+
+**Rota:** `/relatorios`
+
+---
+
+### 📄 Página de Finalizadas
+
+Nova página dedicada para consulta completa de demandas finalizadas:
+
+**Funcionalidades:**
+- ✅ Lista completa de todas as demandas finalizadas
+- ✅ Filtros por busca (nome), template e responsável
+- ✅ Ordenação configurável:
+  - Data de finalização (crescente/decrescente)
+  - Nome (A-Z / Z-A) - ignora nome do template
+- ✅ Ordenação secundária alfabética quando ordenar por data
+- ✅ Layout em grid responsivo (1/2/3 colunas)
+- ✅ Acesso via menu lateral e link no painel
+
+**Rota:** `/finalizadas`
+
+---
+
+### ✅ Indicadores de Validação nas Abas
+
+Sistema visual de validação no modal de criação de demanda:
+
+**Funcionalidades:**
+- ✅ Asterisco (*) no canto superior direito de cada aba
+- ✅ Cor vermelha: há campos obrigatórios não preenchidos na aba
+- ✅ Cor verde: todos os campos obrigatórios estão preenchidos
+- ✅ Atualização em tempo real conforme o usuário preenche
+- ✅ Validação considera campos simples e campos dentro de grupos
 
 ---
 
@@ -139,66 +228,55 @@ Tarefas:
 GET/POST/PATCH/DELETE  /api/usuarios
 GET/POST/PATCH/DELETE  /api/templates
 GET/POST/PATCH/DELETE  /api/demandas
+GET/POST/PATCH/DELETE  /api/acoes
 
 POST   /api/demandas/criar        # Com notificações
 PATCH  /api/demandas/:id/atualizar # Com notificações
+POST   /api/demandas/:id/tarefas/:taskId/executar  # Executa ação
+POST   /api/upload                # Upload de arquivos
 POST   /api/auth/login            # Mock authentication
 GET    /health                    # Health check
 ```
 
 ---
 
-## 🔮 Próximas Funcionalidades
-
-### 🚫 Sistema de Cancelamento de Demanda
-
-**Objetivo:** Permitir cancelar demandas com registro de motivo e histórico.
-
-**Funcionalidades Planejadas:**
-- Botão de cancelar demanda no modal de detalhes
-- Campo obrigatório para motivo do cancelamento
-- Nova coluna "Cancelada" no Kanban (opcional)
-- Histórico de cancelamentos preservado
-- Filtro para exibir/ocultar demandas canceladas
-
----
-
 ### ⚡ Sistema de Ações para Tarefas
 
-**Objetivo:** Adicionar ações customizadas que podem ser executadas em tarefas.
+Permite vincular ações customizáveis a tarefas que executam webhooks externos:
 
-**Funcionalidades Planejadas:**
-- Definir ações no template (ex: "Enviar Email", "Gerar Documento")
-- Ações podem ter parâmetros configuráveis
-- Integração com sistemas externos via webhooks
-- Log de ações executadas
+**Funcionalidades:**
+- Página dedicada para gerenciamento de ações (`/acoes`)
+- Cada ação possui: nome, URL do webhook e campos configuráveis
+- Tipos de campos: texto, número, data, arquivo, dropdown
+- Associação de ações a tarefas nos templates
+- Mapeamento de campos da demanda para parâmetros da ação
+- Execução automática de webhooks (n8n, Zapier, etc.)
+- Suporte a envio de arquivos via multipart/form-data
+- Marcação automática de tarefa como concluída após execução
 
----
-
-### 📎 Anexo de Arquivos Reais
-
-**Objetivo:** Permitir upload de arquivos em demandas e tarefas.
-
-**Funcionalidades Planejadas:**
-- Upload de arquivos (PDF, imagens, documentos)
-- Armazenamento local ou em cloud (S3/MinIO)
-- Preview de arquivos no modal
-- Download de anexos
-- Limite de tamanho configurável
+**Fluxo:**
+```
+1. Criar ação com campos → 2. Vincular a tarefa no template
+3. Mapear campos → 4. Na demanda, preencher campos → 5. Executar
+```
 
 ---
 
-### 📊 Dashboard de Métricas Reestruturado
+### 📎 Upload de Arquivos
 
-**Objetivo:** Dashboard completo com métricas avançadas e visualizações.
+Sistema de upload de arquivos para demandas:
 
-**Funcionalidades Planejadas:**
-- Gráficos de demandas por período
-- Taxa de cumprimento de prazos
-- Desempenho por responsável
-- Tempo médio de conclusão por template
-- Filtros por data, usuário, template
-- Comparativo entre períodos
+**Funcionalidades:**
+- Novo tipo de campo "arquivo" disponível nos templates
+- Upload de arquivos via API com feedback visual (loading)
+- Armazenamento local no servidor (`/uploads`)
+- Persistência via volume Docker
+- Download de arquivos anexados
+- Integração com Sistema de Ações (envio via webhook)
+
+---
+
+## 🔮 Próximas Funcionalidades
 
 ---
 
@@ -243,28 +321,64 @@ GET    /health                    # Health check
 
 ## 📝 Histórico de Versões
 
-### v2.6.0 (Atual) - 06/12/2025
+### v0.2.11 (Atual) - 13/12/2025
+- Página de Finalizadas com filtros e ordenação
+- Indicadores de validação nas abas
+- Novo tipo de campo: Número Decimal
+- Melhorias na ordenação (ignora nome do template)
+- Correções de bugs em condições de visibilidade
+- Prevenção de regressão ao status "Criada" (regra de status)
+- Remoção de scroll horizontal no Kanban
+- Dashboard de Relatórios completo
+- Melhorias na infraestrutura Docker
+
+### v0.2.10 - 12/12/2025
+- Refatoração de arquitetura e código
+- Novos hooks personalizados
+- Componentes de formulário reutilizáveis
+- Melhorias de performance
+
+### v0.2.9 - 10/12/2025
+- Sistema de Ações para Tarefas com webhooks
+- Upload de arquivos reais
+- Página de gerenciamento de ações
+- Mapeamento de campos entre demandas e ações
+- Execução de webhooks com suporte a arquivos
+
+### v0.2.8 - 10/12/2025
+- Refatoração completa e limpeza de código
+- Nova estrutura de pastas (frontend/backend separados)
+- Consolidação de lógica de negócio no backend
+- Componentes reutilizáveis e schemas atualizados
+
+### v0.2.7 - 10/12/2025
+- Organização por abas nos templates
+- Visibilidade condicional de campos
+- Simplificação do sistema de prioridades
+- Melhorias na ordenação
+
+### v0.2.6 - 06/12/2025
 - Data de previsão editável
 - Tempo médio nos templates
 - Campo de observações
 - Confirmação ao reabrir demandas
 
-### v2.5.0 - 24/11/2025
+### v0.2.5 - 24/11/2025
 - Responsável por tarefa
 - Ordenação automática inteligente
 - Design limpo dos cards
 
-### v2.4.0 - 21/11/2025
+### v0.2.4 - 21/11/2025
 - Sistema de prazos
 - Indicadores visuais de prazo
 - Rastreamento de datas
 
-### v2.3.x - 19/11/2025
+### v0.2.3.x - 19/11/2025
 - Correções de domínio
 - Favicons e PWA
 - Organização da documentação
 
-### v2.2.0 - 19/11/2025
+### v0.2.2 - 19/11/2025
 - Integração com API
 - Backend JSON-Server
 - Docker completo
@@ -273,5 +387,5 @@ Ver histórico completo em [CHANGELOG.md](./CHANGELOG.md)
 
 ---
 
-**Versão:** 2.6.0  
-**Última Atualização:** 07/12/2025
+**Versão:** 0.2.11  
+**Última Atualização:** 13/12/2025

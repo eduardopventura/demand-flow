@@ -15,31 +15,49 @@ export enum TipoCampo {
   GRUPO = "grupo",
 }
 
-// Cargos disponíveis no sistema
-export enum Cargo {
-  ADMINISTRADOR = "administrador",
-  OPERADOR = "operador",
-  TECNICO = "tecnico",
-}
+// =========================
+// Cargos e Permissões (Fase 4)
+// =========================
 
-// Labels para exibição dos cargos
-export const CargoLabels: Record<Cargo, string> = {
-  [Cargo.ADMINISTRADOR]: "Administrador",
-  [Cargo.OPERADOR]: "Operador",
-  [Cargo.TECNICO]: "Técnico",
-};
+export type CargoPermissionKey =
+  | "acesso_templates"
+  | "acesso_acoes"
+  | "acesso_usuarios"
+  | "deletar_demandas"
+  | "cargo_disponivel_como_responsavel"
+  | "usuarios_disponiveis_como_responsaveis";
+
+export interface Cargo {
+  id: string;
+  nome: string;
+
+  // Permissões (podem ser omitidas em payloads "public")
+  acesso_templates?: boolean;
+  acesso_acoes?: boolean;
+  acesso_usuarios?: boolean;
+  deletar_demandas?: boolean;
+  cargo_disponivel_como_responsavel?: boolean;
+  usuarios_disponiveis_como_responsaveis?: boolean;
+
+  // Metadados opcionais (dependendo do endpoint)
+  created_at?: string;
+  updated_at?: string;
+  _count?: { usuarios: number };
+}
 
 // Interfaces
 export interface Usuario {
   id: string;
   nome: string;
-  email: string;
-  telefone: string; // Número com código país e região (ex: "5561999999999")
-  login: string;
-  senha: string; // TODO: Will be improved with proper authentication
-  notificar_email: boolean; // Receber notificações por email
-  notificar_telefone: boolean; // Receber notificações por WhatsApp
-  cargo?: Cargo; // Cargo do usuário (administrador, operador, tecnico)
+  email?: string;
+  telefone?: string; // Número com código país e região (ex: "5561999999999")
+  login?: string;
+  senha?: string; // Apenas para criação/edição no formulário
+  notificar_email?: boolean; // Receber notificações por email
+  notificar_telefone?: boolean; // Receber notificações por WhatsApp
+
+  cargo_id?: string;
+  cargo?: Cargo;
 }
 
 export interface CondicaoVisibilidade {
@@ -71,7 +89,8 @@ export interface Tarefa {
   id_tarefa: string;
   nome_tarefa: string;
   link_pai: string | null;
-  responsavel_id?: string; // Responsável específico da tarefa no template (opcional)
+  responsavel_id?: string; // Responsável usuário específico da tarefa no template (opcional)
+  cargo_responsavel_id?: string; // Responsável cargo específico da tarefa no template (opcional)
   acao_id?: string; // ID da ação automática associada (opcional)
   mapeamento_campos?: MapeamentoCampos; // Mapeamento de campos da ação para campos da demanda
 }
@@ -116,8 +135,16 @@ export interface CampoPreenchido {
 export interface TarefaStatus {
   id_tarefa: string;
   concluida: boolean;
-  responsavel_id?: string; // Responsável específico da tarefa (se diferente do responsável da demanda)
+  responsavel_id?: string | null; // Responsável usuário específico da tarefa
+  cargo_responsavel_id?: string | null; // Responsável cargo específico da tarefa
 }
+
+export type DemandaUpdatePayload = Partial<Demanda> & {
+  // Merge por campo (evita sobrescrever alterações de outros usuários)
+  campos_preenchidos_patch?: CampoPreenchido[];
+  campos_preenchidos_remove?: string[];
+  tarefas_status_patch?: TarefaStatus[];
+};
 
 export interface Demanda {
   id: string;
@@ -134,14 +161,18 @@ export interface Demanda {
   prazo: boolean; // true se dentro do prazo, false se fora
   observacoes: string; // Campo fixo de observações (max 100 caracteres)
   notificacao_prazo_enviada?: boolean; // Controle para enviar notificação de prazo apenas uma vez
+  modificado_por_id?: string; // ID do usuário que modificou a demanda pela última vez
+  modificado_por?: { id: string; nome: string; email: string }; // Dados do usuário que modificou
 }
 
 // Context types
 export interface DataContextType {
   usuarios: Usuario[];
+  cargos: Cargo[];
   templates: Template[];
   demandas: Demanda[];
   acoes: Acao[];
+  refreshPublicData: () => Promise<void>;
   addUsuario: (usuario: Omit<Usuario, "id">) => void;
   updateUsuario: (id: string, usuario: Omit<Usuario, "id">) => void;
   deleteUsuario: (id: string) => void;
@@ -149,14 +180,17 @@ export interface DataContextType {
   updateTemplate: (id: string, template: Omit<Template, "id">) => void;
   deleteTemplate: (id: string) => void;
   addDemanda: (demanda: Omit<Demanda, "id">) => void;
-  updateDemanda: (id: string, demanda: Partial<Demanda>) => void;
+  updateDemanda: (id: string, demanda: DemandaUpdatePayload) => void;
   deleteDemanda: (id: string) => void;
   addAcao: (acao: Omit<Acao, "id">) => void;
   updateAcao: (id: string, acao: Omit<Acao, "id">) => void;
   deleteAcao: (id: string) => void;
   getTemplate: (id: string) => Template | undefined;
   getUsuario: (id: string) => Usuario | undefined;
+  getCargo: (id: string) => Cargo | undefined;
   getAcao: (id: string) => Acao | undefined;
   executarAcaoTarefa: (demandaId: string, tarefaId: string) => Promise<void>;
 }
+
+export * from "./socket-events";
 

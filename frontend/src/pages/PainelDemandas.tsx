@@ -28,7 +28,7 @@ import { cn } from "@/lib/utils";
 export default function PainelDemandas() {
   const { demandas, updateDemanda } = useData();
   const [novaDemandaOpen, setNovaDemandaOpen] = useState(false);
-  const [demandaSelecionada, setDemandaSelecionada] = useState<Demanda | null>(null);
+  const [demandaSelecionadaId, setDemandaSelecionadaId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<StatusDemanda>(StatusDemanda.CRIADA);
   
@@ -117,6 +117,12 @@ export default function PainelDemandas() {
     [activeId, demandas]
   );
 
+  // Evita “stale props”: sempre deriva a demanda selecionada do estado atual do DataContext
+  const demandaSelecionada = useMemo(
+    () => (demandaSelecionadaId ? demandas.find((d) => d.id === demandaSelecionadaId) ?? null : null),
+    [demandaSelecionadaId, demandas]
+  );
+
   // Mobile tab config with shorter labels
   const tabConfig = [
     { status: StatusDemanda.CRIADA, label: "Criada", shortLabel: "Criada" },
@@ -153,17 +159,17 @@ export default function PainelDemandas() {
             <KanbanColumn
               status={StatusDemanda.CRIADA}
               demandas={demandaPorStatus[StatusDemanda.CRIADA]}
-              onCardClick={setDemandaSelecionada}
+              onCardClick={(d) => setDemandaSelecionadaId(d.id)}
             />
             <KanbanColumn
               status={StatusDemanda.EM_ANDAMENTO}
               demandas={demandaPorStatus[StatusDemanda.EM_ANDAMENTO]}
-              onCardClick={setDemandaSelecionada}
+              onCardClick={(d) => setDemandaSelecionadaId(d.id)}
             />
             <KanbanColumn
               status={StatusDemanda.FINALIZADA}
               demandas={demandaPorStatus[StatusDemanda.FINALIZADA]}
-              onCardClick={setDemandaSelecionada}
+              onCardClick={(d) => setDemandaSelecionadaId(d.id)}
               totalCount={totalFinalizadas}
               showViewAllLink={totalFinalizadas > 15}
             />
@@ -220,7 +226,7 @@ export default function PainelDemandas() {
                 <KanbanColumn
                   status={status}
                   demandas={demandaPorStatus[status]}
-                  onCardClick={setDemandaSelecionada}
+                  onCardClick={(d) => setDemandaSelecionadaId(d.id)}
                   isMobile
                 />
               </TabsContent>
@@ -237,7 +243,7 @@ export default function PainelDemandas() {
       <DetalhesDemandaModal
         demanda={demandaSelecionada}
         open={!!demandaSelecionada}
-        onOpenChange={(open) => !open && setDemandaSelecionada(null)}
+        onOpenChange={(open) => !open && setDemandaSelecionadaId(null)}
       />
 
       {/* Confirmation Dialog for moving from Finalizada */}

@@ -1,32 +1,52 @@
 /**
  * Routes Index
  * 
- * Agregador central de rotas customizadas
+ * Agregador central de rotas
  */
 
 const authRoutes = require('./auth.routes');
 const uploadRoutes = require('./upload.routes');
 const demandasRoutes = require('./demandas.routes');
+const usuariosRoutes = require('./usuarios.routes');
+const cargosRoutes = require('./cargos.routes');
+const publicRoutes = require('./public.routes');
+const templatesRoutes = require('./templates.routes');
+const acoesRoutes = require('./acoes.routes');
+const { authMiddleware } = require('../middlewares/auth.middleware');
+const { requireCargoPermission } = require('../middlewares/permissions.middleware');
 
 /**
- * Configura todas as rotas customizadas no servidor
- * @param {Object} server - Instância do Express/JSON-Server
+ * Configura todas as rotas no servidor Express
+ * @param {Object} server - Instância do Express
  */
 function setupRoutes(server) {
-  // Rotas de autenticação
+  // Rotas de autenticação (públicas - login e register não precisam de auth)
   server.use('/api/auth', authRoutes);
   
-  // Rotas de upload
-  server.use('/api/upload', uploadRoutes);
+  // Rotas protegidas - requerem autenticação
+  // Rotas públicas (auth-only) para dados básicos usados pela UI (não é gestão)
+  server.use('/api/public', authMiddleware, publicRoutes);
+
+  // Rotas CRUD básicas
+  server.use('/api/usuarios', authMiddleware, requireCargoPermission('acesso_usuarios'), usuariosRoutes);
+  server.use('/api/cargos', authMiddleware, requireCargoPermission('acesso_usuarios'), cargosRoutes);
+  server.use('/api/templates', authMiddleware, requireCargoPermission('acesso_templates'), templatesRoutes);
+  server.use('/api/acoes', authMiddleware, requireCargoPermission('acesso_acoes'), acoesRoutes);
   
-  // Rotas de demandas (customizadas - antes do JSON-Server)
-  server.use('/api/demandas', demandasRoutes);
+  // Rotas de upload
+  server.use('/api/upload', authMiddleware, uploadRoutes);
+  
+  // Rotas de demandas (com lógica de negócio)
+  server.use('/api/demandas', authMiddleware, demandasRoutes);
 }
 
 module.exports = {
   setupRoutes,
   authRoutes,
   uploadRoutes,
-  demandasRoutes
+  demandasRoutes,
+  usuariosRoutes,
+  templatesRoutes,
+  acoesRoutes
 };
 

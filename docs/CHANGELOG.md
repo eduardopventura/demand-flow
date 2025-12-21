@@ -1,5 +1,115 @@
 # Changelog - Demand Flow
 
+## [1.0.0] - 2025-12-18
+
+### 🎉 Versão 1.0 - Produção Completa
+
+Esta é uma atualização major que transforma o Demand Flow em um sistema completo de produção com todas as funcionalidades essenciais implementadas.
+
+#### ✨ Principais Mudanças
+
+**1. Migração PostgreSQL (Fase 1)**
+- ✅ Substituição completa do JSON-Server por PostgreSQL 16
+- ✅ Prisma ORM para acesso aos dados
+- ✅ Schema relacional otimizado com relacionamentos
+- ✅ Migrations e seeds automatizados
+- ✅ Volume Docker para persistência
+- ✅ Todas as 6 tabelas criadas (Usuario, Template, Demanda, TarefaStatus, Acao, CampoPreenchido, Cargo)
+
+**2. Sistema de Autenticação (Fase 2)**
+- ✅ Login completo com email/senha
+- ✅ JWT (JSON Web Tokens) para sessões seguras
+- ✅ Hash de senhas com bcrypt (salt rounds: 10)
+- ✅ Proteção de rotas no frontend e backend
+- ✅ Middleware de autenticação
+- ✅ Página de login funcional
+- ✅ Interceptação de 401 com logout automático
+- ✅ AuthContext para gerenciamento de estado
+
+**3. Controle de Responsáveis e Auditoria (Fase 3)**
+- ✅ Atualização automática de responsáveis baseada no usuário logado
+- ✅ Campo `modificado_por_id` em todas as demandas
+- ✅ Indicador discreto de último modificador no footer
+- ✅ Respeito à escolha manual de responsável
+- ✅ Rastreabilidade completa de modificações
+
+**4. Sistema de Cargos e Permissões (Fase 4)**
+- ✅ Cargos em tabela PostgreSQL (não hardcoded)
+- ✅ Página dedicada `/cargos` para gerenciamento
+- ✅ Salvar em lote (criar/renomear/excluir/permissões)
+- ✅ 6 tipos de permissões configuráveis:
+  - Acesso Templates
+  - Acesso Ações
+  - Acesso Usuários (inclui página de Cargos)
+  - Deletar Demandas
+  - Cargo Disponível Como Responsável
+  - Usuários Disponíveis como Responsáveis
+- ✅ Controle de acesso por página e ação
+- ✅ Redirecionamento inteligente quando sem permissão (sem erro)
+- ✅ Validação de permissões no frontend e backend (403)
+- ✅ Menu lateral ocultando itens conforme permissões
+- ✅ Filtros de responsáveis baseados em permissões
+- ✅ Seed automático: cargo `Operador` com todas permissões
+
+**5. WebSockets - Tempo Real (Fase 5)**
+- ✅ Socket.io integrado no backend
+- ✅ Autenticação de sockets via JWT (handshake)
+- ✅ Sincronização em tempo real entre múltiplos usuários
+- ✅ Atualização automática do Kanban sem refresh
+- ✅ Eventos: `demanda:created`, `demanda:updated`, `demanda:deleted`
+- ✅ Merge por campo (PATCH por delta) para evitar sobrescritas
+- ✅ Reconexão automática em caso de queda
+- ✅ Proxy `/socket.io` configurado (Nginx e Vite)
+
+#### 🔧 Melhorias Técnicas
+
+**Backend:**
+- ✅ Arquitetura completa de produção
+- ✅ Prisma Client gerado no build
+- ✅ Repositories pattern para acesso a dados
+- ✅ Middleware de erro centralizado
+- ✅ Validação de entrada em todas as rotas
+- ✅ Health check endpoint
+
+**Frontend:**
+- ✅ AuthContext para gerenciamento de autenticação
+- ✅ ProtectedRoute para proteção de rotas
+- ✅ PermissionRoute para controle de acesso
+- ✅ Cliente Socket.io integrado
+- ✅ Atualização automática do estado via WebSockets
+
+**Infraestrutura:**
+- ✅ Docker Compose com 3 serviços (frontend, backend, postgres)
+- ✅ Volumes persistentes para PostgreSQL e uploads
+- ✅ Health checks configurados
+- ✅ Proxy Nginx para API e WebSockets
+- ✅ Imagens Docker publicadas no Docker Hub
+
+#### 📊 Impacto
+
+- **Segurança**: Sistema pronto para produção com autenticação real ✅
+- **Performance**: Banco relacional otimizado com índices ✅
+- **UX**: Sincronização em tempo real melhora experiência colaborativa ✅
+- **Escalabilidade**: Arquitetura preparada para crescimento ✅
+- **Manutenibilidade**: Código organizado e documentado ✅
+
+#### 🔄 Breaking Changes
+
+- ⚠️ **JSON-Server removido**: Migração completa para PostgreSQL
+- ⚠️ **Autenticação obrigatória**: Todas as rotas protegidas (exceto `/api/auth/*`)
+- ⚠️ **Schema de banco**: Estrutura completamente nova com Prisma
+- ⚠️ **API**: Alguns endpoints mudaram (consulte documentação)
+
+#### 📝 Migração
+
+Para migrar de v0.2.x para v1.0.0:
+1. Executar migrations do Prisma
+2. Migrar dados do `db.json` para PostgreSQL (script fornecido)
+3. Resetar senhas (senhas antigas não funcionam - agora são hasheadas)
+4. Configurar variáveis de ambiente (JWT_SECRET, DATABASE_URL)
+
+---
+
 ## [0.2.11] - 2025-12-13
 
 ### 🎨 Melhorias de UX e Correções de Bugs

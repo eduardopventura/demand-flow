@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useData } from "@/contexts/DataContext";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,10 +31,10 @@ import {
 import { Plus, Edit, Trash2, Mail, User, Phone, Bell, BellOff, Shield } from "lucide-react";
 import { toast } from "sonner";
 import type { Usuario } from "@/types";
-import { Cargo, CargoLabels } from "@/types";
 
 export default function Usuarios() {
-  const { usuarios, addUsuario, updateUsuario, deleteUsuario } = useData();
+  const { usuarios, cargos, addUsuario, updateUsuario, deleteUsuario } = useData();
+  const navigate = useNavigate();
   const [modalOpen, setModalOpen] = useState(false);
   const [usuarioEditando, setUsuarioEditando] = useState<Usuario | null>(null);
   const [formData, setFormData] = useState({
@@ -44,7 +45,7 @@ export default function Usuarios() {
     senha: "",
     notificar_email: false,
     notificar_telefone: false,
-    cargo: "" as Cargo | "",
+    cargo_id: "" as string,
   });
 
   const handleOpenModal = (usuario?: Usuario) => {
@@ -52,13 +53,13 @@ export default function Usuarios() {
       setUsuarioEditando(usuario);
       setFormData({
         nome: usuario.nome,
-        email: usuario.email,
+        email: usuario.email || "",
         telefone: usuario.telefone || "",
-        login: usuario.login,
-        senha: usuario.senha,
+        login: usuario.login || "",
+        senha: "", // Não preencher senha ao editar (deixar vazio para não mostrar)
         notificar_email: usuario.notificar_email || false,
         notificar_telefone: usuario.notificar_telefone || false,
-        cargo: usuario.cargo || "",
+        cargo_id: usuario.cargo_id || usuario.cargo?.id || "",
       });
     } else {
       setUsuarioEditando(null);
@@ -70,23 +71,46 @@ export default function Usuarios() {
         senha: "",
         notificar_email: false,
         notificar_telefone: false,
-        cargo: "",
+        cargo_id: "",
       });
     }
     setModalOpen(true);
   };
 
   const handleSubmit = () => {
-    if (!formData.nome || !formData.email || !formData.login || !formData.senha) {
-      toast.error("Preencha todos os campos");
+    // Validação básica
+    if (!formData.nome || !formData.email || !formData.login) {
+      toast.error("Preencha todos os campos obrigatórios");
       return;
     }
 
+    // Senha é obrigatória apenas ao criar novo usuário
+    if (!usuarioEditando && !formData.senha) {
+      toast.error("A senha é obrigatória para novos usuários");
+      return;
+    }
+
+    // Preparar dados para envio
+    const usuarioData: any = {
+      nome: formData.nome,
+      email: formData.email,
+      telefone: formData.telefone,
+      login: formData.login,
+      notificar_email: formData.notificar_email,
+      notificar_telefone: formData.notificar_telefone,
+      cargo_id: formData.cargo_id || null,
+    };
+
+    // Incluir senha apenas se foi preenchida (ao criar ou ao alterar)
+    if (formData.senha) {
+      usuarioData.senha = formData.senha;
+    }
+
     if (usuarioEditando) {
-      updateUsuario(usuarioEditando.id, formData);
+      updateUsuario(usuarioEditando.id, usuarioData);
       toast.success("Usuário atualizado com sucesso!");
     } else {
-      addUsuario(formData);
+      addUsuario(usuarioData);
       toast.success("Usuário criado com sucesso!");
     }
 
@@ -108,10 +132,21 @@ export default function Usuarios() {
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Usuários</h1>
             <p className="text-muted-foreground mt-1 text-sm sm:text-base">Gerencie os usuários do sistema</p>
           </div>
-          <Button onClick={() => handleOpenModal()} size="lg" className="gap-2 w-full sm:w-auto">
-            <Plus className="w-5 h-5" />
-            <span>Novo Usuário</span>
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <Button
+              variant="outline"
+              size="lg"
+              className="gap-2 w-full sm:w-auto"
+              onClick={() => navigate("/cargos")}
+            >
+              <Shield className="w-5 h-5" />
+              <span>Cargos</span>
+            </Button>
+            <Button onClick={() => handleOpenModal()} size="lg" className="gap-2 w-full sm:w-auto">
+              <Plus className="w-5 h-5" />
+              <span>Novo Usuário</span>
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -139,11 +174,11 @@ export default function Usuarios() {
                     <User className="w-3.5 h-3.5 shrink-0" />
                     <span>@{usuario.login}</span>
                   </div>
-                  {usuario.cargo && (
+                  {usuario.cargo?.nome && (
                     <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-1">
                       <Shield className="w-3.5 h-3.5 shrink-0" />
                       <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
-                        {CargoLabels[usuario.cargo as Cargo] || usuario.cargo}
+                        {usuario.cargo.nome}
                       </span>
                     </div>
                   )}
@@ -198,9 +233,9 @@ export default function Usuarios() {
                   <TableCell>{usuario.telefone || "-"}</TableCell>
                   <TableCell>{usuario.login}</TableCell>
                   <TableCell>
-                    {usuario.cargo ? (
+                    {usuario.cargo?.nome ? (
                       <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
-                        {CargoLabels[usuario.cargo as Cargo] || usuario.cargo}
+                        {usuario.cargo.nome}
                       </span>
                     ) : (
                       <span className="text-muted-foreground">-</span>
@@ -353,16 +388,16 @@ export default function Usuarios() {
             <div className="space-y-2">
               <Label>Cargo</Label>
               <Select
-                value={formData.cargo}
-                onValueChange={(v) => setFormData({ ...formData, cargo: v as Cargo })}
+                value={formData.cargo_id}
+                onValueChange={(v) => setFormData({ ...formData, cargo_id: v })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione um cargo" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.values(Cargo).map((cargo) => (
-                    <SelectItem key={cargo} value={cargo}>
-                      {CargoLabels[cargo]}
+                  {cargos.map((cargo) => (
+                    <SelectItem key={cargo.id} value={cargo.id}>
+                      {cargo.nome}
                     </SelectItem>
                   ))}
                 </SelectContent>

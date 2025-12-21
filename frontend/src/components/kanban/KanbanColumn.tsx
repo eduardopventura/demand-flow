@@ -96,10 +96,21 @@ const KanbanColumnComponent = ({ status, demandas, onCardClick, isMobile, totalC
 
 // Memoize component to prevent unnecessary re-renders
 export const KanbanColumn = memo(KanbanColumnComponent, (prevProps, nextProps) => {
-  return (
-    prevProps.status === nextProps.status &&
-    prevProps.demandas.length === nextProps.demandas.length &&
-    prevProps.demandas.every((d, i) => d.id === nextProps.demandas[i]?.id) &&
-    prevProps.isMobile === nextProps.isMobile
-  );
+  if (prevProps.status !== nextProps.status) return false;
+  if (prevProps.isMobile !== nextProps.isMobile) return false;
+  if (prevProps.totalCount !== nextProps.totalCount) return false;
+  if (prevProps.showViewAllLink !== nextProps.showViewAllLink) return false;
+  if (prevProps.demandas.length !== nextProps.demandas.length) return false;
+
+  // Importante: não comparar só IDs.
+  // Se o objeto da demanda mudou (ex.: data_previsao, tarefas_status, observacoes),
+  // precisamos re-renderizar para refletir no card/coluna.
+  for (let i = 0; i < prevProps.demandas.length; i++) {
+    const prev = prevProps.demandas[i];
+    const next = nextProps.demandas[i];
+    if (prev?.id !== next?.id) return false;
+    if (prev !== next) return false;
+  }
+
+  return true;
 });

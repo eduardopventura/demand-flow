@@ -1,18 +1,26 @@
-# Backend Dockerfile - JSON-Server MVP
-# Ready for future upgrade to PostgreSQL + Express
+# Backend Dockerfile - PostgreSQL + Prisma
 
 FROM node:20-alpine
 
 LABEL maintainer="Demand Flow Team"
-LABEL description="JSON-Server backend for MVP - Ready for PostgreSQL upgrade"
+LABEL description="Backend with PostgreSQL and Prisma"
+
+# Install OpenSSL for Prisma
+RUN apk add --no-cache openssl libc6-compat
 
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
+# Copy Prisma schema (needed for generation)
+COPY prisma ./prisma/
+
+# Install dependencies (inclui Prisma)
 RUN npm install --omit=dev
+
+# Generate Prisma Client durante o build
+RUN npx prisma generate
 
 # Copy application files
 COPY . .

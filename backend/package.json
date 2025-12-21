@@ -1,26 +1,35 @@
 {
   "name": "demand-flow-backend",
   "version": "1.1.0",
-  "description": "Backend API for Demand Flow - JSON-Server MVP (ready for PostgreSQL upgrade)",
+  "description": "Backend API for Demand Flow - PostgreSQL + Prisma",
   "main": "server.js",
   "scripts": {
-    "start": "node -r dotenv/config server.js",
+    "start": "node scripts/init-env.js && prisma migrate deploy && node scripts/init-db.js && node -r dotenv/config server.js",
+    "start:migrate": "prisma migrate deploy && node -r dotenv/config server.js",
     "dev": "nodemon -r dotenv/config server.js",
-    "seed": "node scripts/seed.js"
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate deploy",
+    "prisma:studio": "prisma studio",
+    "prisma:migrate:dev": "prisma migrate dev",
+    "postinstall": "prisma generate"
   },
-  "keywords": ["demand-flow", "json-server", "api"],
+  "keywords": ["demand-flow", "postgresql", "prisma", "api"],
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "json-server": "^0.17.4",
+    "@prisma/client": "^5.19.1",
+    "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
     "nodemailer": "^6.9.16",
     "node-cron": "^3.0.3",
     "multer": "^1.4.5-lts.1",
     "axios": "^1.6.2",
-    "form-data": "^4.0.0"
+    "form-data": "^4.0.0",
+    "socket.io": "^4.8.1",
+    "prisma": "^5.19.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"

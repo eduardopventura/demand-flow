@@ -1,0 +1,143 @@
+// Prisma Schema - Demand Flow
+// PostgreSQL Database Schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id                String   @id @default(uuid())
+  nome              String
+  email             String   @unique
+  telefone          String
+  login             String   @unique
+  senha_hash        String   // Será usado na Fase 2 (hash de senhas)
+  notificar_email   Boolean  @default(true)
+  notificar_telefone Boolean @default(false)
+  cargo_id          String
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+  
+  cargo             Cargo    @relation(fields: [cargo_id], references: [id])
+  demandas          Demanda[] @relation("DemandaResponsavel")
+  tarefas_status    TarefaStatus[] @relation("TarefaResponsavel")
+  demandas_modificadas Demanda[] @relation("DemandaModificada")
+  
+  @@index([cargo_id])
+  @@index([login])
+  @@index([email])
+}
+
+model Cargo {
+  id   String @id @default(uuid())
+  nome String @unique
+
+  acesso_templates                       Boolean @default(false)
+  acesso_acoes                           Boolean @default(false)
+  acesso_usuarios                        Boolean @default(false)
+  deletar_demandas                       Boolean @default(false)
+  cargo_disponivel_como_responsavel      Boolean @default(false)
+  usuarios_disponiveis_como_responsaveis Boolean @default(false)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  usuarios        Usuario[]
+  tarefasComoCargo TarefaStatus[] @relation("TarefaCargoResponsavel")
+}
+
+model Template {
+  id                  String   @id @default(uuid())
+  nome                String
+  tempo_medio         Int
+  abas                Json     // Array de AbaTemplate
+  campos_preenchimento Json    // Array de CampoPreenchimento
+  tarefas             Json     // Array de Tarefa
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+  
+  demandas            Demanda[]
+  
+  @@index([nome])
+}
+
+model Demanda {
+  id                String   @id @default(uuid())
+  template_id       String
+  nome_demanda      String
+  status            String   // "Criada" | "Em Andamento" | "Finalizada"
+  responsavel_id    String
+  tempo_esperado    Int
+  data_criacao      DateTime @default(now())
+  data_previsao     DateTime
+  data_finalizacao  DateTime?
+  prazo             Boolean  @default(true)
+  observacoes       String?
+  notificacao_prazo_enviada Boolean @default(false)
+  modificado_por_id String?
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+  
+  template          Template @relation(fields: [template_id], references: [id])
+  responsavel       Usuario  @relation("DemandaResponsavel", fields: [responsavel_id], references: [id])
+  modificado_por    Usuario? @relation("DemandaModificada", fields: [modificado_por_id], references: [id])
+  tarefas_status     TarefaStatus[]
+  campos_preenchidos CampoPreenchido[]
+  
+  @@index([status])
+  @@index([responsavel_id])
+  @@index([template_id])
+  @@index([data_previsao])
+  @@index([data_criacao])
+  @@index([modificado_por_id])
+}
+
+model TarefaStatus {
+  id            String   @id @default(uuid())
+  demanda_id    String
+  id_tarefa     String
+  concluida     Boolean  @default(false)
+  responsavel_id String?
+  cargo_responsavel_id String?
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+  
+  demanda       Demanda  @relation(fields: [demanda_id], references: [id], onDelete: Cascade)
+  responsavel    Usuario? @relation("TarefaResponsavel", fields: [responsavel_id], references: [id])
+  cargo_responsavel Cargo? @relation("TarefaCargoResponsavel", fields: [cargo_responsavel_id], references: [id], onDelete: SetNull)
+  
+  @@index([demanda_id])
+  @@index([id_tarefa])
+  @@index([concluida])
+  @@index([cargo_responsavel_id])
+}
+
+model Acao {
+  id        String   @id @default(uuid())
+  nome      String
+  url       String
+  campos    Json     // Array de CampoAcao
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  
+  @@index([nome])
+}
+
+model CampoPreenchido {
+  id         String   @id @default(uuid())
+  demanda_id String
+  id_campo   String
+  valor      String
+  created_at DateTime @default(now())
+  
+  demanda    Demanda  @relation(fields: [demanda_id], references: [id], onDelete: Cascade)
+  
+  @@index([demanda_id])
+  @@index([id_campo])
+}
+

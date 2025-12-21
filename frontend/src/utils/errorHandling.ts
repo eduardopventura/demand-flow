@@ -3,6 +3,8 @@
  * Provides consistent error logging and user-friendly error messages
  */
 
+import { error as logError } from "./logger";
+
 export class AppError extends Error {
   constructor(
     message: string,
@@ -23,11 +25,11 @@ export function handleError(error: unknown): string {
   }
 
   if (error instanceof Error) {
-    console.error("Application error:", error);
+    logError("Application error:", error);
     return error.message;
   }
 
-  console.error("Unknown error:", error);
+  logError("Unknown error:", error);
   return "Ocorreu um erro inesperado. Por favor, tente novamente.";
 }
 
@@ -37,8 +39,8 @@ export function handleError(error: unknown): string {
 export function safeJSONParse<T>(json: string, fallback: T): T {
   try {
     return JSON.parse(json) as T;
-  } catch (error) {
-    console.error("JSON parse error:", error);
+  } catch (err) {
+    logError("JSON parse error:", err);
     return fallback;
   }
 }

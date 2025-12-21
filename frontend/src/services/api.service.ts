@@ -11,7 +11,8 @@
  * - Add error handling middleware
  */
 
-import type { Usuario, Template, Demanda, Acao } from "@/types";
+import type { Usuario, Cargo, Template, Demanda, Acao, DemandaUpdatePayload } from "@/types";
+import { error as logError } from "@/utils/logger";
 
 /**
  * API Configuration
@@ -24,12 +25,34 @@ import type { Usuario, Template, Demanda, Acao } from "@/types";
  * Fallback localStorage já implementado no DataContext
  */
 const API_URL = '/api';
-
-// Log para debug
-console.log(`🔌 API Service initialized with URL: ${API_URL}`);
+const AUTH_TOKEN_KEY = 'authToken';
 
 /**
- * Generic fetch wrapper with error handling
+ * Obtém token de autenticação do localStorage
+ */
+function getAuthToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(AUTH_TOKEN_KEY);
+}
+
+/**
+ * Callback para logout quando token expira
+ * Será definido pelo AuthContext
+ */
+let onUnauthorized: (() => void) | null = null;
+
+/**
+ * Define callback para logout em caso de 401
+ * Usa função para evitar problemas de inicialização
+ */
+export function setUnauthorizedCallback(callback: () => void) {
+  if (typeof callback === 'function') {
+    onUnauthorized = callback;
+  }
+}
+
+/**
+ * Generic fetch wrapper with error handling and authentication
  */
 async function fetchAPI<T>(
   endpoint: string,
@@ -37,23 +60,89 @@ async function fetchAPI<T>(
 ): Promise<T> {
   const url = `${API_URL}${endpoint}`;
   
+  // Obter token do localStorage
+  const token = getAuthToken();
+  
+  // Preparar headers
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+    ...options?.headers,
+  };
+  
+  // Adicionar token de autenticação se disponível
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  
   try {
     const response = await fetch(url, {
       ...options,
-      headers: {
-        "Content-Type": "application/json",
-        ...options?.headers,
-      },
+      headers,
     });
 
+    // Interceptar 401 (não autorizado)
+    if (response.status === 401) {
+      // Verificar se estamos na página de login - não disparar logout nesse caso
+      const isLoginPage = typeof window !== 'undefined' && window.location.pathname === '/login';
+      
+      // Remover token inválido apenas se não estiver na página de login
+      if (typeof window !== 'undefined' && !isLoginPage) {
+        localStorage.removeItem(AUTH_TOKEN_KEY);
+        
+        // Chamar callback de logout se disponível (apenas se não estiver na página de login)
+        if (onUnauthorized && typeof onUnauthorized === 'function') {
+          try {
+            onUnauthorized();
+          } catch (err) {
+            logError('Erro ao executar callback de logout:', err);
+          }
+        }
+      }
+      
+      // Para endpoints de login, não lançar erro genérico - deixar o componente tratar
+      if (endpoint.includes('/auth/login')) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Credenciais inválidas');
+      }
+      
+      throw new Error('Sessão expirada. Por favor, faça login novamente.');
+    }
+
+    // Interceptar 403 (sem permissão) - comportamento esperado
+    if (response.status === 403) {
+      let errorMessage = "Sem permissão para executar esta ação.";
+      try {
+        const errorData = await response.json();
+        if (errorData.message) errorMessage = errorData.message;
+        else if (errorData.error) errorMessage = errorData.error;
+      } catch {
+        // ignore
+      }
+      const err: any = new Error(errorMessage);
+      err.status = 403;
+      throw err;
+    }
+
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      // Tentar extrair mensagem de erro do response
+      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (errorData.error) {
+          errorMessage = errorData.error;
+        }
+      } catch {
+        // Se não conseguir parsear JSON, usar mensagem padrão
+      }
+      throw new Error(errorMessage);
     }
 
     return await response.json();
-  } catch (error) {
-    console.error(`API Error [${endpoint}]:`, error);
-    throw error;
+  } catch (err) {
+    logError(`API Error [${endpoint}]:`, err);
+    throw err;
   }
 }
 
@@ -64,6 +153,17 @@ async function fetchAPI<T>(
  * Easy to replace with real backend implementation
  */
 export const apiService = {
+  // ============================================================================
+  // PUBLIC (auth-only) - dados básicos para UI
+  // ============================================================================
+  async getPublicUsuarios(): Promise<Usuario[]> {
+    return fetchAPI<Usuario[]>("/public/usuarios");
+  },
+
+  async getPublicCargos(): Promise<Cargo[]> {
+    return fetchAPI<Cargo[]>("/public/cargos");
+  },
+
   // ============================================================================
   // USUARIOS
   // ============================================================================
@@ -93,6 +193,24 @@ export const apiService = {
   async deleteUsuario(id: string): Promise<void> {
     return fetchAPI<void>(`/usuarios/${id}`, {
       method: "DELETE",
+    });
+  },
+
+  // ============================================================================
+  // CARGOS (gestão)
+  // ============================================================================
+  async getCargos(): Promise<Cargo[]> {
+    return fetchAPI<Cargo[]>("/cargos");
+  },
+
+  async saveCargosBatch(payload: {
+    creates?: Array<Partial<Cargo> & { nome: string }>;
+    updates?: Array<Partial<Cargo> & { id: string }>;
+    deletes?: Array<{ id: string; reassignToCargoId?: string }>;
+  }): Promise<{ success: true }> {
+    return fetchAPI<{ success: true }>("/cargos/batch", {
+      method: "PUT",
+      body: JSON.stringify(payload),
     });
   },
 
@@ -147,7 +265,7 @@ export const apiService = {
     });
   },
 
-  async updateDemanda(id: string, demanda: Partial<Demanda>): Promise<Demanda> {
+  async updateDemanda(id: string, demanda: DemandaUpdatePayload): Promise<Demanda> {
     return fetchAPI<Demanda>(`/demandas/${id}`, {
       method: "PATCH",
       body: JSON.stringify(demanda),
@@ -271,10 +389,16 @@ export const apiService = {
   // ============================================================================
 
   async login(login: string, senha: string): Promise<{ usuario: Usuario; token: string }> {
-    return fetchAPI<{ usuario: Usuario; token: string }>("/auth/login", {
+    const response = await fetchAPI<{ success: boolean; usuario: Usuario; token: string }>("/auth/login", {
       method: "POST",
       body: JSON.stringify({ login, senha }),
     });
+    
+    // Retornar no formato esperado pelo AuthContext
+    return {
+      usuario: response.usuario,
+      token: response.token,
+    };
   },
 
   // ============================================================================

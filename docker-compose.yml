@@ -1,27 +1,58 @@
 # Docker Compose - Demand Flow
-# JSON-Server backend with React frontend
-# Ready for future PostgreSQL upgrade
+# PostgreSQL backend with React frontend
+# 
+# Este arquivo usa imagens do Docker Hub (edpv/demand-flow-backend e edpv/demand-flow-frontend)
+# Para desenvolvimento local, use docker-compose-dev.yml
 
 version: '3.8'
 
 services:
-  # Backend API - JSON-Server (MVP)
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: demand-flow-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: demandflow
+      POSTGRES_USER: demandflow
+      POSTGRES_PASSWORD: demandflow_password
+      TZ: America/Sao_Paulo
+    volumes:
+      # Volume nomeado para dados do PostgreSQL (melhor prática)
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - demand-flow-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U demandflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API - PostgreSQL + Prisma
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: edpv/demand-flow-backend:latest
     container_name: demand-flow-backend
     restart: unless-stopped
-    ports:
-      - "3000:3000"
+    # Porta removida - backend não precisa ser exposto em produção
+    # Acesso apenas via frontend (proxy Nginx)
     volumes:
-      - ./backend/db.json:/app/db.json
-      - ./backend/uploads:/app/uploads
+      # Bind mount para uploads (criado automaticamente se não existir)
+      - ./uploads:/app/uploads
+      # Bind mount para .env (deve ser criado antes de subir o compose)
+      - ./.env:/app/.env
+    # user: "1000:1000"  # Descomente e ajuste UID/GID se tiver erros de permissão
     env_file:
-      - ./backend/.env
+      - ./.env
     environment:
       - NODE_ENV=production
       - PORT=3000
+      - DATABASE_URL=postgresql://demandflow:demandflow_password@postgres:5432/demandflow
+      - JWT_EXPIRES_IN=24h
+      - TZ=America/Sao_Paulo
+      # JWT_SECRET será gerado automaticamente pelo script init-env.js e salvo no .env
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - demand-flow-network
     healthcheck:
@@ -33,10 +64,7 @@ services:
 
   # Frontend - React + Vite
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      # No VITE_API_URL needed - auto-detected via window.location.hostname
+    image: edpv/demand-flow-frontend:latest
     container_name: demand-flow-frontend
     restart: unless-stopped
     ports:
@@ -51,5 +79,9 @@ networks:
   demand-flow-network:
     driver: bridge
     name: demand-flow-network
+
+volumes:
+  postgres_data:
+    driver: local
 
 

@@ -2,15 +2,11 @@ import { useDraggable } from "@dnd-kit/core";
 import { Card } from "@/components/ui/card";
 import { User, GripVertical, Trash2, Calendar as CalendarIcon, Tag } from "lucide-react";
 import { useData } from "@/contexts/DataContext";
+import { useAuth } from "@/contexts/AuthContext";
 import type { Demanda } from "@/types";
-import { Cargo, CargoLabels } from "@/types";
+import { hasPermission } from "@/utils/permissions";
 import { cn } from "@/lib/utils";
 import { getCorBordaPrazo, formatarData, getPrimeiroNome } from "@/utils/prazoUtils";
-
-// Helper para verificar se é um cargo
-const isCargo = (id: string): id is Cargo => {
-  return Object.values(Cargo).includes(id as Cargo);
-};
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,7 +30,9 @@ interface DemandaCardProps {
 }
 
 const DemandaCardComponent = ({ demanda, onClick, isDragging }: DemandaCardProps) => {
-  const { getUsuario, deleteDemanda, getTemplate, updateDemanda } = useData();
+  const { getUsuario, getCargo, deleteDemanda, getTemplate, updateDemanda } = useData();
+  const { user } = useAuth();
+  const canDeleteDemanda = hasPermission(user, "deletar_demandas");
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: demanda.id,
   });
@@ -63,15 +61,18 @@ const DemandaCardComponent = ({ demanda, onClick, isDragging }: DemandaCardProps
     }
   };
 
-  // Calcular usuários com tarefas abertas
   const usuariosComTarefas = demanda.tarefas_status
-    .filter((t) => !t.concluida) // Apenas tarefas não concluídas
+    .filter((t) => !t.concluida)
     .reduce((acc, tarefa) => {
-      // Determina o responsável da tarefa (específico ou padrão da demanda)
-      const responsavelId = tarefa.responsavel_id || demanda.responsavel_id;
+      let responsavelId = tarefa.cargo_responsavel_id || tarefa.responsavel_id;
       
-      // Incrementa o contador de tarefas deste usuário
-      acc[responsavelId] = (acc[responsavelId] || 0) + 1;
+      if (!responsavelId && demanda.responsavel_id) {
+        responsavelId = demanda.responsavel_id;
+      }
+      
+      if (responsavelId) {
+        acc[responsavelId] = (acc[responsavelId] || 0) + 1;
+      }
       
       return acc;
     }, {} as Record<string, number>);
@@ -103,34 +104,36 @@ const DemandaCardComponent = ({ demanda, onClick, isDragging }: DemandaCardProps
           {demanda.nome_demanda}
         </h4>
         <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 sm:h-6 sm:w-6 text-muted-foreground hover:text-destructive"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Trash2 className="w-4 h-4 sm:w-3 sm:h-3" />
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent className="mx-4 sm:mx-auto max-w-[calc(100vw-2rem)] sm:max-w-lg">
-              <AlertDialogHeader>
-                <AlertDialogTitle>Excluir Demanda</AlertDialogTitle>
-              </AlertDialogHeader>
-              <div className="px-6 py-4">
-                <p className="text-sm text-muted-foreground">
-                  Tem certeza que deseja excluir a demanda "{demanda.nome_demanda}"? Esta ação não pode ser desfeita.
-                </p>
-              </div>
-              <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
-                <AlertDialogCancel className="w-full sm:w-auto">Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete} className="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                  Excluir
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          {canDeleteDemanda && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 sm:h-6 sm:w-6 text-muted-foreground hover:text-destructive"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Trash2 className="w-4 h-4 sm:w-3 sm:h-3" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="mx-4 sm:mx-auto max-w-[calc(100vw-2rem)] sm:max-w-lg">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Excluir Demanda</AlertDialogTitle>
+                </AlertDialogHeader>
+                <div className="px-6 py-4">
+                  <p className="text-sm text-muted-foreground">
+                    Tem certeza que deseja excluir a demanda "{demanda.nome_demanda}"? Esta ação não pode ser desfeita.
+                  </p>
+                </div>
+                <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+                  <AlertDialogCancel className="w-full sm:w-auto">Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelete} className="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Excluir
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
           <div 
             {...listeners} 
             {...attributes} 
@@ -142,33 +145,37 @@ const DemandaCardComponent = ({ demanda, onClick, isDragging }: DemandaCardProps
       </div>
 
       <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-        {Object.entries(usuariosComTarefas).map(([responsavelId, count]) => {
-          // Verificar se é um cargo
-          if (isCargo(responsavelId)) {
+        {Object.entries(usuariosComTarefas).length > 0 ? (
+          Object.entries(usuariosComTarefas).map(([responsavelId, count]) => {
+            const cargo = getCargo(responsavelId);
+            // Verificar se é um cargo
+            if (cargo) {
+              return (
+                <div key={responsavelId} className="flex items-center gap-1 text-xs bg-primary/10 text-primary px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md">
+                  <Tag className="w-3 h-3" />
+                  <span className="font-medium truncate max-w-[80px] sm:max-w-none">{cargo.nome}</span>
+                  <span className="text-primary/70">({count})</span>
+                </div>
+              );
+            }
+            
+            // É um usuário
+            const usuario = getUsuario(responsavelId);
+            if (!usuario) {
+              return null;
+            }
+            
             return (
-              <div key={responsavelId} className="flex items-center gap-1 text-xs bg-primary/10 text-primary px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md">
-                <Tag className="w-3 h-3" />
-                <span className="font-medium truncate max-w-[80px] sm:max-w-none">{CargoLabels[responsavelId]}</span>
-                <span className="text-primary/70">({count})</span>
+              <div key={responsavelId} className="flex items-center gap-1 text-xs bg-muted px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md">
+                <User className="w-3 h-3" />
+                <span className="font-medium truncate max-w-[80px] sm:max-w-none">{getPrimeiroNome(usuario.nome)}</span>
+                <span className="text-muted-foreground">({count})</span>
               </div>
             );
-          }
-          
-          // É um usuário
-          const usuario = getUsuario(responsavelId);
-          if (!usuario) return null;
-          
-          return (
-            <div key={responsavelId} className="flex items-center gap-1 text-xs bg-muted px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md">
-              <User className="w-3 h-3" />
-              <span className="font-medium truncate max-w-[80px] sm:max-w-none">{getPrimeiroNome(usuario.nome)}</span>
-              <span className="text-muted-foreground">({count})</span>
-            </div>
-          );
-        })}
-        {Object.keys(usuariosComTarefas).length === 0 && (
-          <div className="text-xs text-muted-foreground">Todas as tarefas concluídas</div>
-        )}
+             })
+         ) : (
+           <div className="text-xs text-muted-foreground">Todas as tarefas concluídas</div>
+         )}
       </div>
 
       {/* Datas de criação e previsão */}
@@ -211,16 +218,8 @@ const DemandaCardComponent = ({ demanda, onClick, isDragging }: DemandaCardProps
 
 // Memoize component to prevent unnecessary re-renders
 export const DemandaCard = memo(DemandaCardComponent, (prevProps, nextProps) => {
-  return (
-    prevProps.demanda.id === nextProps.demanda.id &&
-    prevProps.demanda.status === nextProps.demanda.status &&
-    prevProps.demanda.nome_demanda === nextProps.demanda.nome_demanda &&
-    prevProps.demanda.responsavel_id === nextProps.demanda.responsavel_id &&
-    prevProps.demanda.data_criacao === nextProps.demanda.data_criacao &&
-    prevProps.demanda.data_previsao === nextProps.demanda.data_previsao &&
-    prevProps.demanda.data_finalizacao === nextProps.demanda.data_finalizacao &&
-    prevProps.demanda.prazo === nextProps.demanda.prazo &&
-    prevProps.isDragging === nextProps.isDragging &&
-    JSON.stringify(prevProps.demanda.tarefas_status) === JSON.stringify(nextProps.demanda.tarefas_status)
-  );
+  // Importante: se o objeto da demanda mudar (ex.: observações, campos, modificado_por),
+  // precisamos re-renderizar o card. A comparação por referência cobre todos os casos
+  // sem precisar listar cada campo.
+  return prevProps.demanda === nextProps.demanda && prevProps.isDragging === nextProps.isDragging;
 });

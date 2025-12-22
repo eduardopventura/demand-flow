@@ -1,8 +1,8 @@
 # Backend - Demand Flow
 
-## 📦 JSON-Server MVP
+## 📦 PostgreSQL + Prisma
 
-Backend simples e eficiente usando JSON-Server para MVP.
+Backend com PostgreSQL e Prisma ORM para produção.
 
 ---
 
@@ -40,12 +40,18 @@ docker-compose logs -f backend
 
 ```
 backend/
-├── server.js          # Servidor API
-├── db.json            # Database (persistente)
+├── server.js          # Servidor Express API
+├── prisma/            # Prisma schema e migrations
+│   ├── schema.prisma
+│   └── migrations/
+├── src/               # Source code
+│   ├── database/      # Prisma Client
+│   └── repositories/  # Data access layer
 ├── package.json       # Dependencies
 ├── Dockerfile         # Docker image
 └── scripts/
-    └── seed.js        # Reset database
+    ├── seed.js        # Reset database
+    └── migrate-json-to-postgres.js  # Migration script
 ```
 
 ---
@@ -81,6 +87,35 @@ http://localhost:3000/api
 - `PATCH /api/demandas/:id`
 - `DELETE /api/demandas/:id`
 
+---
+
+## 🔌 WebSockets (Socket.io)
+
+O backend expõe um endpoint Socket.io (path padrão):
+
+- **URL**: `http://localhost:3000`
+- **Path**: `/socket.io/`
+
+### Autenticação
+
+A conexão exige JWT. O client envia o token no handshake:
+
+- `auth: { token }`
+
+O backend valida com o mesmo `JWT_SECRET` usado no login e popula `socket.userId`.
+
+### Eventos emitidos
+
+- `demanda:created` → `{ demanda, meta }`
+- `demanda:updated` → `{ demanda, meta }`
+- `demanda:deleted` → `{ id, meta }`
+- `tarefa:finalizada` → `{ demandaId, tarefaId, meta }`
+
+Onde:
+
+- `meta.actorId` (opcional) = ID do usuário que realizou a ação
+- `meta.timestamp` = ISO datetime
+
 ### Filtros e Query
 
 JSON-Server suporta queries avançadas:
@@ -107,42 +142,23 @@ GET /api/demandas?_embed=template
 
 ## 🗄️ Database Schema
 
-### db.json
+### PostgreSQL + Prisma
 
-```json
-{
-  "usuarios": [
-    {
-      "id": "string",
-      "nome": "string",
-      "email": "string",
-      "login": "string",
-      "senha": "string"
-    }
-  ],
-  "templates": [
-    {
-      "id": "string",
-      "nome": "string",
-      "prioridade": "Baixa|Média|Alta",
-      "campos_preenchimento": [...],
-      "tarefas": [...]
-    }
-  ],
-  "demandas": [
-    {
-      "id": "string",
-      "template_id": "string",
-      "nome_demanda": "string",
-      "status": "Criada|Em Andamento|Finalizada",
-      "prioridade": "Baixa|Média|Alta",
-      "responsavel_id": "string",
-      "campos_preenchidos": [...],
-      "tarefas_status": [...]
-    }
-  ]
-}
-```
+O schema está definido em `prisma/schema.prisma` com as seguintes entidades:
+
+- **Usuario**: Usuários do sistema
+- **Template**: Templates de demandas
+- **Demanda**: Demandas criadas
+- **TarefaStatus**: Status das tarefas de cada demanda
+- **Acao**: Ações automáticas (webhooks)
+- **CampoPreenchido**: Campos preenchidos de cada demanda
+
+Relacionamentos:
+- Demanda → Template (many-to-one)
+- Demanda → Usuario (responsável, many-to-one)
+- TarefaStatus → Demanda (many-to-one, cascade delete)
+- TarefaStatus → Usuario (responsável opcional, many-to-one)
+- CampoPreenchido → Demanda (many-to-one, cascade delete)
 
 ---
 
@@ -169,17 +185,23 @@ NODE_ENV=development   # Ambiente
 
 ---
 
-## 🔄 Migration para PostgreSQL
+## 🔄 Migração de Dados
 
-Quando estiver pronto para escalar, veja `../MIGRATION_GUIDE.md`.
+Para migrar dados do `db.json` para PostgreSQL:
 
-O backend foi desenhado para facilitar esta migração:
+```bash
+# Dentro do container
+docker exec -it demand-flow-backend node scripts/migrate-json-to-postgres.js
 
-1. Manter mesmas rotas (`/api/usuarios`, etc)
-2. Substituir JSON-Server por Express
-3. Adicionar Prisma ou TypeORM
-4. Conectar PostgreSQL
-5. Frontend continua igual!
+# Ou localmente (com DATABASE_URL configurada)
+node scripts/migrate-json-to-postgres.js [caminho-do-db.json]
+```
+
+O script migra:
+- Usuários
+- Templates
+- Ações
+- Demandas (com tarefas_status e campos_preenchidos)
 
 ---
 
@@ -217,11 +239,27 @@ npm run seed
 
 ## 📚 Recursos
 
-- [JSON-Server Documentation](https://github.com/typicode/json-server)
-- [Express.js](https://expressjs.com/) (para upgrade futuro)
-- [Prisma](https://www.prisma.io/) (para PostgreSQL)
+- [Express.js](https://expressjs.com/)
+- [Prisma Documentation](https://www.prisma.io/docs)
+- [PostgreSQL](https://www.postgresql.org/)
+
+## 🔧 Comandos Prisma
+
+```bash
+# Gerar Prisma Client
+npm run prisma:generate
+
+# Criar nova migration (desenvolvimento)
+npm run prisma:migrate:dev -- --name nome_da_migration
+
+# Aplicar migrations (produção)
+npm run prisma:migrate
+
+# Abrir Prisma Studio
+npm run prisma:studio
+```
 
 ---
 
-**Backend simples e eficiente para MVP! 🚀**
+**Backend com PostgreSQL pronto para produção! 🚀**
 

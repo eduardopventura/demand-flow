@@ -1,5 +1,6 @@
 import { STORAGE_KEYS } from "@/constants";
 import type { Usuario, Template, Demanda, Acao } from "@/types";
+import { error as logError } from "@/utils/logger";
 
 /**
  * Service for managing localStorage operations
@@ -14,8 +15,8 @@ class StorageService {
       const item = localStorage.getItem(key);
       if (!item) return null;
       return JSON.parse(item) as T;
-    } catch (error) {
-      console.error(`Error reading from localStorage (${key}):`, error);
+    } catch (err) {
+      logError(`Error reading from localStorage (${key}):`, err);
       return null;
     }
   }
@@ -26,8 +27,8 @@ class StorageService {
   private setItem<T>(key: string, value: T): void {
     try {
       localStorage.setItem(key, JSON.stringify(value));
-    } catch (error) {
-      console.error(`Error writing to localStorage (${key}):`, error);
+    } catch (err) {
+      logError(`Error writing to localStorage (${key}):`, err);
     }
   }
 
@@ -37,8 +38,8 @@ class StorageService {
   private removeItem(key: string): void {
     try {
       localStorage.removeItem(key);
-    } catch (error) {
-      console.error(`Error removing from localStorage (${key}):`, error);
+    } catch (err) {
+      logError(`Error removing from localStorage (${key}):`, err);
     }
   }
 

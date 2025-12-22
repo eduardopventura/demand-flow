@@ -16,7 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Cargo, CargoLabels } from "@/types";
 
 interface ResponsavelSelectProps {
   value: string;
@@ -38,30 +37,45 @@ export const ResponsavelSelect = memo(function ResponsavelSelect({
   triggerClassName,
   includeCargos = true,
 }: ResponsavelSelectProps) {
-  const { usuarios } = useData();
+  const { usuarios, cargos } = useData();
+  const selectValue = value || "";
+
+  // Fase 4: filtrar usuários e cargos conforme flags do cargo
+  const usuariosElegiveis = usuarios.filter((u) => u.cargo?.usuarios_disponiveis_como_responsaveis === true);
+  const usuariosFiltrados = defaultResponsavelId
+    ? usuariosElegiveis.filter((u) => u.id !== defaultResponsavelId)
+    : usuariosElegiveis;
+
+  const cargosElegiveis = cargos.filter((c) => c.cargo_disponivel_como_responsavel === true);
 
   return (
-    <Select value={value} onValueChange={onValueChange}>
+    <Select value={selectValue} onValueChange={onValueChange}>
       <SelectTrigger className={triggerClassName}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>
-        {includeCargos && (
+        {defaultResponsavelId && (
+          <SelectGroup>
+            <SelectItem value={defaultResponsavelId}>
+              Usar padrão ({usuarios.find(u => u.id === defaultResponsavelId)?.nome || "Responsável da demanda"})
+            </SelectItem>
+          </SelectGroup>
+        )}
+        {includeCargos && cargosElegiveis.length > 0 && (
           <SelectGroup>
             <SelectLabel>Cargos</SelectLabel>
-            {Object.values(Cargo).map((cargo) => (
-              <SelectItem key={cargo} value={cargo}>
-                {CargoLabels[cargo]}
+            {cargosElegiveis.map((cargo) => (
+              <SelectItem key={cargo.id} value={cargo.id}>
+                {cargo.nome}
               </SelectItem>
             ))}
           </SelectGroup>
         )}
         <SelectGroup>
           <SelectLabel>Usuários</SelectLabel>
-          {usuarios.map((usuario) => (
+          {usuariosFiltrados.map((usuario) => (
             <SelectItem key={usuario.id} value={usuario.id}>
               {usuario.nome}
-              {defaultResponsavelId && usuario.id === defaultResponsavelId && " (Padrão)"}
             </SelectItem>
           ))}
         </SelectGroup>

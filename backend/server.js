@@ -4,14 +4,15 @@
  * Entry Point - Configuração e inicialização do servidor
  * 
  * Arquitetura:
- * - JSON-Server para CRUD básico
+ * - Express.js para servidor HTTP
+ * - PostgreSQL + Prisma para banco de dados
  * - Rotas customizadas para lógica de negócio
  * - Jobs agendados para notificações
  */
 
-const jsonServer = require('json-server');
+const express = require('express');
 const cors = require('cors');
-const path = require('path');
+const http = require('http');
 
 // Configurações
 const { handleMulterError, UPLOADS_DIR } = require('./config/upload.config');
@@ -27,32 +28,26 @@ const prazoCheckerJob = require('./jobs/prazo-checker.job');
 
 // Services
 const emailService = require('./services/email.service');
+const { initSocketServer } = require('./services/socket.service');
+
+// Database
+const { prisma } = require('./src/database/client');
 
 // ============================================================================
 // SERVER SETUP
 // ============================================================================
 
-const server = jsonServer.create();
-const router = jsonServer.router(path.join(__dirname, 'db.json'));
-const middlewares = jsonServer.defaults();
+const server = express();
 
 // Enable CORS
 server.use(cors());
 
-// Serve static files from uploads directory
-server.use('/uploads', require('express').static(UPLOADS_DIR));
-
-// Default middlewares (logger, static, cors and no-cache)
-server.use(middlewares);
-
 // Parse JSON body
-server.use(jsonServer.bodyParser);
+server.use(express.json());
+server.use(express.urlencoded({ extended: true }));
 
-// Disponibilizar db para as rotas
-server.use((req, res, next) => {
-  req.app.set('db', router.db);
-  next();
-});
+// Serve static files from uploads directory
+server.use('/uploads', express.static(UPLOADS_DIR));
 
 // Logging middleware
 server.use((req, res, next) => {
@@ -66,21 +61,34 @@ server.use((req, res, next) => {
 // ============================================================================
 
 // Health check
-server.get('/health', (req, res) => {
-  res.json({ 
-    status: 'healthy', 
-    timestamp: new Date().toISOString(),
-    version: '0.2.11',
-    database: 'json-server',
-    features: ['notifications', 'deadline-checker', 'modular-architecture']
-  });
+server.get('/health', async (req, res) => {
+  try {
+    // Verificar conexão com banco
+    await prisma.$queryRaw`SELECT 1`;
+    
+    res.json({ 
+      status: 'healthy', 
+      timestamp: new Date().toISOString(),
+      version: '1.0.0',
+      database: 'postgresql',
+      features: ['notifications', 'deadline-checker', 'modular-architecture', 'postgresql']
+    });
+  } catch (error) {
+    res.status(503).json({
+      status: 'unhealthy',
+      timestamp: new Date().toISOString(),
+      database: 'postgresql',
+      error: 'Database connection failed'
+    });
+  }
 });
 
 // API info
 server.get('/api', (req, res) => {
   res.json({
     message: 'Demand Flow API',
-    version: '0.2.11',
+    version: '1.0.0',
+    database: 'PostgreSQL + Prisma',
     endpoints: {
       usuarios: '/api/usuarios',
       templates: '/api/templates',
@@ -93,8 +101,25 @@ server.get('/api', (req, res) => {
   });
 });
 
+// Root route handler
+server.get('/', (req, res) => {
+  res.json({
+    message: 'Demand Flow Backend API',
+    version: '1.0.0',
+    status: 'running',
+    endpoints: {
+      health: '/health',
+      api: '/api',
+      usuarios: '/api/usuarios',
+      templates: '/api/templates',
+      demandas: '/api/demandas',
+      acoes: '/api/acoes',
+    }
+  });
+});
+
 // ============================================================================
-// CUSTOM ROUTES (before json-server router)
+// ROUTES
 // ============================================================================
 
 setupRoutes(server);
@@ -110,22 +135,20 @@ server.use(handleMulterError);
 server.use(errorHandler);
 
 // ============================================================================
-// JSON-SERVER ROUTER (for CRUD operations)
-// ============================================================================
-
-server.use('/api', router);
-
-// ============================================================================
 // START SERVER
 // ============================================================================
 
 const PORT = process.env.PORT || 3000;
+const httpServer = http.createServer(server);
 
-server.listen(PORT, async () => {
+// Inicializar Socket.io no mesmo servidor HTTP
+initSocketServer(httpServer);
+
+httpServer.listen(PORT, async () => {
   console.log('╔═══════════════════════════════════════════════════╗');
   console.log('║                                                   ║');
   console.log('║         🚀 Demand Flow Backend Server            ║');
-  console.log('║              v0.2.11                               ║');
+  console.log('║              v1.0.0                               ║');
   console.log('║                                                   ║');
   console.log('╚═══════════════════════════════════════════════════╝');
   console.log('');
@@ -133,16 +156,19 @@ server.listen(PORT, async () => {
   console.log(`🏥 Health check:      http://localhost:${PORT}/health`);
   console.log(`📚 API docs:          http://localhost:${PORT}/api`);
   console.log('');
-  console.log('📦 Database: JSON-Server (db.json)');
-  console.log('⚡ Mode: MVP/Development');
+  console.log('📦 Database: PostgreSQL + Prisma');
+  console.log('⚡ Mode: Production Ready');
   console.log('🔔 Notifications: Enabled (Email + WhatsApp)');
   console.log('');
   console.log('📁 Architecture:');
-  console.log('   ├── config/     - Configurations');
-  console.log('   ├── routes/     - HTTP Routes');
-  console.log('   ├── services/   - Business Logic');
-  console.log('   ├── utils/      - Helpers');
-  console.log('   └── jobs/       - Scheduled Tasks');
+  console.log('   ├── config/        - Configurations');
+  console.log('   ├── routes/        - HTTP Routes');
+  console.log('   ├── services/      - Business Logic');
+  console.log('   ├── src/           - Source Code');
+  console.log('   │   ├── database/  - Prisma Client');
+  console.log('   │   └── repositories/ - Data Access Layer');
+  console.log('   ├── utils/         - Helpers');
+  console.log('   └── jobs/          - Scheduled Tasks');
   console.log('');
   console.log('Available endpoints:');
   console.log('  GET    /api/usuarios');
@@ -157,12 +183,20 @@ server.listen(PORT, async () => {
   console.log('  POST   /api/auth/login');
   console.log('');
   
+  // Verificar conexão com banco
+  try {
+    await prisma.$connect();
+    console.log('✅ Database: Connected to PostgreSQL');
+  } catch (error) {
+    console.error('❌ Database: Connection failed', error.message);
+  }
+  
   // Verificar conexão SMTP
   console.log('🔌 Verificando conexão SMTP...');
   await emailService.verificarConexao();
   
   // Iniciar job de verificação de prazos
-  prazoCheckerJob.iniciar(router.db);
+  prazoCheckerJob.iniciar();
   
   console.log('');
   console.log('💡 Tip: Use Postman or curl to test the API');

@@ -1,0 +1,91 @@
+# Docker Compose - Demand Flow (Desenvolvimento)
+# PostgreSQL backend with React frontend
+# 
+# Este arquivo usa build local para desenvolvimento
+# Use: docker-compose -f docker-compose-dev.yml up
+
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: demand-flow-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: demandflow
+      POSTGRES_USER: demandflow
+      POSTGRES_PASSWORD: demandflow_password
+      TZ: America/Sao_Paulo
+    volumes:
+      # Volume nomeado para dados do PostgreSQL
+      - ./postgres_data:/var/lib/postgresql/data
+    networks:
+      - demand-flow-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U demandflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API - PostgreSQL + Prisma (Build Local)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: demand-flow-backend
+    restart: unless-stopped
+    ports:
+      # Porta exposta para desenvolvimento (acesso direto ao backend)
+      - "3000:3000"
+    volumes:
+      # Bind mount para uploads
+      - ./backend/uploads:/app/uploads
+      # Bind mount para .env
+      - ./backend/.env:/app/.env
+    env_file:
+      - ./backend/.env
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - DATABASE_URL=postgresql://demandflow:demandflow_password@postgres:5432/demandflow
+      - JWT_SECRET=${JWT_SECRET:-default-secret-change-in-production}
+      - JWT_EXPIRES_IN=24h
+      - TZ=America/Sao_Paulo
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - demand-flow-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend - React + Vite (Build Local)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      # No VITE_API_URL needed - auto-detected via window.location.hostname
+    container_name: demand-flow-frontend
+    restart: unless-stopped
+    ports:
+      - "3060:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - demand-flow-network
+
+networks:
+  demand-flow-network:
+    driver: bridge
+    name: demand-flow-network
+
+volumes:
+  postgres_data:
+    driver: local
+

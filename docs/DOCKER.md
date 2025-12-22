@@ -23,8 +23,8 @@ O projeto é 100% dockerizado:
 | Serviço | Porta | Descrição |
 |---------|-------|-----------|
 | Frontend | 3060 | React + Nginx |
-| Backend | 3000 | Node.js + JSON-Server |
-| Database | - | db.json (volume persistente) |
+| Backend | 3000 | Node.js + Express + Prisma |
+| PostgreSQL | 5432 | Banco de dados relacional (interno) |
 
 **URLs de Acesso:**
 - Frontend: http://localhost:3060
@@ -55,31 +55,68 @@ Arquivo principal que define os serviços:
 version: '3.8'
 
 services:
-  backend:
-    build: ./backend
-    container_name: demand-flow-backend
-    ports:
-      - "3000:3000"
+  postgres:
+    image: postgres:16-alpine
+    container_name: demand-flow-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: demandflow
+      POSTGRES_USER: demandflow
+      POSTGRES_PASSWORD: demandflow_password
     volumes:
-      - ./backend/db.json:/app/db.json
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - demand-flow-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U demandflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    image: edpv/demand-flow-backend:latest
+    container_name: demand-flow-backend
+    restart: unless-stopped
+    volumes:
+      - ./uploads:/app/uploads
+      - ./backend/.env:/app/.env
     env_file:
       - ./backend/.env
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=postgresql://demandflow:demandflow_password@postgres:5432/demandflow
+      - JWT_EXPIRES_IN=24h
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - demand-flow-network
     healthcheck:
-      test: ["CMD", "node", "-e", "..."]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
       interval: 30s
+      timeout: 10s
+      retries: 3
 
   frontend:
-    build: ./frontend
+    image: edpv/demand-flow-frontend:latest
     container_name: demand-flow-frontend
+    restart: unless-stopped
     ports:
       - "3060:80"
     depends_on:
       backend:
         condition: service_healthy
+    networks:
+      - demand-flow-network
 
 networks:
   demand-flow-network:
     driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
 ```
 
 ### `frontend/Dockerfile` (Frontend)
@@ -114,16 +151,34 @@ Container Node.js para o backend:
 
 ```dockerfile
 FROM node:20-alpine
+
+# Dependências para Prisma
+RUN apk add --no-cache openssl libc6-compat
+
 WORKDIR /app
+
+# Copiar arquivos de dependências
 COPY package*.json ./
-RUN npm install --omit=dev
+COPY prisma ./prisma/
+
+# Instalar dependências
+RUN npm ci --omit=dev
+
+# Gerar Prisma Client
+RUN npx prisma generate
+
+# Copiar código
 COPY . .
+
 EXPOSE 3000
+
 CMD ["npm", "start"]
 ```
 
 **Características:**
 - Node 20 Alpine
+- OpenSSL e libc6-compat para Prisma
+- Prisma Client gerado no build
 - Apenas dependências de produção
 - Health check configurado
 
@@ -152,6 +207,20 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Proxy para WebSockets (Socket.io)
+    location /socket.io {
+        proxy_pass http://backend:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
 ```
@@ -194,11 +263,12 @@ server {
 │      Backend Container (Node.js)        │
 │                                         │
 │  ┌─────────────────────────────────┐   │
-│  │ Express + JSON-Server           │   │
+│  │ Express + Prisma ORM            │   │
 │  │ API REST                        │   │
+│  │ Socket.io (WebSockets)          │   │
 │  │ Lógica de Negócio               │   │
 │  │ Notificações (Email, WhatsApp)  │   │
-│  │ Cron Jobs (prazo)               │   │
+│  │ Autenticação JWT                │   │
 │  └─────────────────────────────────┘   │
 │                                         │
 │  - Porta: 3000                          │
@@ -206,8 +276,16 @@ server {
                │
                ▼
 ┌─────────────────────────────────────────┐
-│          Volume: db.json                │
-│    (Persistido no host)                 │
+│   PostgreSQL Container (16-alpine)      │
+│                                         │
+│  ┌─────────────────────────────────┐   │
+│  │ Banco de Dados Relacional      │   │
+│  │ Prisma Client                   │   │
+│  │ Migrations                      │   │
+│  └─────────────────────────────────┘   │
+│                                         │
+│  - Porta: 5432 (interno)               │
+│  - Volume: postgres_data               │
 └─────────────────────────────────────────┘
 ```
 
@@ -307,27 +385,37 @@ docker builder prune -a
 
 ## 💾 Volumes e Persistência
 
-### Volume Principal
+### Volumes Configurados
 
 ```yaml
 volumes:
-  - ./backend/db.json:/app/db.json
+  postgres_data:                    # Volume nomeado para PostgreSQL
+    driver: local
+  ./uploads:/app/uploads            # Bind mount para arquivos
+  ./backend/.env:/app/.env          # Bind mount para configurações
 ```
 
-O arquivo `db.json` é montado diretamente do host:
-- Dados persistem mesmo após `docker-compose down`
-- Fácil de fazer backup
-- Editável manualmente se necessário
+**PostgreSQL (Volume Nomeado):**
+- Dados persistem em `postgres_data` mesmo após `docker-compose down`
+- Volume gerenciado pelo Docker
+- Backup via `pg_dump` ou backup do volume
 
-### Backup
+**Uploads (Bind Mount):**
+- Arquivos enviados pelos usuários
+- Persistem no diretório `./uploads` do host
+- Fácil acesso para backup
+
+### Backup do PostgreSQL
 
 ```bash
-# Backup com timestamp
-cp backend/db.json backend/db.backup.$(date +%Y%m%d_%H%M%S).json
+# Backup do banco de dados
+docker exec demand-flow-postgres pg_dump -U demandflow demandflow > backup_$(date +%Y%m%d_%H%M%S).sql
 
 # Restore
-cp backend/db.backup.20241207_150000.json backend/db.json
-docker-compose restart backend
+docker exec -i demand-flow-postgres psql -U demandflow demandflow < backup_20241207_150000.sql
+
+# Backup do volume completo
+docker run --rm -v demand-flow_postgres_data:/data -v $(pwd):/backup alpine tar czf /backup/postgres_backup_$(date +%Y%m%d_%H%M%S).tar.gz /data
 ```
 
 ---
@@ -428,12 +516,18 @@ docker-compose up -d --build
 ### Database corrompido
 
 ```bash
-# Verificar JSON válido
-cat backend/db.json | python -m json.tool
+# Verificar conexão com PostgreSQL
+docker exec demand-flow-postgres psql -U demandflow -c "SELECT 1"
+
+# Verificar migrations
+docker exec demand-flow-backend npx prisma migrate status
 
 # Restaurar backup
-cp backend/db.backup.json backend/db.json
-docker-compose restart backend
+docker exec -i demand-flow-postgres psql -U demandflow demandflow < backup.sql
+
+# Reset completo (CUIDADO: apaga todos os dados)
+docker-compose down -v
+docker-compose up -d
 ```
 
 ---
@@ -475,10 +569,11 @@ docker-compose restart backend
 | `Dockerfile` | Build frontend |
 | `backend/Dockerfile` | Build backend |
 | `nginx.conf` | Config Nginx |
-| `backend/db.json` | Database JSON |
+| `backend/prisma/schema.prisma` | Schema Prisma |
 | `backend/.env` | Variáveis de ambiente |
+| `postgres_data` | Volume PostgreSQL |
 
 ---
 
-**Versão:** 0.2.11  
-**Última Atualização:** 13/12/2025
+**Versão:** 1.0.0  
+**Última Atualização:** 18/12/2025

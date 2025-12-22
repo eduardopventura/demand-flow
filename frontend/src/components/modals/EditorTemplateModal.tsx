@@ -22,7 +22,6 @@ import {
 } from "@/components/ui/select";
 import { Plus, Trash2, GripVertical, Eye, EyeOff, Pencil, Zap, Link2, Layers, ChevronDown, ChevronUp } from "lucide-react";
 import type { Template, CampoPreenchimento, Tarefa, AbaTemplate, CondicaoVisibilidade, MapeamentoCampos, TipoCampo } from "@/types";
-import { Cargo, CargoLabels } from "@/types";
 import { toast } from "sonner";
 import {
   DndContext,
@@ -434,7 +433,7 @@ export const EditorTemplateModal = ({
   open,
   onOpenChange,
 }: EditorTemplateModalProps) => {
-  const { addTemplate, updateTemplate, usuarios, acoes } = useData();
+  const { addTemplate, updateTemplate, usuarios, cargos, acoes } = useData();
   const [nome, setNome] = useState("");
   const [tempoMedio, setTempoMedio] = useState<number | null>(7);
   const [abas, setAbas] = useState<AbaTemplate[]>([{ id: ABA_GERAL_ID, nome: "Geral", ordem: 0 }]);
@@ -1246,37 +1245,75 @@ export const EditorTemplateModal = ({
 
                         <div className="space-y-1">
                           <Label className="text-xs">Responsável Específico (Opcional)</Label>
-                          <Select
-                            value={tarefa.responsavel_id || "none"}
-                            onValueChange={(v) =>
-                              handleUpdateTarefa(tarefa.id_tarefa, {
-                                responsavel_id: v === "none" ? undefined : v,
-                              })
-                            }
-                          >
+                          {(() => {
+                            const usuariosElegiveis = usuarios.filter(
+                              (u) => u.cargo?.usuarios_disponiveis_como_responsaveis === true
+                            );
+                            const cargosElegiveis = cargos.filter(
+                              (c) => c.cargo_disponivel_como_responsavel === true
+                            );
+
+                            const responsavelValue = tarefa.cargo_responsavel_id
+                              ? `c:${tarefa.cargo_responsavel_id}`
+                              : tarefa.responsavel_id
+                              ? `u:${tarefa.responsavel_id}`
+                              : "none";
+
+                            return (
+                              <Select
+                                value={responsavelValue}
+                                onValueChange={(v) => {
+                                  if (v === "none") {
+                                    handleUpdateTarefa(tarefa.id_tarefa, {
+                                      responsavel_id: undefined,
+                                      cargo_responsavel_id: undefined,
+                                    });
+                                    return;
+                                  }
+
+                                  if (v.startsWith("c:")) {
+                                    handleUpdateTarefa(tarefa.id_tarefa, {
+                                      responsavel_id: undefined,
+                                      cargo_responsavel_id: v.slice(2),
+                                    });
+                                    return;
+                                  }
+
+                                  if (v.startsWith("u:")) {
+                                    handleUpdateTarefa(tarefa.id_tarefa, {
+                                      responsavel_id: v.slice(2),
+                                      cargo_responsavel_id: undefined,
+                                    });
+                                  }
+                                }}
+                              >
                             <SelectTrigger>
                               <SelectValue placeholder="Padrão (responsável da demanda)" />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="none">Padrão (responsável da demanda)</SelectItem>
-                              <SelectGroup>
-                                <SelectLabel>Cargos</SelectLabel>
-                                {Object.values(Cargo).map((cargo) => (
-                                  <SelectItem key={cargo} value={cargo}>
-                                    {CargoLabels[cargo]}
-                                  </SelectItem>
-                                ))}
-                              </SelectGroup>
+                              {cargosElegiveis.length > 0 && (
+                                <SelectGroup>
+                                  <SelectLabel>Cargos</SelectLabel>
+                                  {cargosElegiveis.map((cargo) => (
+                                    <SelectItem key={cargo.id} value={`c:${cargo.id}`}>
+                                      {cargo.nome}
+                                    </SelectItem>
+                                  ))}
+                                </SelectGroup>
+                              )}
                               <SelectGroup>
                                 <SelectLabel>Usuários</SelectLabel>
-                                {usuarios.map((usuario) => (
-                                  <SelectItem key={usuario.id} value={usuario.id}>
+                                {usuariosElegiveis.map((usuario) => (
+                                  <SelectItem key={usuario.id} value={`u:${usuario.id}`}>
                                     {usuario.nome}
                                   </SelectItem>
                                 ))}
                               </SelectGroup>
                             </SelectContent>
                           </Select>
+                            );
+                          })()}
                         </div>
 
                         {/* Ação Automática */}

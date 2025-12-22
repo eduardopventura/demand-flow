@@ -1,14 +1,19 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
-import { storageService } from "@/services/storage.service";
 import { apiService } from "@/services/api.service";
+import { useAuth } from "@/contexts/AuthContext";
+import { socketService } from "@/services/socket.service";
 import { toast } from "sonner";
 import type {
   Usuario,
+  Cargo,
   Template,
   Demanda,
   Acao,
+  DemandaUpdatePayload,
   DataContextType,
 } from "@/types";
+import { hasPermission } from "@/utils/permissions";
+import { log, error as logError } from "@/utils/logger";
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
@@ -20,298 +25,248 @@ export const useData = (): DataContextType => {
   return context;
 };
 
-// Helper function to generate unique IDs (fallback when API doesn't return ID)
-const generateId = (prefix: string): string => `${prefix}${Date.now()}${Math.random().toString(36).substr(2, 9)}`;
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated, loading: authLoading, token, user } = useAuth();
+  
   // State
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [cargos, setCargos] = useState<Cargo[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [demandas, setDemandas] = useState<Demanda[]>([]);
   const [acoes, setAcoes] = useState<Acao[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Load data from API on mount
+  // Load data from API only when authenticated
   useEffect(() => {
+    // Não carregar dados se ainda está verificando autenticação ou se não está autenticado
+    if (authLoading || !isAuthenticated) {
+      setLoading(false);
+      return;
+    }
+
     const loadData = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        // Try to fetch from API
-        const [usuariosData, templatesData, demandasData, acoesData] = await Promise.all([
-          apiService.getUsuarios(),
-          apiService.getTemplates(),
+        const canTemplates = hasPermission(user, "acesso_templates");
+        const canAcoes = hasPermission(user, "acesso_acoes");
+
+        const [usuariosData, cargosData, demandasData, templatesData, acoesData] = await Promise.all([
+          apiService.getPublicUsuarios(),
+          apiService.getPublicCargos(),
           apiService.getDemandas(),
-          apiService.getAcoes(),
+          canTemplates ? apiService.getTemplates() : Promise.resolve([] as Template[]),
+          canAcoes ? apiService.getAcoes() : Promise.resolve([] as Acao[]),
         ]);
 
         setUsuarios(usuariosData);
+        setCargos(cargosData);
         setTemplates(templatesData);
         setDemandas(demandasData);
         setAcoes(acoesData);
 
-        // Cache in localStorage as backup
-        storageService.setUsuarios(usuariosData);
-        storageService.setTemplates(templatesData);
-        storageService.setDemandas(demandasData);
-        storageService.setAcoes(acoesData);
-
-        console.log("✅ Dados carregados da API com sucesso");
-      } catch (err) {
-        console.warn("⚠️ Erro ao carregar da API, tentando localStorage...", err);
-        
-        // Fallback to localStorage
-        try {
-          const localUsuarios = storageService.getUsuarios();
-          const localTemplates = storageService.getTemplates();
-          const localDemandas = storageService.getDemandas();
-          const localAcoes = storageService.getAcoes();
-
-          if (localUsuarios.length > 0 || localTemplates.length > 0 || localDemandas.length > 0) {
-            setUsuarios(localUsuarios);
-            setTemplates(localTemplates);
-            setDemandas(localDemandas);
-            setAcoes(localAcoes);
-            
-            toast.warning("Usando dados locais. Verifique se o backend está rodando.");
-            console.log("📦 Dados carregados do localStorage");
-          } else {
-            throw new Error("Nenhum dado disponível");
-          }
-        } catch (localErr) {
-          const errorMsg = "Erro ao carregar dados. Backend pode estar offline.";
+        log("✅ Dados carregados da API com sucesso");
+      } catch (err: any) {
+        // Não mostrar erro de autenticação como erro genérico
+        if (err?.message?.includes("Sessão expirada") || err?.message?.includes("401")) {
+          // Erro de autenticação será tratado pelo api.service
+          setError(null);
+        } else {
+          const errorMsg = "Erro ao conectar com o backend. Verifique se o servidor está rodando.";
           setError(errorMsg);
           toast.error(errorMsg);
-          console.error("❌ Erro ao carregar dados:", localErr);
         }
+        logError("❌ Erro ao carregar dados do backend:", err);
       } finally {
         setLoading(false);
       }
     };
 
     loadData();
+  }, [isAuthenticated, authLoading, user]);
+
+  const refreshPublicData = useCallback(async () => {
+    const [usuariosData, cargosData] = await Promise.all([
+      apiService.getPublicUsuarios(),
+      apiService.getPublicCargos(),
+    ]);
+    setUsuarios(usuariosData);
+    setCargos(cargosData);
   }, []);
 
-  // Cache updates in localStorage (backup strategy)
+  /**
+   * WebSockets: manter estado sincronizado em tempo real
+   */
   useEffect(() => {
-    if (!loading && usuarios.length > 0) {
-      storageService.setUsuarios(usuarios);
+    if (authLoading || !isAuthenticated || !token) {
+      socketService.disconnect();
+      return;
     }
-  }, [usuarios, loading]);
 
-  useEffect(() => {
-    if (!loading && templates.length > 0) {
-      storageService.setTemplates(templates);
-    }
-  }, [templates, loading]);
+    socketService.connect(token);
 
-  useEffect(() => {
-    if (!loading && demandas.length > 0) {
-      storageService.setDemandas(demandas);
-    }
-  }, [demandas, loading]);
+    const onDemandaCreated = ({ demanda, meta }: { demanda: Demanda; meta?: { actorId?: string } }) => {
+      setDemandas((prev) => {
+        if (prev.some((d) => d.id === demanda.id)) return prev;
+        return [...prev, demanda];
+      });
 
-  useEffect(() => {
-    if (!loading) {
-      storageService.setAcoes(acoes);
-    }
-  }, [acoes, loading]);
+      if (meta?.actorId && meta.actorId !== user?.id) {
+        toast.info(`Nova demanda criada: ${demanda.nome_demanda}`);
+      }
+    };
+
+    const onDemandaUpdated = ({ demanda, meta }: { demanda: Demanda; meta?: { actorId?: string } }) => {
+      let statusMudou = false;
+
+      setDemandas((prev) => {
+        const idx = prev.findIndex((d) => d.id === demanda.id);
+        if (idx === -1) {
+          return [...prev, demanda];
+        }
+
+        statusMudou = prev[idx]?.status !== demanda.status;
+        const next = [...prev];
+        next[idx] = demanda;
+        return next;
+      });
+
+      // Evitar spam de toast: só notificar quando status muda e foi outro usuário
+      if (statusMudou && meta?.actorId && meta.actorId !== user?.id) {
+        toast.info(`Demanda atualizada: ${demanda.nome_demanda}`);
+      }
+    };
+
+    const onDemandaDeleted = ({ id, meta }: { id: string; meta?: { actorId?: string } }) => {
+      setDemandas((prev) => prev.filter((d) => d.id !== id));
+      if (meta?.actorId && meta.actorId !== user?.id) {
+        toast.info("Demanda excluída");
+      }
+    };
+
+    const onTarefaFinalizada = ({
+      demandaId,
+      tarefaId,
+      meta,
+    }: {
+      demandaId: string;
+      tarefaId: string;
+      meta?: { actorId?: string };
+    }) => {
+      // Normalmente já recebemos demanda:updated com a demanda completa.
+      // Mantemos esse evento como “sinal” para futuras otimizações/UX.
+      if (meta?.actorId && meta.actorId !== user?.id) {
+        toast.info(`Tarefa finalizada (demanda ${demandaId}, tarefa ${tarefaId})`);
+      }
+    };
+
+    socketService.on("demanda:created", onDemandaCreated);
+    socketService.on("demanda:updated", onDemandaUpdated);
+    socketService.on("demanda:deleted", onDemandaDeleted);
+    socketService.on("tarefa:finalizada", onTarefaFinalizada);
+
+    return () => {
+      socketService.off("demanda:created", onDemandaCreated);
+      socketService.off("demanda:updated", onDemandaUpdated);
+      socketService.off("demanda:deleted", onDemandaDeleted);
+      socketService.off("tarefa:finalizada", onTarefaFinalizada);
+      socketService.disconnect();
+    };
+  }, [authLoading, isAuthenticated, token, user?.id]);
+
 
   // Usuario operations (with API integration)
   const addUsuario = useCallback(async (usuario: Omit<Usuario, "id">) => {
-    try {
-      const newUsuario = await apiService.createUsuario(usuario);
-      setUsuarios((prev) => [...prev, newUsuario]);
-      toast.success("Usuário criado com sucesso!");
-    } catch (err) {
-      console.error("Erro ao criar usuário:", err);
-      toast.error("Erro ao criar usuário. Usando modo offline.");
-      
-      // Fallback: create locally
-      const newUsuario: Usuario = { ...usuario, id: generateId("u") };
-      setUsuarios((prev) => [...prev, newUsuario]);
-    }
+    const newUsuario = await apiService.createUsuario(usuario);
+    setUsuarios((prev) => [...prev, newUsuario]);
+    toast.success("Usuário criado com sucesso!");
   }, []);
 
   const updateUsuario = useCallback(async (id: string, usuario: Omit<Usuario, "id">) => {
-    try {
-      const updatedUsuario = await apiService.updateUsuario(id, usuario);
-      setUsuarios((prev) =>
-        prev.map((u) => (u.id === id ? updatedUsuario : u))
-      );
-      toast.success("Usuário atualizado com sucesso!");
-    } catch (err) {
-      console.error("Erro ao atualizar usuário:", err);
-      toast.error("Erro ao atualizar usuário. Usando modo offline.");
-      
-      // Fallback: update locally
-      setUsuarios((prev) =>
-        prev.map((u) => (u.id === id ? { ...usuario, id } : u))
-      );
-    }
+    const updatedUsuario = await apiService.updateUsuario(id, usuario);
+    setUsuarios((prev) =>
+      prev.map((u) => (u.id === id ? updatedUsuario : u))
+    );
+    toast.success("Usuário atualizado com sucesso!");
   }, []);
 
   const deleteUsuario = useCallback(async (id: string) => {
-    try {
-      await apiService.deleteUsuario(id);
-      setUsuarios((prev) => prev.filter((u) => u.id !== id));
-      toast.success("Usuário excluído com sucesso!");
-    } catch (err) {
-      console.error("Erro ao excluir usuário:", err);
-      toast.error("Erro ao excluir usuário. Usando modo offline.");
-      
-      // Fallback: delete locally
-      setUsuarios((prev) => prev.filter((u) => u.id !== id));
-    }
+    await apiService.deleteUsuario(id);
+    setUsuarios((prev) => prev.filter((u) => u.id !== id));
+    toast.success("Usuário excluído com sucesso!");
   }, []);
 
   // Template operations (with API integration)
   const addTemplate = useCallback(async (template: Omit<Template, "id">) => {
-    try {
-      const newTemplate = await apiService.createTemplate(template);
-      setTemplates((prev) => [...prev, newTemplate]);
-      toast.success("Template criado com sucesso!");
-    } catch (err) {
-      console.error("Erro ao criar template:", err);
-      toast.error("Erro ao criar template. Usando modo offline.");
-      
-      // Fallback: create locally
-      const newTemplate: Template = { ...template, id: generateId("t") };
-      setTemplates((prev) => [...prev, newTemplate]);
-    }
+    const newTemplate = await apiService.createTemplate(template);
+    setTemplates((prev) => [...prev, newTemplate]);
+    toast.success("Template criado com sucesso!");
   }, []);
 
   const updateTemplate = useCallback(async (id: string, template: Omit<Template, "id">) => {
-    try {
-      const updatedTemplate = await apiService.updateTemplate(id, template);
-      setTemplates((prev) =>
-        prev.map((t) => (t.id === id ? updatedTemplate : t))
-      );
-      toast.success("Template atualizado com sucesso!");
-    } catch (err) {
-      console.error("Erro ao atualizar template:", err);
-      toast.error("Erro ao atualizar template. Usando modo offline.");
-      
-      // Fallback: update locally
-      setTemplates((prev) =>
-        prev.map((t) => (t.id === id ? { ...template, id } : t))
-      );
-    }
+    const updatedTemplate = await apiService.updateTemplate(id, template);
+    setTemplates((prev) =>
+      prev.map((t) => (t.id === id ? updatedTemplate : t))
+    );
+    toast.success("Template atualizado com sucesso!");
   }, []);
 
   const deleteTemplate = useCallback(async (id: string) => {
-    try {
-      await apiService.deleteTemplate(id);
-      setTemplates((prev) => prev.filter((t) => t.id !== id));
-      toast.success("Template excluído com sucesso!");
-    } catch (err) {
-      console.error("Erro ao excluir template:", err);
-      toast.error("Erro ao excluir template. Usando modo offline.");
-      
-      // Fallback: delete locally
-      setTemplates((prev) => prev.filter((t) => t.id !== id));
-    }
+    await apiService.deleteTemplate(id);
+    setTemplates((prev) => prev.filter((t) => t.id !== id));
+    toast.success("Template excluído com sucesso!");
   }, []);
 
   // Demanda operations (with API integration)
   const addDemanda = useCallback(async (demanda: Omit<Demanda, "id">) => {
-    try {
-      const newDemanda = await apiService.createDemanda(demanda);
-      setDemandas((prev) => [...prev, newDemanda]);
-      toast.success("Demanda criada com sucesso!");
-    } catch (err) {
-      console.error("Erro ao criar demanda:", err);
-      toast.error("Erro ao criar demanda. Usando modo offline.");
-      
-      // Fallback: create locally
-      const newDemanda: Demanda = { ...demanda, id: generateId("d") };
-      setDemandas((prev) => [...prev, newDemanda]);
-    }
+    const newDemanda = await apiService.createDemanda(demanda);
+    setDemandas((prev) => {
+      // Verificar se a demanda já existe (pode ter sido adicionada via WebSocket)
+      if (prev.some((d) => d.id === newDemanda.id)) return prev;
+      return [...prev, newDemanda];
+    });
+    toast.success("Demanda criada com sucesso!");
   }, []);
 
-  const updateDemanda = useCallback(async (id: string, demanda: Partial<Demanda>) => {
-    try {
-      const updatedDemanda = await apiService.updateDemanda(id, demanda);
-      setDemandas((prev) =>
-        prev.map((d) => (d.id === id ? updatedDemanda : d))
-      );
-      // Silenciar toast para updates frequentes (drag & drop)
-      if (demanda.status) {
-        toast.success("Demanda atualizada!");
-      }
-    } catch (err) {
-      console.error("Erro ao atualizar demanda:", err);
-      toast.error("Erro ao atualizar demanda. Usando modo offline.");
-      
-      // Fallback: update locally
-      setDemandas((prev) =>
-        prev.map((d) => (d.id === id ? { ...d, ...demanda } : d))
-      );
+  const updateDemanda = useCallback(async (id: string, demanda: DemandaUpdatePayload) => {
+    const updatedDemanda = await apiService.updateDemanda(id, demanda);
+    setDemandas((prev) =>
+      prev.map((d) => (d.id === id ? updatedDemanda : d))
+    );
+    // Silenciar toast para updates frequentes (drag & drop)
+    if (demanda.status) {
+      toast.success("Demanda atualizada!");
     }
   }, []);
 
   const deleteDemanda = useCallback(async (id: string) => {
-    try {
-      await apiService.deleteDemanda(id);
-      setDemandas((prev) => prev.filter((d) => d.id !== id));
-      toast.success("Demanda excluída com sucesso!");
-    } catch (err) {
-      console.error("Erro ao excluir demanda:", err);
-      toast.error("Erro ao excluir demanda. Usando modo offline.");
-      
-      // Fallback: delete locally
-      setDemandas((prev) => prev.filter((d) => d.id !== id));
-    }
+    await apiService.deleteDemanda(id);
+    setDemandas((prev) => prev.filter((d) => d.id !== id));
+    toast.success("Demanda excluída com sucesso!");
   }, []);
 
   // Acao operations (with API integration)
   const addAcao = useCallback(async (acao: Omit<Acao, "id">) => {
-    try {
-      const newAcao = await apiService.createAcao(acao);
-      setAcoes((prev) => [...prev, newAcao]);
-      toast.success("Ação criada com sucesso!");
-    } catch (err) {
-      console.error("Erro ao criar ação:", err);
-      toast.error("Erro ao criar ação. Usando modo offline.");
-      
-      // Fallback: create locally
-      const newAcao: Acao = { ...acao, id: generateId("a") };
-      setAcoes((prev) => [...prev, newAcao]);
-    }
+    const newAcao = await apiService.createAcao(acao);
+    setAcoes((prev) => [...prev, newAcao]);
+    toast.success("Ação criada com sucesso!");
   }, []);
 
   const updateAcao = useCallback(async (id: string, acao: Omit<Acao, "id">) => {
-    try {
-      const updatedAcao = await apiService.updateAcao(id, acao);
-      setAcoes((prev) =>
-        prev.map((a) => (a.id === id ? updatedAcao : a))
-      );
-      toast.success("Ação atualizada com sucesso!");
-    } catch (err) {
-      console.error("Erro ao atualizar ação:", err);
-      toast.error("Erro ao atualizar ação. Usando modo offline.");
-      
-      // Fallback: update locally
-      setAcoes((prev) =>
-        prev.map((a) => (a.id === id ? { ...acao, id } : a))
-      );
-    }
+    const updatedAcao = await apiService.updateAcao(id, acao);
+    setAcoes((prev) =>
+      prev.map((a) => (a.id === id ? updatedAcao : a))
+    );
+    toast.success("Ação atualizada com sucesso!");
   }, []);
 
   const deleteAcao = useCallback(async (id: string) => {
-    try {
-      await apiService.deleteAcao(id);
-      setAcoes((prev) => prev.filter((a) => a.id !== id));
-      toast.success("Ação excluída com sucesso!");
-    } catch (err) {
-      console.error("Erro ao excluir ação:", err);
-      toast.error("Erro ao excluir ação. Usando modo offline.");
-      
-      // Fallback: delete locally
-      setAcoes((prev) => prev.filter((a) => a.id !== id));
-    }
+    await apiService.deleteAcao(id);
+    setAcoes((prev) => prev.filter((a) => a.id !== id));
+    toast.success("Ação excluída com sucesso!");
   }, []);
 
   // Executar ação de uma tarefa (chama webhook)
@@ -328,7 +283,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       toast.success("Ação executada com sucesso!");
     } catch (err: unknown) {
-      console.error("Erro ao executar ação:", err);
+      logError("Erro ao executar ação:", err);
       const errorMessage = err instanceof Error ? err.message : "Erro desconhecido";
       toast.error(`Erro ao executar ação: ${errorMessage}`);
       throw err;
@@ -346,6 +301,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     [usuarios]
   );
 
+  const getCargo = useCallback(
+    (id: string) => cargos.find((c) => c.id === id),
+    [cargos]
+  );
+
   const getAcao = useCallback(
     (id: string) => acoes.find((a) => a.id === id),
     [acoes]
@@ -355,9 +315,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const contextValue = useMemo<DataContextType>(
     () => ({
       usuarios,
+      cargos,
       templates,
       demandas,
       acoes,
+      refreshPublicData,
       addUsuario,
       updateUsuario,
       deleteUsuario,
@@ -372,14 +334,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       deleteAcao,
       getTemplate,
       getUsuario,
+      getCargo,
       getAcao,
       executarAcaoTarefa,
     }),
     [
       usuarios,
+      cargos,
       templates,
       demandas,
       acoes,
+      refreshPublicData,
       addUsuario,
       updateUsuario,
       deleteUsuario,
@@ -394,6 +359,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       deleteAcao,
       getTemplate,
       getUsuario,
+      getCargo,
       getAcao,
       executarAcaoTarefa,
     ]

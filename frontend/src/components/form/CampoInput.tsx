@@ -17,6 +17,7 @@ import { Loader2, Upload, FileCheck, X, Download } from "lucide-react";
 import { apiService } from "@/services/api.service";
 import { toast } from "sonner";
 import type { CampoPreenchimento } from "@/types";
+import { error as logError } from "@/utils/logger";
 
 interface CampoInputProps {
   campo: CampoPreenchimento;
@@ -37,7 +38,7 @@ export const CampoInput = memo(function CampoInput({ campo, value, onChange, sho
       onChange(result.path); // Salva o caminho completo (ex: /uploads/arquivo-123.pdf)
       toast.success(`Arquivo "${result.originalName}" enviado com sucesso!`);
     } catch (error) {
-      console.error("Erro no upload:", error);
+      logError("Erro no upload:", error);
       toast.error("Erro ao enviar arquivo. Tente novamente.");
     } finally {
       setUploading(false);
@@ -101,7 +102,7 @@ export const CampoInput = memo(function CampoInput({ campo, value, onChange, sho
                   variant="ghost"
                   size="icon"
                   className="h-6 w-6"
-                  onClick={() => window.open(`/api${value}`, "_blank")}
+                  onClick={() => window.open(value, "_blank")}
                   title="Baixar arquivo"
                 >
                   <Download className="w-3 h-3" />

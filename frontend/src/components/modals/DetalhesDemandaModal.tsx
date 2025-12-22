@@ -44,8 +44,9 @@ interface DetalhesDemandaModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
+
 export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDemandaModalProps) => {
-  const { updateDemanda, getTemplate, acoes, getAcao, executarAcaoTarefa } = useData();
+  const { updateDemanda, getTemplate, acoes, getAcao, getCargo, executarAcaoTarefa } = useData();
   const [responsavelId, setResponsavelId] = useState("");
   const [camposValores, setCamposValores] = useState<Record<string, string>>({});
   const [tarefasStatus, setTarefasStatus] = useState<TarefaStatus[]>([]);
@@ -59,6 +60,13 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
   const [grupoReplicas, setGrupoReplicas] = useState<Record<string, number>>({});
   
   const tabsSentinelRef = useRef<HTMLDivElement>(null);
+  const initialSnapshotRef = useRef<{
+    responsavel_id: string;
+    data_previsao: string;
+    observacoes: string;
+    camposValores: Record<string, string>;
+    tarefasStatus: TarefaStatus[];
+  } | null>(null);
 
   const template = demanda ? getTemplate(demanda.template_id) : null;
 
@@ -172,6 +180,15 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
       if (abas.length > 0) {
         setAbaAtiva(abas[0].id);
       }
+
+      // Snapshot inicial para merge por campo (evita sobrescrever alterações concorrentes)
+      initialSnapshotRef.current = {
+        responsavel_id: demanda.responsavel_id,
+        data_previsao: demanda.data_previsao,
+        observacoes: demanda.observacoes || "",
+        camposValores: valores,
+        tarefasStatus: [...demanda.tarefas_status],
+      };
     }
   }, [demanda, template, abas]);
 
@@ -251,38 +268,108 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
     setPendingTaskToggle(null);
   };
 
-  const handleSalvar = () => {
+  const handleSalvar = async () => {
     if (!demanda || !template) return;
 
-    // Verificar se o responsável da demanda mudou
-    const responsavelMudou = responsavelId !== demanda.responsavel_id;
-    
-    // Se o responsável mudou, atualizar tarefas que não tinham responsável específico
-    const tarefasAtualizadas = responsavelMudou
-      ? tarefasStatus.map((tarefa) => {
-          // Se a tarefa não tem responsável específico OU o responsável é o antigo responsável da demanda
-          // Atualiza para o novo responsável da demanda (removendo o campo responsavel_id)
-          if (!tarefa.responsavel_id || tarefa.responsavel_id === demanda.responsavel_id) {
-            const { responsavel_id, ...resto } = tarefa;
-            return resto;
-          }
-          // Senão, mantém o responsável específico
-          return tarefa;
-        })
-      : tarefasStatus;
+    const initial = initialSnapshotRef.current;
 
-    // O backend calcula automaticamente: status, data_finalizacao, prazo
-    // baseado nas tarefas_status (ver server.js middleware PATCH /api/demandas/:id)
-    updateDemanda(demanda.id, {
-      responsavel_id: responsavelId,
-      campos_preenchidos: Object.entries(camposValores).map(([id_campo, valor]) => ({
-        id_campo,
-        valor,
-      })),
-      tarefas_status: tarefasAtualizadas,
-      data_previsao: dataPrevisao?.toISOString() || demanda.data_previsao,
-      observacoes: observacoes,
-    });
+    // Fallback seguro: se por algum motivo não temos snapshot, mantém comportamento antigo
+    if (!initial) {
+      updateDemanda(demanda.id, {
+        responsavel_id: responsavelId,
+        campos_preenchidos: Object.entries(camposValores).map(([id_campo, valor]) => ({
+          id_campo,
+          valor,
+        })),
+        tarefas_status: tarefasStatus,
+        data_previsao: dataPrevisao?.toISOString() || demanda.data_previsao,
+        observacoes,
+      } as any);
+
+      toast.success("Demanda atualizada com sucesso!");
+      onOpenChange(false);
+      return;
+    }
+
+    // 1) Campos simples (apenas se mudou)
+    const payload: any = {};
+    if (responsavelId !== initial.responsavel_id) {
+      payload.responsavel_id = responsavelId;
+    }
+
+    const dataPrevisaoIso = dataPrevisao?.toISOString();
+    if (dataPrevisaoIso && dataPrevisaoIso !== initial.data_previsao) {
+      payload.data_previsao = dataPrevisaoIso;
+    }
+
+    if (observacoes !== initial.observacoes) {
+      payload.observacoes = observacoes;
+    }
+
+    // 2) Campos preenchidos - patch + remoções (merge por campo)
+    const camposPatch: { id_campo: string; valor: string }[] = [];
+    const camposRemove: string[] = [];
+
+    for (const [id_campo, valor] of Object.entries(camposValores)) {
+      const valorInicial = initial.camposValores[id_campo];
+      if (valorInicial !== valor) {
+        // inclui também valores vazios (preserva réplicas/grupos)
+        camposPatch.push({ id_campo, valor });
+      }
+    }
+
+    for (const id_campo of Object.keys(initial.camposValores)) {
+      if (!(id_campo in camposValores)) {
+        camposRemove.push(id_campo);
+      }
+    }
+
+    if (camposPatch.length > 0) {
+      payload.campos_preenchidos_patch = camposPatch;
+    }
+    if (camposRemove.length > 0) {
+      payload.campos_preenchidos_remove = camposRemove;
+    }
+
+    // 3) Tarefas - patch por id_tarefa (merge por campo)
+    const tarefasInicialPorId = new Map(initial.tarefasStatus.map((t) => [t.id_tarefa, t]));
+    const tarefasPatch: TarefaStatus[] = [];
+
+    for (const tarefa of tarefasStatus) {
+      const inicial = tarefasInicialPorId.get(tarefa.id_tarefa);
+      const inicialConcluida = inicial?.concluida ?? false;
+      const inicialResp = inicial?.responsavel_id;
+      const inicialCargo = inicial?.cargo_responsavel_id;
+      const atualResp = tarefa.responsavel_id;
+      const atualCargo = tarefa.cargo_responsavel_id;
+
+      if (
+        !inicial ||
+        inicialConcluida !== tarefa.concluida ||
+        inicialResp !== atualResp ||
+        inicialCargo !== atualCargo
+      ) {
+        tarefasPatch.push({
+          id_tarefa: tarefa.id_tarefa,
+          concluida: tarefa.concluida,
+          responsavel_id: tarefa.responsavel_id,
+          cargo_responsavel_id: tarefa.cargo_responsavel_id,
+        });
+      }
+    }
+
+    if (tarefasPatch.length > 0) {
+      payload.tarefas_status_patch = tarefasPatch;
+    }
+
+    // Se nada mudou, não faz request
+    if (Object.keys(payload).length === 0) {
+      toast.message("Nenhuma alteração para salvar");
+      onOpenChange(false);
+      return;
+    }
+
+    await updateDemanda(demanda.id, payload);
 
     toast.success("Demanda atualizada com sucesso!");
     onOpenChange(false);
@@ -446,6 +533,7 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
               <ResponsavelSelect
                 value={responsavelId}
                 onValueChange={setResponsavelId}
+                includeCargos={false}
               />
             </div>
 
@@ -532,8 +620,9 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
                   ? template.tarefas.find((t) => t.id_tarefa === tarefa.link_pai)
                   : null;
                 
-                // Determina o responsável atual da tarefa
-                const responsavelTarefa = status?.responsavel_id || demanda.responsavel_id;
+                // Determina o responsável atual da tarefa (usuário OU cargo; fallback para responsável da demanda)
+                const responsavelTarefa =
+                  status?.cargo_responsavel_id || status?.responsavel_id || demanda.responsavel_id;
 
                 return (
                   <div
@@ -566,18 +655,28 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
                     <div className="ml-8 space-y-1">
                       <Label className="text-xs">Responsável</Label>
                       <ResponsavelSelect
-                        value={responsavelTarefa}
+                        value={responsavelTarefa || demanda.responsavel_id || ""}
                         onValueChange={(v) => {
                           setTarefasStatus(
                             tarefasStatus.map((t) =>
                               t.id_tarefa === tarefa.id_tarefa
-                                ? { ...t, responsavel_id: v === demanda.responsavel_id ? undefined : v }
+                                ? {
+                                    ...t,
+                                    // Se selecionou o padrão, limpar override
+                                    ...(v === demanda.responsavel_id || v === ""
+                                      ? { responsavel_id: null, cargo_responsavel_id: null }
+                                      : // Se v corresponde a um cargo, setar cargo_responsavel_id
+                                      getCargo(v)
+                                      ? { responsavel_id: null, cargo_responsavel_id: v }
+                                      : { responsavel_id: v, cargo_responsavel_id: null })
+                                  }
                                 : t
                             )
                           );
                         }}
                         defaultResponsavelId={demanda.responsavel_id}
                         triggerClassName="h-8 text-sm"
+                        includeCargos={true}
                       />
                     </div>
 
@@ -669,6 +768,13 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
         </div>
 
         <DialogFooter className="px-6 py-4 border-t bg-muted/30 flex-col sm:flex-row gap-2 sm:gap-0">
+          {/* Indicador de último modificador - canto esquerdo */}
+          {demanda.modificado_por && (
+            <div className="flex-1 text-xs text-muted-foreground">
+              Modificado por: {demanda.modificado_por.nome}
+            </div>
+          )}
+          
           <div className="flex items-center gap-2 w-full sm:w-auto">
             {podeMostrarBotaoStatus.mostrar && podeMostrarBotaoStatus.tipo === "iniciar" && (
               <Button 

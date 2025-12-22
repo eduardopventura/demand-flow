@@ -8,7 +8,7 @@
 
 const emailService = require('./email.service');
 const whatsappService = require('./whatsapp.service');
-const { isCargo, resolverResponsavelParaUsuarios } = require('../utils/db.helpers');
+const { resolverResponsavelParaUsuarios } = require('../utils/db.helpers');
 const { formatarData } = require('../utils/status.utils');
 
 /**
@@ -117,13 +117,12 @@ async function notificarNovaDemanda(demanda, responsavel) {
 
 /**
  * Notifica sobre nova demanda para múltiplos usuários (resolvidos de cargo ou usuário)
- * @param {Object} db - Instância do lowdb
  * @param {Object} demanda - Objeto da demanda
  * @param {string} responsavelId - ID do responsável (usuário ou cargo)
  * @returns {Promise<Array>} - Resultados dos envios
  */
-async function notificarNovaDemandaParaResponsavel(db, demanda, responsavelId) {
-  const usuarios = resolverResponsavelParaUsuarios(db, responsavelId);
+async function notificarNovaDemandaParaResponsavel(demanda, responsavelUsuarioId) {
+  const usuarios = await resolverResponsavelParaUsuarios({ usuario_id: responsavelUsuarioId });
   
   if (usuarios.length === 0) {
     return [];
@@ -174,14 +173,14 @@ async function notificarTarefaAtribuida(nomeTarefa, demanda, novoResponsavel) {
 
 /**
  * Notifica sobre tarefa atribuída para múltiplos usuários (resolvidos de cargo ou usuário)
- * @param {Object} db - Instância do lowdb
  * @param {string} nomeTarefa - Nome da tarefa
  * @param {Object} demanda - Objeto da demanda
  * @param {string} responsavelId - ID do responsável (usuário ou cargo)
  * @returns {Promise<Array>} - Resultados dos envios
  */
-async function notificarTarefaAtribuidaParaResponsavel(db, nomeTarefa, demanda, responsavelId) {
-  const usuarios = resolverResponsavelParaUsuarios(db, responsavelId);
+async function notificarTarefaAtribuidaParaResponsavel(nomeTarefa, demanda, responsavel) {
+  // responsavel: { usuario_id?: string, cargo_id?: string }
+  const usuarios = await resolverResponsavelParaUsuarios(responsavel);
   
   if (usuarios.length === 0) {
     return [];

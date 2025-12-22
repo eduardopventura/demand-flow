@@ -71,7 +71,7 @@ export const getCorBordaPrazo = (
   if (dataFinalizacao) {
     const finalizacao = new Date(dataFinalizacao);
     const previsao = new Date(dataPrevisao);
-    return finalizacao <= previsao ? 'verde' : 'vermelho';
+    return finalizacao > previsao ? 'vermelho' : 'verde';
   }
   
   // Se ainda não foi finalizada

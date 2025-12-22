@@ -32,12 +32,18 @@ demand-flow/
 │   └── lib/                    # Bibliotecas auxiliares
 │
 ├── 📂 backend/                 # Código-fonte Backend
-│   ├── server.js               # Servidor Express + JSON-Server
-│   ├── db.json                 # Banco de dados (JSON)
+│   ├── server.js               # Servidor Express + Socket.io
+│   ├── prisma/                  # Prisma schema e migrations
+│   │   ├── schema.prisma       # Schema do banco de dados
+│   │   └── migrations/         # Migrations do Prisma
 │   ├── services/               # Serviços do backend
 │   │   ├── email.service.js    # Envio de emails (SMTP)
 │   │   ├── whatsapp.service.js # WhatsApp via webhook
-│   │   └── notification.service.js # Orquestrador de notificações
+│   │   ├── notification.service.js # Orquestrador de notificações
+│   │   ├── auth.service.js     # Autenticação (JWT + bcrypt)
+│   │   └── socket.service.js   # WebSockets (Socket.io)
+│   ├── repositories/           # Camada de acesso a dados
+│   ├── middlewares/            # Middlewares (auth, errors)
 │   ├── scripts/
 │   │   └── seed.js             # Script para popular dados
 │   └── Dockerfile              # Build do container
@@ -87,7 +93,11 @@ demand-flow/
 |------------|--------|-----------|
 | **Node.js** | 20.x | Runtime JavaScript |
 | **Express** | 4.x | Framework HTTP |
-| **JSON-Server** | 0.17.x | REST API mock |
+| **PostgreSQL** | 16.x | Banco de dados relacional |
+| **Prisma** | 5.x | ORM e migrations |
+| **Socket.io** | 4.x | WebSockets para tempo real |
+| **JWT** | 9.x | Autenticação e autorização |
+| **bcrypt** | 5.x | Hash de senhas |
 | **Nodemailer** | 6.x | Envio de emails |
 | **node-cron** | 3.x | Agendamento de tarefas |
 
@@ -118,10 +128,22 @@ demand-flow/
 | Documento | Descrição |
 |-----------|-----------|
 | [backend/REFACTORING.md](./backend/REFACTORING.md) | Detalhes da refatoração do Backend |
+| [frontend/DESIGN_SYSTEM.md](./frontend/DESIGN_SYSTEM.md) | **Padrões de Design Visual e UI** |
 | [frontend/HOOKS.md](./frontend/HOOKS.md) | Documentação dos Custom Hooks |
 | [frontend/COMPONENTS_FORM.md](./frontend/COMPONENTS_FORM.md) | Documentação de Componentes de Formulário |
 | [frontend/DASHBOARD.md](./frontend/DASHBOARD.md) | Documentação do Dashboard de Relatórios |
 | [frontend/FINALIZADAS.md](./frontend/FINALIZADAS.md) | Documentação da Página de Finalizadas |
+
+### 🚀 Implementação Versão 1.0
+
+| Documento | Descrição |
+|-----------|-----------|
+| [IMPLEMENTATION_PHASES.md](./IMPLEMENTATION_PHASES.md) | **Plano Geral de Implementação - Fases e Progresso** |
+| [implementation/PHASE_1_POSTGRESQL.md](./implementation/PHASE_1_POSTGRESQL.md) | Fase 1: Migração PostgreSQL |
+| [implementation/PHASE_2_AUTH.md](./implementation/PHASE_2_AUTH.md) | Fase 2: Login Completo |
+| [implementation/PHASE_3_TASK_USER.md](./implementation/PHASE_3_TASK_USER.md) | Fase 3: Controle de Responsáveis e Auditoria |
+| [implementation/PHASE_4_ROLES.md](./implementation/PHASE_4_ROLES.md) | Fase 4: Sistema de Cargos e Permissões |
+| [implementation/PHASE_5_WEBSOCKETS.md](./implementation/PHASE_5_WEBSOCKETS.md) | Fase 5: WebSockets (Tempo Real) |
 
 ### 🔗 Links Rápidos
 
@@ -168,6 +190,7 @@ demand-flow/
 - **shadcn/ui** para componentes base
 - **Mobile-first** responsive design
 - **CSS Variables** para temas (index.css)
+- **Design System** documentado em [frontend/DESIGN_SYSTEM.md](./frontend/DESIGN_SYSTEM.md)
 
 ### Git
 
@@ -218,5 +241,5 @@ docker system prune -a
 
 ---
 
-**Versão:** 0.2.11  
-**Última Atualização:** 13/12/2025
+**Versão:** 1.0.0  
+**Última Atualização:** 18/12/2025

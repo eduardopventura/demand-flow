@@ -7,7 +7,39 @@
 const express = require('express');
 const router = express.Router();
 const demandaService = require('../services/demanda.service');
+const DemandaRepository = require('../src/repositories/demanda.repository');
 const { asyncHandler } = require('../middlewares/error.middleware');
+const { requireCargoPermission } = require('../middlewares/permissions.middleware');
+
+/**
+ * GET /api/demandas
+ * Lista todas as demandas (com filtros opcionais)
+ * Query params: status, responsavel_id, template_id
+ */
+router.get('/', asyncHandler(async (req, res) => {
+  const filters = {};
+  if (req.query.status) filters.status = req.query.status;
+  if (req.query.responsavel_id) filters.responsavel_id = req.query.responsavel_id;
+  if (req.query.template_id) filters.template_id = req.query.template_id;
+  
+  const demandas = await DemandaRepository.findAll(filters);
+  res.json(demandas);
+}));
+
+/**
+ * GET /api/demandas/:id
+ * Busca uma demanda por ID
+ */
+router.get('/:id', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const demanda = await DemandaRepository.findById(id);
+  
+  if (!demanda) {
+    return res.status(404).json({ message: 'Demanda não encontrada' });
+  }
+  
+  res.json(demanda);
+}));
 
 /**
  * POST /api/demandas
@@ -30,8 +62,8 @@ const { asyncHandler } = require('../middlewares/error.middleware');
  * }
  */
 router.post('/', asyncHandler(async (req, res) => {
-  const db = req.app.get('db');
   const body = req.body;
+  const userId = req.user?.id;
 
   // Converter formato do frontend para formato do service
   // O frontend envia campos_preenchidos como array, convertemos para objeto
@@ -42,10 +74,11 @@ router.post('/', asyncHandler(async (req, res) => {
     }
   }
 
-  const novaDemanda = await demandaService.criarDemanda(db, {
+  const novaDemanda = await demandaService.criarDemanda({
     template_id: body.template_id,
     responsavel_id: body.responsavel_id,
-    campos_valores
+    campos_valores,
+    userId
   });
 
   res.status(201).json(novaDemanda);
@@ -58,11 +91,37 @@ router.post('/', asyncHandler(async (req, res) => {
 router.patch('/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
   const updates = req.body;
-  const db = req.app.get('db');
+  const userId = req.user?.id;
 
-  const demandaAtualizada = await demandaService.atualizarDemanda(db, id, updates);
+  if (!userId) {
+    return res.status(401).json({ 
+      error: 'Usuário não autenticado',
+      message: 'É necessário estar autenticado para atualizar uma demanda'
+    });
+  }
+
+  const demandaAtualizada = await demandaService.atualizarDemanda(id, updates, userId);
 
   res.json(demandaAtualizada);
+}));
+
+/**
+ * DELETE /api/demandas/:id
+ * Deleta uma demanda (requer permissão deletar_demandas)
+ */
+router.delete('/:id', requireCargoPermission('deletar_demandas'), asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const userId = req.user?.id;
+
+  if (!userId) {
+    return res.status(401).json({
+      error: 'Usuário não autenticado',
+      message: 'É necessário estar autenticado para deletar uma demanda',
+    });
+  }
+
+  const result = await demandaService.deletarDemanda(id, userId);
+  res.json(result);
 }));
 
 /**
@@ -71,9 +130,16 @@ router.patch('/:id', asyncHandler(async (req, res) => {
  */
 router.post('/:id/tarefas/:taskId/executar', asyncHandler(async (req, res) => {
   const { id, taskId } = req.params;
-  const db = req.app.get('db');
+  const userId = req.user?.id;
 
-  const resultado = await demandaService.executarAcaoTarefa(db, id, taskId);
+  if (!userId) {
+    return res.status(401).json({ 
+      error: 'Usuário não autenticado',
+      message: 'É necessário estar autenticado para executar uma ação'
+    });
+  }
+
+  const resultado = await demandaService.executarAcaoTarefa(id, taskId, userId);
 
   res.json(resultado);
 }));

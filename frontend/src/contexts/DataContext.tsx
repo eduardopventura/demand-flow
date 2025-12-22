@@ -223,7 +223,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Demanda operations (with API integration)
   const addDemanda = useCallback(async (demanda: Omit<Demanda, "id">) => {
     const newDemanda = await apiService.createDemanda(demanda);
-    setDemandas((prev) => [...prev, newDemanda]);
+    setDemandas((prev) => {
+      // Verificar se a demanda já existe (pode ter sido adicionada via WebSocket)
+      if (prev.some((d) => d.id === newDemanda.id)) return prev;
+      return [...prev, newDemanda];
+    });
     toast.success("Demanda criada com sucesso!");
   }, []);
 

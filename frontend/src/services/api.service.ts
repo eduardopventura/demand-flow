@@ -370,8 +370,16 @@ export const apiService = {
     formData.append("file", file);
 
     const url = `${API_URL}/upload`;
+    const token = getAuthToken();
+    
+    const headers: HeadersInit = {};
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
     const response = await fetch(url, {
       method: "POST",
+      headers,
       body: formData,
       // Não enviar Content-Type header - o browser vai definir automaticamente com boundary
     });

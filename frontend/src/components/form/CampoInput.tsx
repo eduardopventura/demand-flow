@@ -102,7 +102,7 @@ export const CampoInput = memo(function CampoInput({ campo, value, onChange, sho
                   variant="ghost"
                   size="icon"
                   className="h-6 w-6"
-                  onClick={() => window.open(`/api${value}`, "_blank")}
+                  onClick={() => window.open(value, "_blank")}
                   title="Baixar arquivo"
                 >
                   <Download className="w-3 h-3" />

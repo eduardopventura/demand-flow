@@ -16,6 +16,7 @@ services:
       POSTGRES_DB: demandflow
       POSTGRES_USER: demandflow
       POSTGRES_PASSWORD: demandflow_password
+      TZ: America/Sao_Paulo
     volumes:
       # Volume nomeado para dados do PostgreSQL (melhor prática)
       - postgres_data:/var/lib/postgresql/data
@@ -47,6 +48,7 @@ services:
       - PORT=3000
       - DATABASE_URL=postgresql://demandflow:demandflow_password@postgres:5432/demandflow
       - JWT_EXPIRES_IN=24h
+      - TZ=America/Sao_Paulo
       # JWT_SECRET será gerado automaticamente pelo script init-env.js e salvo no .env
     depends_on:
       postgres:

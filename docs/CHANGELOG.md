@@ -1,5 +1,91 @@
 # Changelog - Demand Flow
 
+## [1.0.2] - 2025-12-22
+
+### 🐛 Correções de Bugs
+
+Esta versão corrige problemas críticos relacionados ao upload e download de arquivos.
+
+#### Correções Implementadas
+
+**1. Upload de Arquivos sem Autenticação**
+- ✅ **Problema**: Upload de arquivos falhava silenciosamente ou retornava erro 401 (não autorizado)
+- ✅ **Causa**: A função `uploadFile` no frontend não estava enviando o token de autenticação no header da requisição
+- ✅ **Solução**: Adicionado token de autenticação no header `Authorization: Bearer ${token}` da requisição de upload
+- ✅ **Arquivo modificado**: `frontend/src/services/api.service.ts`
+
+**2. Download de Arquivos com Path Incorreto**
+- ✅ **Problema**: Download de arquivos retornava erro 404 (não encontrado)
+- ✅ **Causa**: 
+  - O frontend estava usando path `/api${value}` onde `value` é `/uploads/arquivo.pdf`, resultando em `/api/uploads/arquivo.pdf`
+  - O Nginx fazia proxy apenas de `/api` para o backend, mas o backend serve arquivos em `/uploads` (sem `/api`)
+  - Resultado: requisição para `/api/uploads/arquivo.pdf` não encontrava o arquivo
+- ✅ **Solução**: 
+  - Adicionado proxy de `/uploads` no Nginx para fazer proxy direto para o backend
+  - Adicionado proxy de `/uploads` no Vite para desenvolvimento local
+  - Corrigido path de download no componente `CampoInput` para usar apenas o path retornado pelo backend (`/uploads/arquivo.pdf`)
+- ✅ **Arquivos modificados**: 
+  - `frontend/nginx.conf`
+  - `frontend/vite.config.ts`
+  - `frontend/src/components/form/CampoInput.tsx`
+
+#### 🔧 Melhorias Técnicas
+
+- **Autenticação Consistente**: Upload de arquivos agora segue o mesmo padrão de autenticação das outras rotas
+- **Proxy Configurado**: Nginx e Vite configurados para fazer proxy de `/uploads` para o backend
+- **Path Correto**: Download de arquivos usa o path correto retornado pelo backend
+
+#### 📊 Impacto
+
+- **Funcionalidade**: Upload e download de arquivos funcionando corretamente ✅
+- **Segurança**: Upload protegido com autenticação JWT ✅
+- **Compatibilidade**: Funciona tanto em desenvolvimento quanto em produção ✅
+
+---
+
+## [1.0.1] - 2025-12-22
+
+### 🐛 Correções de Bugs
+
+Esta versão corrige três bugs importantes identificados durante o uso do sistema em produção.
+
+#### Correções Implementadas
+
+**1. Bug de Duplicação de Demandas na Criação**
+- ✅ **Problema**: Ao criar uma nova demanda, apareciam duas demandas na interface, mas ao recarregar a página ficava normal com apenas uma
+- ✅ **Causa**: Race condition entre a adição manual da demanda no estado e o evento WebSocket `demanda:created`
+- ✅ **Solução**: Adicionada verificação de duplicata no método `addDemanda` do `DataContext` antes de inserir no estado, garantindo que mesmo com eventos WebSocket simultâneos não haja duplicação
+- ✅ **Arquivo modificado**: `frontend/src/contexts/DataContext.tsx`
+
+**2. Correção de Timezone (TZ) em Datas**
+- ✅ **Problema**: Datas sendo exibidas incorretamente devido a problemas de timezone
+- ✅ **Causa**: Conversão de datas sem considerar o timezone de São Paulo (America/Sao_Paulo, UTC-3)
+- ✅ **Solução**: Implementada conversão correta de datas usando timezone explícito `America/Sao_Paulo` em scripts de atualização e cálculos de data
+- ✅ **Arquivos modificados**: 
+  - `backend/scripts/update-demandas-datas.js`
+  - `backend/utils/status.utils.js`
+  - `frontend/src/utils/prazoUtils.ts`
+
+**3. Correção de Formatação e Cálculo de Datas**
+- ✅ **Problema**: Datas de criação e finalização sendo calculadas ou exibidas incorretamente
+- ✅ **Causa**: Falta de tratamento adequado de timezone ao criar datas a partir de strings no formato DD/MM/YYYY
+- ✅ **Solução**: Implementada função `converterData` que cria datas como meia-noite em São Paulo usando string ISO com timezone explícito (`-03:00`), garantindo que a data seja interpretada corretamente independente do timezone do servidor
+- ✅ **Arquivos modificados**: `backend/scripts/update-demandas-datas.js`
+
+#### 🔧 Melhorias Técnicas
+
+- **Prevenção de Race Conditions**: Verificação de duplicatas em operações de estado que podem ser atualizadas via WebSocket
+- **Timezone Consistente**: Uso explícito de `America/Sao_Paulo` em todas as operações de data
+- **Validação de Datas**: Validação adicional para garantir que datas criadas correspondem ao dia esperado
+
+#### 📊 Impacto
+
+- **Estabilidade**: Eliminação de duplicação visual de demandas ✅
+- **Precisão**: Datas exibidas e calculadas corretamente conforme timezone brasileiro ✅
+- **Confiabilidade**: Sistema mais robusto contra race conditions em atualizações em tempo real ✅
+
+---
+
 ## [1.0.0] - 2025-12-18
 
 ### 🎉 Versão 1.0 - Produção Completa

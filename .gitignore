@@ -19,6 +19,7 @@ dist-ssr
 backend/.env
 
 # Editor directories and files
+.cursor/*
 .vscode/*
 !.vscode/extensions.json
 .idea
@@ -29,8 +30,6 @@ backend/.env
 *.sln
 *.sw?
 
-# Database file - cada ambiente mantém o seu próprio
-backend/db.json
 
 # Uploaded files - manter apenas .gitkeep
 backend/uploads/*

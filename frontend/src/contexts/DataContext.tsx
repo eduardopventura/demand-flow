@@ -51,14 +51,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setError(null);
 
       try {
-        const canTemplates = hasPermission(user, "acesso_templates");
         const canAcoes = hasPermission(user, "acesso_acoes");
 
         const [usuariosData, cargosData, demandasData, templatesData, acoesData] = await Promise.all([
           apiService.getPublicUsuarios(),
           apiService.getPublicCargos(),
           apiService.getDemandas(),
-          canTemplates ? apiService.getTemplates() : Promise.resolve([] as Template[]),
+          apiService.getTemplates(), // Sempre buscar templates (necessário para criar/visualizar demandas)
           canAcoes ? apiService.getAcoes() : Promise.resolve([] as Acao[]),
         ]);
 

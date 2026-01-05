@@ -1,5 +1,33 @@
 # Changelog - Demand Flow
 
+## [1.0.3] - 2026-01-05
+
+### 🐛 Correções de Permissões e Bugs
+
+Esta versão corrige um problema crítico no sistema de permissões que impedia usuários sem acesso de administrador de criar ou visualizar demandas.
+
+#### Correções Implementadas
+
+**1. Acesso a Templates para Criação de Demandas**
+- ✅ **Problema**: Usuários sem a permissão `acesso_templates` (como Operadores padrão) não conseguiam criar demandas pois a lista de templates retornava vazia, nem visualizar demandas existentes.
+- ✅ **Causa**: A permissão `acesso_templates` estava bloqueando tanto a gestão (criar/editar templates) quanto a leitura (listar templates para uso).
+- ✅ **Solução**: Separada a permissão de leitura da permissão de gestão:
+  - **Leitura (GET)**: Liberada para todos os usuários autenticados (necessário para o funcionamento básico do sistema).
+  - **Gestão (POST/PATCH/DELETE)**: Continua exigindo a permissão `acesso_templates`.
+  - **Página de Templates**: Continua exigindo a permissão `acesso_templates`.
+- ✅ **Arquivos modificados**: 
+  - `backend/routes/index.js`
+  - `backend/routes/templates.routes.js`
+  - `frontend/src/contexts/DataContext.tsx`
+  - `docs/implementation/PHASE_4_ROLES.md`
+
+#### 📊 Impacto
+
+- **Usabilidade**: Usuários operacionais agora conseguem criar e gerenciar demandas normalmente sem precisar de acesso administrativo aos templates ✅
+- **Segurança**: Mantida a proteção para edição e exclusão de templates, liberando apenas o uso (leitura) ✅
+
+---
+
 ## [1.0.2] - 2025-12-22
 
 ### 🐛 Correções de Bugs

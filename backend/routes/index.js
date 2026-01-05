@@ -30,7 +30,8 @@ function setupRoutes(server) {
   // Rotas CRUD básicas
   server.use('/api/usuarios', authMiddleware, requireCargoPermission('acesso_usuarios'), usuariosRoutes);
   server.use('/api/cargos', authMiddleware, requireCargoPermission('acesso_usuarios'), cargosRoutes);
-  server.use('/api/templates', authMiddleware, requireCargoPermission('acesso_templates'), templatesRoutes);
+  // Templates: leitura liberada para todos, gestão requer acesso_templates (proteção nas rotas individuais)
+  server.use('/api/templates', authMiddleware, templatesRoutes);
   server.use('/api/acoes', authMiddleware, requireCargoPermission('acesso_acoes'), acoesRoutes);
   
   // Rotas de upload

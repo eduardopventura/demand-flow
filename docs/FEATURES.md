@@ -413,6 +413,15 @@ Sistema de upload de arquivos para demandas:
 
 ## 📝 Histórico de Versões
 
+### v1.0.3 - 05/01/2026
+- Correção de permissões de templates
+- Separação entre leitura (pública) e gestão (restrita) de templates
+- Correção no fluxo de criação de demandas para operadores
+
+### v1.0.2 - 22/12/2025
+- Correção de Upload e Download de arquivos
+- Correção de Timezone e datas duplicadas
+
 ### v1.0.0 - 18/12/2025
 
 **Versão 1.0 - Produção Completa**
@@ -542,5 +551,5 @@ Ver histórico completo em [CHANGELOG.md](./CHANGELOG.md)
 
 ---
 
-**Versão:** 1.0.0  
-**Última Atualização:** 18/12/2025
+**Versão:** 1.0.3  
+**Última Atualização:** 05/01/2026

@@ -39,6 +39,7 @@ Independentemente do cargo, **todos os usuários** têm acesso total a:
 
 ### Ações controladas por permissão
 
+- **Gestão de Templates** (Criar/Editar/Deletar) → requer `acesso_templates`
 - **Deletar demandas** (ex: `DELETE /api/demandas/:id`) → requer `deletar_demandas`
 
 ---
@@ -48,7 +49,8 @@ Independentemente do cargo, **todos os usuários** têm acesso total a:
 As permissões do cargo são exatamente estas (todas booleanas):
 
 1. **Acesso Templates** (`acesso_templates`)  
-   Permite acessar pagina de template de forma completa
+   Permite acessar a página de templates e realizar operações de gestão (criar, editar, deletar).
+   > **Nota**: A *leitura* de templates (para uso em demandas) é liberada para todos os usuários autenticados.
 
 2. **Acesso Ações** (`acesso_acoes`)  
    Permite acessar pagina de ações de forma completa
@@ -278,7 +280,9 @@ O backend deve negar o que não for permitido, retornando **403** (sem permissã
 
 Mapeamento mínimo (v1):
 
-- Endpoints de Templates (`/api/templates/*`) → exigir `acesso_templates`
+- Endpoints de Templates (`/api/templates`)
+  - GET (listar/detalhar) → Liberado (autenticado)
+  - POST/PATCH/PUT/DELETE → exigir `acesso_templates`
 - Endpoints de Ações (`/api/acoes/*`) → exigir `acesso_acoes`
 - Endpoints de Usuários (`/api/usuarios/*`) e Cargos (`/api/cargos/*`) → exigir `acesso_usuarios`
 - `DELETE /api/demandas/:id` → exigir `deletar_demandas`

@@ -8,6 +8,7 @@ const express = require('express');
 const router = express.Router();
 const templateRepository = require('../src/repositories/template.repository');
 const { asyncHandler } = require('../middlewares/error.middleware');
+const { requireCargoPermission } = require('../middlewares/permissions.middleware');
 
 /**
  * GET /api/templates
@@ -42,18 +43,18 @@ router.get('/:id', asyncHandler(async (req, res) => {
 
 /**
  * POST /api/templates
- * Cria um novo template
+ * Cria um novo template (requer acesso_templates)
  */
-router.post('/', asyncHandler(async (req, res) => {
+router.post('/', requireCargoPermission('acesso_templates'), asyncHandler(async (req, res) => {
   const template = await templateRepository.create(req.body);
   res.status(201).json(template);
 }));
 
 /**
  * PATCH /api/templates/:id
- * Atualiza um template
+ * Atualiza um template (requer acesso_templates)
  */
-router.patch('/:id', asyncHandler(async (req, res) => {
+router.patch('/:id', requireCargoPermission('acesso_templates'), asyncHandler(async (req, res) => {
   const { id } = req.params;
   const template = await templateRepository.update(id, req.body);
   res.json(template);
@@ -61,9 +62,9 @@ router.patch('/:id', asyncHandler(async (req, res) => {
 
 /**
  * PUT /api/templates/:id
- * Substitui um template
+ * Substitui um template (requer acesso_templates)
  */
-router.put('/:id', asyncHandler(async (req, res) => {
+router.put('/:id', requireCargoPermission('acesso_templates'), asyncHandler(async (req, res) => {
   const { id } = req.params;
   const template = await templateRepository.update(id, req.body);
   res.json(template);
@@ -71,9 +72,9 @@ router.put('/:id', asyncHandler(async (req, res) => {
 
 /**
  * DELETE /api/templates/:id
- * Deleta um template
+ * Deleta um template (requer acesso_templates)
  */
-router.delete('/:id', asyncHandler(async (req, res) => {
+router.delete('/:id', requireCargoPermission('acesso_templates'), asyncHandler(async (req, res) => {
   const { id } = req.params;
   await templateRepository.delete(id);
   res.status(204).send();

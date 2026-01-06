@@ -245,7 +245,7 @@ Detalhes das features em [docs/FEATURES.md](./docs/FEATURES.md#-próximas-funcio
 
 ## 📝 Versão Atual
 
-**v1.0.3** - Janeiro de 2026
+**v1.0.4** - Janeiro de 2026
 
 Ver [CHANGELOG.md](./docs/CHANGELOG.md) para histórico completo.
 

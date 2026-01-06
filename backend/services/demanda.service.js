@@ -6,6 +6,8 @@
 
 const axios = require('axios');
 const FormData = require('form-data');
+const path = require('path');
+const fs = require('fs');
 
 const { 
   getUsuarioById, 

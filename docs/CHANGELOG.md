@@ -1,5 +1,25 @@
 # Changelog - Demand Flow
 
+## [1.0.4] - 2026-01-05
+
+### 🐛 Correções Críticas
+
+Esta versão corrige um erro no backend que impedia a execução de ações de webhook, especialmente quando envolviam upload de arquivos.
+
+#### Correções Implementadas
+
+**1. Erro 'path is not defined' em Ações**
+- ✅ **Problema**: A execução de ações falhava com erro `path is not defined` no backend.
+- ✅ **Causa**: O módulo `path` do Node.js estava sendo utilizado na função `executarWebhook` mas não havia sido importado no arquivo `demanda.service.js`.
+- ✅ **Solução**: Adicionada importação dos módulos `path` e `fs` no início do arquivo de serviço.
+- ✅ **Arquivo modificado**: `backend/services/demanda.service.js`
+
+#### 📊 Impacto
+
+- **Confiabilidade**: Ações automáticas e integrações com webhooks voltam a funcionar corretamente ✅
+
+---
+
 ## [1.0.3] - 2026-01-05
 
 ### 🐛 Correções de Permissões e Bugs

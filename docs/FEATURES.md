@@ -413,6 +413,9 @@ Sistema de upload de arquivos para demandas:
 
 ## 📝 Histórico de Versões
 
+### v1.0.4 - 05/01/2026
+- Correção crítica no backend: 'path is not defined' em webhooks
+
 ### v1.0.3 - 05/01/2026
 - Correção de permissões de templates
 - Separação entre leitura (pública) e gestão (restrita) de templates
@@ -551,5 +554,5 @@ Ver histórico completo em [CHANGELOG.md](./CHANGELOG.md)
 
 ---
 
-**Versão:** 1.0.3  
+**Versão:** 1.0.4  
 **Última Atualização:** 05/01/2026

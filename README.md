@@ -20,6 +20,7 @@ O **Demand Flow** é uma solução moderna para gerenciamento de processos e dem
 - 📈 **Relatórios** - Métricas de desempenho e cumprimento de prazos
 - 📄 **Página de Finalizadas** - Consulta completa com filtros e ordenação
 - 🎯 **Indicadores de Validação** - Feedback visual nas abas do formulário
+- 💾 **Autosave** - Salvamento automático de alterações e uploads
 
 ---
 
@@ -245,7 +246,7 @@ Detalhes das features em [docs/FEATURES.md](./docs/FEATURES.md#-próximas-funcio
 
 ## 📝 Versão Atual
 
-**v1.0.4** - Janeiro de 2026
+**v1.1.0** - Janeiro de 2026
 
 Ver [CHANGELOG.md](./docs/CHANGELOG.md) para histórico completo.
 

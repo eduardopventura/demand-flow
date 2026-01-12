@@ -382,6 +382,19 @@ Sistema de upload de arquivos para demandas:
 
 ---
 
+### 💾 Autosave e Sincronização
+
+Sistema inteligente de salvamento automático para garantir integridade dos dados e melhor experiência de usuário:
+
+**Funcionalidades:**
+- **Salvamento em Tempo Real:** Alterações salvas automaticamente sem necessidade de botão "Salvar".
+- **Debounce Inteligente:** Campos de texto salvam após o usuário parar de digitar (1s).
+- **Feedback Visual:** Indicador de status ("Salvando...", "Salvo") no topo do modal.
+- **Upload Atômico:** Arquivos são salvos imediatamente, garantindo disponibilidade para ações.
+- **Sincronização Pré-Ação:** Garante que dados e arquivos estejam persistidos antes de executar webhooks.
+
+---
+
 ## 🔮 Próximas Funcionalidades
 
 ---
@@ -412,6 +425,11 @@ Sistema de upload de arquivos para demandas:
 ---
 
 ## 📝 Histórico de Versões
+
+### v1.1.0 - 12/01/2026
+- Autosave completo em demandas
+- Upload imediato de arquivos
+- Correção no cálculo de prazos (bug do mesmo dia)
 
 ### v1.0.4 - 05/01/2026
 - Correção crítica no backend: 'path is not defined' em webhooks
@@ -554,5 +572,5 @@ Ver histórico completo em [CHANGELOG.md](./CHANGELOG.md)
 
 ---
 
-**Versão:** 1.0.4  
-**Última Atualização:** 05/01/2026
+**Versão:** 1.1.0  
+**Última Atualização:** 12/01/2026

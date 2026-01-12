@@ -43,6 +43,8 @@ services:
       - ./backend/uploads:/app/uploads
       # Bind mount para .env
       - ./backend/.env:/app/.env
+      # Bind mount para scripts de migração
+      - ./backend/scripts:/app/scripts
     env_file:
       - ./backend/.env
     environment:

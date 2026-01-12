@@ -42,14 +42,32 @@ function calcularNovoStatus(tarefasStatus, statusAtual) {
 
 /**
  * Verifica se a demanda está dentro do prazo
+ * Compara apenas as DATAS (ignora horas) para evitar falsos negativos
+ * quando a demanda é finalizada no mesmo dia da previsão.
+ * 
+ * Usa UTC para evitar problemas de fuso horário.
+ * 
  * @param {Date|string} dataFinalizacao - Data de finalização
  * @param {Date|string} dataPrevisao - Data de previsão
- * @returns {boolean} - true se dentro do prazo
+ * @returns {boolean} - true se dentro do prazo (finalização <= previsão)
  */
 function verificarPrazo(dataFinalizacao, dataPrevisao) {
   const finalizacao = new Date(dataFinalizacao);
   const previsao = new Date(dataPrevisao);
-  return finalizacao <= previsao;
+  
+  // Extrair apenas ano, mês e dia em UTC para comparar sem hora
+  const finalizacaoDate = Date.UTC(
+    finalizacao.getUTCFullYear(),
+    finalizacao.getUTCMonth(),
+    finalizacao.getUTCDate()
+  );
+  const previsaoDate = Date.UTC(
+    previsao.getUTCFullYear(),
+    previsao.getUTCMonth(),
+    previsao.getUTCDate()
+  );
+  
+  return finalizacaoDate <= previsaoDate;
 }
 
 /**

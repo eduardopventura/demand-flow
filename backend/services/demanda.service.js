@@ -241,10 +241,25 @@ async function atualizarDemanda(id, updates, userId) {
     updatesMerged.data_finalizacao = null;
   }
 
-  if (updatesMerged.status === 'Finalizada' && !demandaAntes.data_finalizacao) {
-    updatesMerged.data_finalizacao = new Date();
+  // Recalcular prazo sempre que a demanda é finalizada
+  if (updatesMerged.status === 'Finalizada') {
     const { verificarPrazo } = require('../utils/status.utils');
-    updatesMerged.prazo = verificarPrazo(updatesMerged.data_finalizacao.toISOString(), demandaAntes.data_previsao);
+    
+    // Usar data_finalizacao do payload, ou existente, ou criar nova
+    let dataFin = updatesMerged.data_finalizacao || demandaAntes.data_finalizacao;
+    if (!dataFin) {
+      dataFin = new Date();
+      updatesMerged.data_finalizacao = dataFin;
+    }
+    
+    // Usar data_previsao atualizada (se enviada) ou a existente
+    const dataPrevisao = updatesMerged.data_previsao || demandaAntes.data_previsao;
+    
+    // Converter para string ISO se necessário
+    const dataFinStr = typeof dataFin === 'string' ? dataFin : dataFin.toISOString();
+    
+    // Sempre recalcular o prazo para garantir consistência
+    updatesMerged.prazo = verificarPrazo(dataFinStr, dataPrevisao);
   }
 
   const updateData = { ...updatesMerged };

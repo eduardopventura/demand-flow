@@ -1,5 +1,33 @@
 # Changelog - Demand Flow
 
+## [1.1.0] - 2026-01-12
+
+### 💾 Autosave e Sincronização Automática
+
+Esta versão introduz o sistema de salvamento automático (Autosave) para demandas, eliminando a necessidade de botão "Salvar" e garantindo que arquivos anexados sejam persistidos antes de ações automáticas.
+
+#### ✨ Novas Funcionalidades
+
+**1. Autosave Completo no Detalhes da Demanda**
+- ✅ **Salvamento Automático**: Alterações em campos de texto, observações, datas e dropdowns são salvas automaticamente.
+- ✅ **Debounce Inteligente**: Campos de texto aguardam o usuário parar de digitar (1s) para salvar, evitando excesso de requisições.
+- ✅ **Feedback Visual**: Indicador "Salvando..." / "Salvo" no cabeçalho do modal para transparência.
+- ✅ **Upload Imediato**: Arquivos anexados são salvos e vinculados à demanda instantaneamente.
+
+**2. Integração Robusta com Webhooks**
+- ✅ **Upload Pré-Ação**: Garante que arquivos estejam persistidos no backend antes que uma ação (webhook) seja disparada.
+- ✅ **Correção de Fluxo**: Resolve o problema onde arquivos anexados não eram enviados para webhooks se a demanda não fosse salva manualmente antes.
+
+### 🐛 Correções de Bugs
+
+**1. Cálculo de Prazo (Mesmo Dia)**
+- ✅ **Problema**: Demandas finalizadas no mesmo dia da previsão (mas em horário posterior) eram marcadas como "Atrasadas" (vermelho).
+- ✅ **Causa**: Comparação de datas incluía o componente de tempo (horas/minutos).
+- ✅ **Solução**: Normalização das datas para comparar apenas ano/mês/dia (UTC).
+- ✅ **Arquivos modificados**: `backend/utils/status.utils.js`, `backend/services/demanda.service.js`.
+
+---
+
 ## [1.0.4] - 2026-01-05
 
 ### 🐛 Correções Críticas

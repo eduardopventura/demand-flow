@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useData } from "@/contexts/DataContext";
 import {
   Dialog,
@@ -28,7 +28,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Calendar as CalendarIcon, Zap, Play, Check, AlertCircle, Loader2 } from "lucide-react";
+import { Calendar as CalendarIcon, Zap, Play, Check, AlertCircle, Loader2, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import type { Demanda, TarefaStatus, CampoPreenchimento, Tarefa } from "@/types";
 import { formatarData } from "@/utils/prazoUtils";
@@ -37,6 +37,7 @@ import { StickyTabs } from "@/components/StickyTabs";
 import { CampoInput, ResponsavelSelect, GrupoCampos } from "@/components/form";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { useDebouncedCallback } from "@/hooks/useDebounce";
 
 interface DetalhesDemandaModalProps {
   demanda: Demanda | null;
@@ -44,6 +45,7 @@ interface DetalhesDemandaModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
+type SavingStatus = "idle" | "saving" | "saved" | "error";
 
 export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDemandaModalProps) => {
   const { updateDemanda, getTemplate, acoes, getAcao, getCargo, executarAcaoTarefa } = useData();
@@ -59,6 +61,10 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
   const [executandoAcao, setExecutandoAcao] = useState<string | null>(null);
   const [grupoReplicas, setGrupoReplicas] = useState<Record<string, number>>({});
   
+  // Auto-save states
+  const [savingStatus, setSavingStatus] = useState<SavingStatus>("idle");
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  
   const tabsSentinelRef = useRef<HTMLDivElement>(null);
   const initialSnapshotRef = useRef<{
     responsavel_id: string;
@@ -69,6 +75,39 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
   } | null>(null);
 
   const template = demanda ? getTemplate(demanda.template_id) : null;
+
+  // Função auxiliar de salvamento parcial
+  const savePartial = useCallback(async (payload: any) => {
+    if (!demanda) return;
+    
+    setSavingStatus("saving");
+    try {
+      await updateDemanda(demanda.id, payload);
+      setSavingStatus("saved");
+      setLastSaved(new Date());
+      
+      // Voltar para idle após 2 segundos
+      setTimeout(() => {
+        setSavingStatus((prev) => prev === "saved" ? "idle" : prev);
+      }, 2000);
+    } catch (error) {
+      console.error("Erro ao salvar:", error);
+      setSavingStatus("error");
+      toast.error("Erro ao salvar alterações. Verifique sua conexão.");
+    }
+  }, [demanda, updateDemanda]);
+
+  // Debounced save para campos de texto
+  const debouncedSaveCampo = useDebouncedCallback((idCampo: string, valor: string) => {
+    savePartial({
+      campos_preenchidos_patch: [{ id_campo: idCampo, valor }]
+    });
+  }, 1000);
+
+  // Debounced save para observações
+  const debouncedSaveObservacoes = useDebouncedCallback((valor: string) => {
+    savePartial({ observacoes: valor });
+  }, 1000);
 
   // Verificar se todos os campos obrigatórios de uma ação estão preenchidos
   const verificarCamposAcaoPreenchidos = (tarefa: Tarefa) => {
@@ -200,24 +239,40 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
     const oldCount = grupoReplicas[grupoId] || 1;
     const newValues = { ...camposValores };
     
+    // Lista de campos afetados para salvar
+    const camposParaSalvar: { id_campo: string; valor: string }[] = [];
+    const camposParaRemover: string[] = [];
+
     if (newCount > oldCount) {
       // Adicionar campos para novas réplicas
       (grupo.campos || []).forEach((campoFilho) => {
         for (let i = oldCount; i < newCount; i++) {
-          newValues[`${campoFilho.id_campo}__${i}`] = "";
+          const id = `${campoFilho.id_campo}__${i}`;
+          newValues[id] = "";
+          camposParaSalvar.push({ id_campo: id, valor: "" });
         }
       });
     } else if (newCount < oldCount) {
       // Remover campos das réplicas removidas
       (grupo.campos || []).forEach((campoFilho) => {
         for (let i = newCount; i < oldCount; i++) {
-          delete newValues[`${campoFilho.id_campo}__${i}`];
+          const id = `${campoFilho.id_campo}__${i}`;
+          delete newValues[id];
+          camposParaRemover.push(id);
         }
       });
     }
     
     setCamposValores(newValues);
     setGrupoReplicas({ ...grupoReplicas, [grupoId]: newCount });
+    
+    // Salvar alterações de estrutura imediatamente
+    if (camposParaSalvar.length > 0 || camposParaRemover.length > 0) {
+      const payload: any = {};
+      if (camposParaSalvar.length > 0) payload.campos_preenchidos_patch = camposParaSalvar;
+      if (camposParaRemover.length > 0) payload.campos_preenchidos_remove = camposParaRemover;
+      savePartial(payload);
+    }
   };
 
   // Filtrar e ordenar campos visíveis para uma aba específica
@@ -250,6 +305,19 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
       t.id_tarefa === tarefaId ? { ...t, concluida } : t
     );
     setTarefasStatus(novoStatus);
+    
+    // Salvar tarefa imediatamente
+    const tarefaAtual = tarefasStatus.find(t => t.id_tarefa === tarefaId);
+    if (tarefaAtual) {
+      savePartial({
+        tarefas_status_patch: [{
+          id_tarefa: tarefaId,
+          concluida,
+          responsavel_id: tarefaAtual.responsavel_id,
+          cargo_responsavel_id: tarefaAtual.cargo_responsavel_id
+        }]
+      });
+    }
   };
 
   const handleConfirmReopenFromTaskToggle = () => {
@@ -258,6 +326,18 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
         t.id_tarefa === pendingTaskToggle.tarefaId ? { ...t, concluida: pendingTaskToggle.concluida } : t
       );
       setTarefasStatus(novoStatus);
+      
+      const tarefaAtual = tarefasStatus.find(t => t.id_tarefa === pendingTaskToggle.tarefaId);
+      if (tarefaAtual) {
+        savePartial({
+          tarefas_status_patch: [{
+            id_tarefa: pendingTaskToggle.tarefaId,
+            concluida: pendingTaskToggle.concluida,
+            responsavel_id: tarefaAtual.responsavel_id,
+            cargo_responsavel_id: tarefaAtual.cargo_responsavel_id
+          }]
+        });
+      }
     }
     setShowReopenConfirm(false);
     setPendingTaskToggle(null);
@@ -268,117 +348,10 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
     setPendingTaskToggle(null);
   };
 
-  const handleSalvar = async () => {
-    if (!demanda || !template) return;
-
-    const initial = initialSnapshotRef.current;
-
-    // Fallback seguro: se por algum motivo não temos snapshot, mantém comportamento antigo
-    if (!initial) {
-      updateDemanda(demanda.id, {
-        responsavel_id: responsavelId,
-        campos_preenchidos: Object.entries(camposValores).map(([id_campo, valor]) => ({
-          id_campo,
-          valor,
-        })),
-        tarefas_status: tarefasStatus,
-        data_previsao: dataPrevisao?.toISOString() || demanda.data_previsao,
-        observacoes,
-      } as any);
-
-      toast.success("Demanda atualizada com sucesso!");
-      onOpenChange(false);
-      return;
-    }
-
-    // 1) Campos simples (apenas se mudou)
-    const payload: any = {};
-    if (responsavelId !== initial.responsavel_id) {
-      payload.responsavel_id = responsavelId;
-    }
-
-    const dataPrevisaoIso = dataPrevisao?.toISOString();
-    if (dataPrevisaoIso && dataPrevisaoIso !== initial.data_previsao) {
-      payload.data_previsao = dataPrevisaoIso;
-    }
-
-    if (observacoes !== initial.observacoes) {
-      payload.observacoes = observacoes;
-    }
-
-    // 2) Campos preenchidos - patch + remoções (merge por campo)
-    const camposPatch: { id_campo: string; valor: string }[] = [];
-    const camposRemove: string[] = [];
-
-    for (const [id_campo, valor] of Object.entries(camposValores)) {
-      const valorInicial = initial.camposValores[id_campo];
-      if (valorInicial !== valor) {
-        // inclui também valores vazios (preserva réplicas/grupos)
-        camposPatch.push({ id_campo, valor });
-      }
-    }
-
-    for (const id_campo of Object.keys(initial.camposValores)) {
-      if (!(id_campo in camposValores)) {
-        camposRemove.push(id_campo);
-      }
-    }
-
-    if (camposPatch.length > 0) {
-      payload.campos_preenchidos_patch = camposPatch;
-    }
-    if (camposRemove.length > 0) {
-      payload.campos_preenchidos_remove = camposRemove;
-    }
-
-    // 3) Tarefas - patch por id_tarefa (merge por campo)
-    const tarefasInicialPorId = new Map(initial.tarefasStatus.map((t) => [t.id_tarefa, t]));
-    const tarefasPatch: TarefaStatus[] = [];
-
-    for (const tarefa of tarefasStatus) {
-      const inicial = tarefasInicialPorId.get(tarefa.id_tarefa);
-      const inicialConcluida = inicial?.concluida ?? false;
-      const inicialResp = inicial?.responsavel_id;
-      const inicialCargo = inicial?.cargo_responsavel_id;
-      const atualResp = tarefa.responsavel_id;
-      const atualCargo = tarefa.cargo_responsavel_id;
-
-      if (
-        !inicial ||
-        inicialConcluida !== tarefa.concluida ||
-        inicialResp !== atualResp ||
-        inicialCargo !== atualCargo
-      ) {
-        tarefasPatch.push({
-          id_tarefa: tarefa.id_tarefa,
-          concluida: tarefa.concluida,
-          responsavel_id: tarefa.responsavel_id,
-          cargo_responsavel_id: tarefa.cargo_responsavel_id,
-        });
-      }
-    }
-
-    if (tarefasPatch.length > 0) {
-      payload.tarefas_status_patch = tarefasPatch;
-    }
-
-    // Se nada mudou, não faz request
-    if (Object.keys(payload).length === 0) {
-      toast.message("Nenhuma alteração para salvar");
-      onOpenChange(false);
-      return;
-    }
-
-    await updateDemanda(demanda.id, payload);
-
-    toast.success("Demanda atualizada com sucesso!");
-    onOpenChange(false);
-  };
-
   // Handler para iniciar andamento
   const handleIniciarAndamento = () => {
     if (!demanda) return;
-    updateDemanda(demanda.id, {
+    savePartial({
       status: "Em Andamento",
       data_finalizacao: null,
     });
@@ -388,7 +361,7 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
   // Handler para finalizar demanda
   const handleFinalizarDemanda = () => {
     if (!demanda) return;
-    updateDemanda(demanda.id, {
+    savePartial({
       status: "Finalizada",
       data_finalizacao: new Date().toISOString(),
     });
@@ -427,7 +400,46 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
   };
 
   const handleCampoChange = (idCampo: string, valor: string) => {
-    setCamposValores({ ...camposValores, [idCampo]: valor });
+    setCamposValores(prev => ({ ...prev, [idCampo]: valor }));
+    
+    // Verificar tipo do campo para decidir estratégia de salvamento
+    const campo = template?.campos_preenchimento.find(c => c.id_campo === idCampo);
+    // Verificar se é campo de grupo (replica)
+    const isGrupoReplica = idCampo.includes("__");
+    
+    let tipo = "texto";
+    if (campo) {
+      tipo = campo.tipo_campo;
+    } else if (isGrupoReplica) {
+      // Tentar inferir tipo pelo pai
+      const parentId = idCampo.split("__")[0];
+      const parent = template?.campos_preenchimento.find(c => c.id_campo === parentId);
+      if (parent && parent.campos) {
+        // Encontrar subcampo na lista flat de campos do grupo? 
+        // A estrutura do GrupoCampos e handleReplicaChange sugere que não temos o ID do subcampo facilmente aqui.
+        // Mas podemos assumir que uploads de arquivo e selects devem ser imediatos.
+        // Se o valor parece um path de arquivo (/uploads/...) ou é curto e específico, salvar já.
+        // Por segurança, vamos salvar imediatamente inputs que não sejam texto livre longo.
+      }
+    }
+
+    // Estratégia:
+    // Texto/Numero/Textarea -> Debounce
+    // Arquivo/Data/Select/Checkbox -> Imediato
+    const deveSalvarImediatamente = 
+      tipo === "arquivo" || 
+      tipo === "data" || 
+      tipo === "dropdown" || 
+      (tipo === "numero" && valor.length < 3) || // Números curtos (ex: qtd)
+      valor.startsWith("/uploads/"); // Arquivo
+      
+    if (deveSalvarImediatamente) {
+      savePartial({
+        campos_preenchidos_patch: [{ id_campo: idCampo, valor }]
+      });
+    } else {
+      debouncedSaveCampo(idCampo, valor);
+    }
   };
 
   // Renderizar um campo (simples ou grupo)
@@ -468,8 +480,30 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-full max-w-[calc(100vw-2rem)] sm:max-w-3xl max-h-[90vh] flex flex-col p-0">
         <DialogHeader className="px-6 py-4 border-b bg-muted/30">
-          <DialogTitle className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 pr-6">
+          <DialogTitle className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 pr-6 w-full">
             <span className="text-base sm:text-lg line-clamp-2">{demanda.nome_demanda}</span>
+            
+            {/* Saving Indicator */}
+            <div className="flex items-center gap-1.5 sm:ml-auto mt-1 sm:mt-0">
+              {savingStatus === "saving" && (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground font-normal">Salvando...</span>
+                </>
+              )}
+              {savingStatus === "saved" && (
+                <>
+                  <CheckCircle className="w-3.5 h-3.5 text-green-600" />
+                  <span className="text-xs text-green-600 font-normal">Salvo</span>
+                </>
+              )}
+              {savingStatus === "error" && (
+                <>
+                  <XCircle className="w-3.5 h-3.5 text-red-600" />
+                  <span className="text-xs text-red-600 font-normal">Erro ao salvar</span>
+                </>
+              )}
+            </div>
           </DialogTitle>
         </DialogHeader>
 
@@ -513,6 +547,9 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
                       onSelect={(date) => {
                         setDataPrevisao(date);
                         setIsCalendarOpen(false);
+                        if (date) {
+                          savePartial({ data_previsao: date.toISOString() });
+                        }
                       }}
                       locale={ptBR}
                       initialFocus
@@ -532,7 +569,10 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
               <Label className="text-sm">Responsável</Label>
               <ResponsavelSelect
                 value={responsavelId}
-                onValueChange={setResponsavelId}
+                onValueChange={(val) => {
+                  setResponsavelId(val);
+                  savePartial({ responsavel_id: val });
+                }}
                 includeCargos={false}
               />
             </div>
@@ -556,6 +596,7 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
                     return;
                   }
                   setObservacoes(value);
+                  debouncedSaveObservacoes(value);
                 }}
                 placeholder="Adicione observações sobre esta demanda..."
                 className="resize-none"
@@ -657,8 +698,7 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
                       <ResponsavelSelect
                         value={responsavelTarefa || demanda.responsavel_id || ""}
                         onValueChange={(v) => {
-                          setTarefasStatus(
-                            tarefasStatus.map((t) =>
+                          const novosStatus = tarefasStatus.map((t) =>
                               t.id_tarefa === tarefa.id_tarefa
                                 ? {
                                     ...t,
@@ -671,8 +711,21 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
                                       : { responsavel_id: v, cargo_responsavel_id: null })
                                   }
                                 : t
-                            )
-                          );
+                            );
+                          setTarefasStatus(novosStatus);
+                          
+                          // Salvar imediatamente
+                          const tarefaAtualizada = novosStatus.find(t => t.id_tarefa === tarefa.id_tarefa);
+                          if (tarefaAtualizada) {
+                            savePartial({
+                              tarefas_status_patch: [{
+                                id_tarefa: tarefa.id_tarefa,
+                                concluida: tarefaAtualizada.concluida,
+                                responsavel_id: tarefaAtualizada.responsavel_id,
+                                cargo_responsavel_id: tarefaAtualizada.cargo_responsavel_id
+                              }]
+                            });
+                          }
                         }}
                         defaultResponsavelId={demanda.responsavel_id}
                         triggerClassName="h-8 text-sm"
@@ -769,11 +822,14 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
 
         <DialogFooter className="px-6 py-4 border-t bg-muted/30 flex-col sm:flex-row gap-2 sm:gap-0">
           {/* Indicador de último modificador - canto esquerdo */}
-          {demanda.modificado_por && (
-            <div className="flex-1 text-xs text-muted-foreground">
-              Modificado por: {demanda.modificado_por.nome}
-            </div>
-          )}
+          <div className="flex-1 text-xs text-muted-foreground">
+            {demanda.modificado_por && (
+              <span>Modificado por: {demanda.modificado_por.nome}</span>
+            )}
+            {lastSaved && (
+              <span> • Salvo às {lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            )}
+          </div>
           
           <div className="flex items-center gap-2 w-full sm:w-auto">
             {podeMostrarBotaoStatus.mostrar && podeMostrarBotaoStatus.tipo === "iniciar" && (
@@ -798,7 +854,6 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
             <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
               Fechar
             </Button>
-            <Button onClick={handleSalvar} className="w-full sm:w-auto">Salvar Alterações</Button>
           </div>
         </DialogFooter>
       </DialogContent>

@@ -71,6 +71,11 @@ export const getCorBordaPrazo = (
   if (dataFinalizacao) {
     const finalizacao = new Date(dataFinalizacao);
     const previsao = new Date(dataPrevisao);
+    
+    // Zerar horas para comparar apenas dias (considerar data local)
+    finalizacao.setHours(0, 0, 0, 0);
+    previsao.setHours(0, 0, 0, 0);
+    
     return finalizacao > previsao ? 'vermelho' : 'verde';
   }
   

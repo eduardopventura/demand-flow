@@ -1,5 +1,17 @@
 # Changelog - Demand Flow
 
+## [1.1.1] - 2026-01-12
+
+### 🐛 Correções de Bugs
+
+**1. Cor de Prazo em Demandas Finalizadas**
+- ✅ **Problema**: Demandas finalizadas no mesmo dia do prazo (mas em horário posterior) continuavam sendo exibidas com borda vermelha (atrasada) na lista de finalizadas.
+- ✅ **Causa**: A comparação de datas no frontend considerava o horário exato da finalização vs. o horário zero da data de previsão.
+- ✅ **Solução**: Ajuste na função `getCorBordaPrazo` para zerar as horas de ambas as datas antes da comparação, garantindo que finalizações no mesmo dia sejam sempre consideradas "no prazo" (verde).
+- ✅ **Arquivo modificado**: `frontend/src/utils/prazoUtils.ts`.
+
+---
+
 ## [1.1.0] - 2026-01-12
 
 ### 💾 Autosave e Sincronização Automática

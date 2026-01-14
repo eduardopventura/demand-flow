@@ -101,16 +101,22 @@ Tarefas:
 
 - **Por Demanda:** Responsável principal
 - **Por Tarefa:** Responsável específico (opcional)
-- **Visualização no Card:** Lista todos os envolvidos com contagem de tarefas abertas
+- **Visualização Inteligente no Card:** Lista responsáveis com tarefas **disponíveis** (sem dependências bloqueadoras)
+- **Highlight no Modal:** Destaque sutil para tarefas do usuário logado em demandas colaborativas
 
 ```
 ┌─────────────────────────────────────┐
 │ Gerar Contrato - João Silva         │
-│ 👤 Eduardo (3)                      │
-│ 👤 Cristina (1)                     │
+│ 👤 Eduardo  👤 Cristina             │
 │ 📅 06/12/2025 | Previsão: 13/12/2025│
 └─────────────────────────────────────┘
 ```
+
+**Funcionalidades:**
+- ✅ **Filtro inteligente**: Mostra apenas responsáveis com tarefas disponíveis para execução
+- ✅ **Sem contador**: Visual limpo sem números de tarefas
+- ✅ **Highlight contextual**: Tarefas do usuário logado destacadas quando há múltiplos responsáveis
+- ✅ **Lógica de dependências**: Considera apenas tarefas sem dependências bloqueadoras
 
 ---
 
@@ -388,10 +394,11 @@ Sistema inteligente de salvamento automático para garantir integridade dos dado
 
 **Funcionalidades:**
 - **Salvamento em Tempo Real:** Alterações salvas automaticamente sem necessidade de botão "Salvar".
-- **Debounce Inteligente:** Campos de texto salvam após o usuário parar de digitar (1s).
+- **Debounce Otimizado (2s):** Campos de texto salvam após o usuário parar de digitar, reduzindo chamadas à API.
 - **Feedback Visual:** Indicador de status ("Salvando...", "Salvo") no topo do modal.
 - **Upload Atômico:** Arquivos são salvos imediatamente, garantindo disponibilidade para ações.
 - **Sincronização Pré-Ação:** Garante que dados e arquivos estejam persistidos antes de executar webhooks.
+- **Proteção WebSocket:** Updates via WebSocket são ignorados durante edição ativa para evitar perda de dados.
 
 ---
 
@@ -424,7 +431,39 @@ Sistema inteligente de salvamento automático para garantir integridade dos dado
 
 ---
 
+### 👥 Cargo como Responsável da Demanda
+
+**Objetivo:** Permitir que um Cargo (setor/grupo) seja o responsável principal por uma demanda, não apenas um usuário específico.
+
+**Status Atual:**
+- Atualmente o sistema exige um usuário específico como responsável.
+- Tarefas já suportam cargos como responsáveis.
+- Solução temporária aplicada na v1.1.2 removeu a opção de selecionar cargo para evitar erros.
+
+**Funcionalidades Planejadas:**
+- Migração de banco para aceitar `cargo_responsavel_id` na tabela Demandas
+- Ajuste no Backend (`createDemanda`) para suportar criação sem usuário definido
+- Notificação para todos os membros do cargo quando uma demanda for atribuída ao grupo
+- Regras de permissão para "pegar" a demanda (atribuir a si mesmo) ou trabalhar nela como grupo
+
+---
+
 ## 📝 Histórico de Versões
+
+### v1.1.3 - 15/01/2026
+- Refinamento visual de responsáveis nos cards (removido contador)
+- Filtro inteligente que mostra apenas responsáveis com tarefas disponíveis
+- Highlight sutil nas tarefas do usuário logado em demandas colaborativas
+- Lógica consistente de dependências entre card e modal
+
+### v1.1.2 - 14/01/2026
+- Correção do DatePicker abrindo automaticamente
+- Proteção contra reset de estado via WebSocket durante edição
+- Debounce otimizado para 2 segundos
+- Novo componente DatePicker com react-datepicker
+
+### v1.1.1 - 12/01/2026
+- Correção da cor de prazo em demandas finalizadas no mesmo dia
 
 ### v1.1.0 - 12/01/2026
 - Autosave completo em demandas
@@ -572,5 +611,5 @@ Ver histórico completo em [CHANGELOG.md](./CHANGELOG.md)
 
 ---
 
-**Versão:** 1.1.0  
-**Última Atualização:** 12/01/2026
+**Versão:** 1.1.3  
+**Última Atualização:** 15/01/2026

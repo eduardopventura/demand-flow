@@ -20,8 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { memo, useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { ptBR } from "date-fns/locale";
+import { DatePicker } from "@/components/ui/date-picker";
 
 interface DemandaCardProps {
   demanda: Demanda;
@@ -52,7 +51,7 @@ const DemandaCardComponent = ({ demanda, onClick, isDragging }: DemandaCardProps
     vermelho: 'border-l-4 border-l-red-500',
   }[corBorda];
 
-  const handleDateChange = (date: Date | undefined) => {
+  const handleDateChange = (date: Date | null) => {
     if (date) {
       updateDemanda(demanda.id, {
         data_previsao: date.toISOString(),
@@ -61,21 +60,36 @@ const DemandaCardComponent = ({ demanda, onClick, isDragging }: DemandaCardProps
     }
   };
 
-  const usuariosComTarefas = demanda.tarefas_status
-    .filter((t) => !t.concluida)
-    .reduce((acc, tarefa) => {
-      let responsavelId = tarefa.cargo_responsavel_id || tarefa.responsavel_id;
+  // Coletar responsáveis com tarefas visíveis (em aberto E sem dependências bloqueadoras)
+  const responsaveisVisiveis = new Set<string>();
+  
+  if (template && template.tarefas) {
+    demanda.tarefas_status.forEach((tarefaStatus) => {
+      // Ignorar tarefas concluídas
+      if (tarefaStatus.concluida) return;
+      
+      // Buscar definição da tarefa no template para verificar dependências
+      const tarefaTemplate = template.tarefas.find(t => t.id_tarefa === tarefaStatus.id_tarefa);
+      if (!tarefaTemplate) return;
+      
+      // Verificar se a tarefa está disponível (sem dependência ou dependência concluída)
+      if (tarefaTemplate.link_pai) {
+        const tarefaPai = demanda.tarefas_status.find(t => t.id_tarefa === tarefaTemplate.link_pai);
+        if (!tarefaPai?.concluida) return; // Dependência não concluída, tarefa bloqueada
+      }
+      
+      // Tarefa está visível, adicionar responsável
+      let responsavelId = tarefaStatus.cargo_responsavel_id || tarefaStatus.responsavel_id;
       
       if (!responsavelId && demanda.responsavel_id) {
         responsavelId = demanda.responsavel_id;
       }
       
       if (responsavelId) {
-        acc[responsavelId] = (acc[responsavelId] || 0) + 1;
+        responsaveisVisiveis.add(responsavelId);
       }
-      
-      return acc;
-    }, {} as Record<string, number>);
+    });
+  }
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -145,8 +159,8 @@ const DemandaCardComponent = ({ demanda, onClick, isDragging }: DemandaCardProps
       </div>
 
       <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-        {Object.entries(usuariosComTarefas).length > 0 ? (
-          Object.entries(usuariosComTarefas).map(([responsavelId, count]) => {
+        {responsaveisVisiveis.size > 0 ? (
+          Array.from(responsaveisVisiveis).map((responsavelId) => {
             const cargo = getCargo(responsavelId);
             // Verificar se é um cargo
             if (cargo) {
@@ -154,7 +168,6 @@ const DemandaCardComponent = ({ demanda, onClick, isDragging }: DemandaCardProps
                 <div key={responsavelId} className="flex items-center gap-1 text-xs bg-primary/10 text-primary px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md">
                   <Tag className="w-3 h-3" />
                   <span className="font-medium truncate max-w-[80px] sm:max-w-none">{cargo.nome}</span>
-                  <span className="text-primary/70">({count})</span>
                 </div>
               );
             }
@@ -169,13 +182,12 @@ const DemandaCardComponent = ({ demanda, onClick, isDragging }: DemandaCardProps
               <div key={responsavelId} className="flex items-center gap-1 text-xs bg-muted px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md">
                 <User className="w-3 h-3" />
                 <span className="font-medium truncate max-w-[80px] sm:max-w-none">{getPrimeiroNome(usuario.nome)}</span>
-                <span className="text-muted-foreground">({count})</span>
               </div>
             );
-             })
-         ) : (
-           <div className="text-xs text-muted-foreground">Todas as tarefas concluídas</div>
-         )}
+          })
+        ) : (
+          <div className="text-xs text-muted-foreground">Todas as tarefas concluídas</div>
+        )}
       </div>
 
       {/* Datas de criação e previsão */}
@@ -196,12 +208,10 @@ const DemandaCardComponent = ({ demanda, onClick, isDragging }: DemandaCardProps
             </button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start" onClick={(e) => e.stopPropagation()}>
-            <Calendar
-              mode="single"
+            <DatePicker
               selected={new Date(demanda.data_previsao)}
-              onSelect={handleDateChange}
-              locale={ptBR}
-              initialFocus
+              onChange={handleDateChange}
+              inline
             />
           </PopoverContent>
         </Popover>

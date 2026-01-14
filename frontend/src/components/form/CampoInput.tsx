@@ -6,6 +6,7 @@
 import { useState, useRef, memo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Select,
   SelectContent,
@@ -77,14 +78,25 @@ export const CampoInput = memo(function CampoInput({ campo, value, onChange, sho
         />
       );
     
-    case "data":
+    case "data": {
+      // Converter string para Date se existir valor válido
+      let dateValue: Date | null = null;
+      if (value) {
+        const parsed = new Date(value);
+        dateValue = isNaN(parsed.getTime()) ? null : parsed;
+      }
+      
       return (
-        <Input
-          type="date"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
+        <DatePicker
+          selected={dateValue}
+          onChange={(date) => {
+            // Salvar como ISO string (YYYY-MM-DD) para compatibilidade com backend
+            onChange(date ? date.toISOString().split('T')[0] : "");
+          }}
+          placeholder={campo.obrigatorio_criacao ? "Selecione uma data" : "Data (opcional)"}
         />
       );
+    }
     
     case "arquivo":
       return (

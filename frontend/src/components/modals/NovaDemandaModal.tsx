@@ -321,6 +321,7 @@ export const NovaDemandaModal = ({ open, onOpenChange }: NovaDemandaModalProps) 
                 <ResponsavelSelect
                   value={responsavelId}
                   onValueChange={setResponsavelId}
+                  includeCargos={false}
                 />
               </div>
             </div>

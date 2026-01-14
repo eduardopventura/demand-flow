@@ -241,5 +241,5 @@ docker system prune -a
 
 ---
 
-**Versão:** 1.1.1  
-**Última Atualização:** 12/01/2026
+**Versão:** 1.1.3  
+**Última Atualização:** 15/01/2026

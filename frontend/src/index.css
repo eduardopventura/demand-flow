@@ -141,3 +141,113 @@ All colors MUST be HSL.
     overscroll-behavior-y: contain;
   }
 }
+
+/* React DatePicker - shadcn/ui theme */
+@layer components {
+  /* Container do popper */
+  .react-datepicker-popper-shadcn {
+    z-index: 50 !important;
+  }
+
+  /* Container principal */
+  .react-datepicker-shadcn {
+    @apply bg-popover text-popover-foreground border border-border rounded-lg shadow-md font-sans !important;
+  }
+
+  .react-datepicker-shadcn .react-datepicker__header {
+    @apply bg-muted/30 border-b border-border rounded-t-lg pt-2 !important;
+  }
+
+  .react-datepicker-shadcn .react-datepicker__current-month {
+    @apply text-sm font-medium text-foreground mb-2 !important;
+  }
+
+  .react-datepicker-shadcn .react-datepicker__day-names {
+    @apply flex justify-around !important;
+  }
+
+  .react-datepicker-shadcn .react-datepicker__day-name {
+    @apply text-muted-foreground text-xs font-normal w-9 h-9 flex items-center justify-center !important;
+  }
+
+  .react-datepicker-shadcn .react-datepicker__month {
+    @apply m-2 !important;
+  }
+
+  .react-datepicker-shadcn .react-datepicker__week {
+    @apply flex justify-around !important;
+  }
+
+  .react-datepicker-shadcn .react-datepicker__day {
+    @apply w-9 h-9 flex items-center justify-center text-sm rounded-md transition-colors cursor-pointer hover:bg-accent hover:text-accent-foreground !important;
+  }
+
+  .react-datepicker-shadcn .react-datepicker__day--today {
+    @apply bg-accent/20 font-semibold !important;
+  }
+
+  .react-datepicker-shadcn .react-datepicker__day--selected,
+  .react-datepicker-shadcn .react-datepicker__day--keyboard-selected {
+    @apply bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground !important;
+  }
+
+  .react-datepicker-shadcn .react-datepicker__day--outside-month {
+    @apply text-muted-foreground opacity-50 !important;
+  }
+
+  .react-datepicker-shadcn .react-datepicker__day--disabled {
+    @apply text-muted-foreground opacity-30 cursor-not-allowed hover:bg-transparent !important;
+  }
+
+  /* Navigation arrows */
+  .react-datepicker-shadcn .react-datepicker__navigation {
+    @apply top-2 !important;
+  }
+
+  .react-datepicker-shadcn .react-datepicker__navigation-icon::before {
+    @apply border-muted-foreground !important;
+  }
+
+  .react-datepicker-shadcn .react-datepicker__navigation:hover .react-datepicker__navigation-icon::before {
+    @apply border-foreground !important;
+  }
+
+  /* Year/Month dropdowns */
+  .react-datepicker-shadcn .react-datepicker__year-dropdown,
+  .react-datepicker-shadcn .react-datepicker__month-dropdown {
+    @apply bg-popover border border-border rounded-md shadow-md !important;
+  }
+
+  .react-datepicker-shadcn .react-datepicker__year-option,
+  .react-datepicker-shadcn .react-datepicker__month-option {
+    @apply py-1 px-2 hover:bg-accent hover:text-accent-foreground !important;
+  }
+
+  .react-datepicker-shadcn .react-datepicker__year-option--selected,
+  .react-datepicker-shadcn .react-datepicker__month-option--selected {
+    @apply bg-primary text-primary-foreground !important;
+  }
+
+  /* Time picker */
+  .react-datepicker-shadcn .react-datepicker__time-container {
+    @apply border-l border-border !important;
+  }
+
+  .react-datepicker-shadcn .react-datepicker__time-list-item {
+    @apply py-1 px-3 hover:bg-accent hover:text-accent-foreground !important;
+  }
+
+  .react-datepicker-shadcn .react-datepicker__time-list-item--selected {
+    @apply bg-primary text-primary-foreground !important;
+  }
+
+  /* Triangle/Arrow */
+  .react-datepicker-shadcn .react-datepicker__triangle {
+    @apply hidden !important;
+  }
+
+  /* Input field styles when inline */
+  .react-datepicker-shadcn .react-datepicker__input-container input {
+    @apply flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 !important;
+  }
+}

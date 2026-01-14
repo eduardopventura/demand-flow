@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useData } from "@/contexts/DataContext";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Dialog,
   DialogContent,
@@ -26,16 +27,14 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { Calendar as CalendarIcon, Zap, Play, Check, AlertCircle, Loader2, CheckCircle, XCircle } from "lucide-react";
+import { DatePicker } from "@/components/ui/date-picker";
+import { Zap, Play, Check, AlertCircle, Loader2, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import type { Demanda, TarefaStatus, CampoPreenchimento, Tarefa } from "@/types";
 import { formatarData } from "@/utils/prazoUtils";
 import { avaliarCondicaoVisibilidade, ordenarCamposPorAba, buscarValorCampo } from "@/utils/campoUtils";
 import { StickyTabs } from "@/components/StickyTabs";
 import { CampoInput, ResponsavelSelect, GrupoCampos } from "@/components/form";
-import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useDebouncedCallback } from "@/hooks/useDebounce";
 
@@ -49,13 +48,13 @@ type SavingStatus = "idle" | "saving" | "saved" | "error";
 
 export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDemandaModalProps) => {
   const { updateDemanda, getTemplate, acoes, getAcao, getCargo, executarAcaoTarefa } = useData();
+  const { user } = useAuth();
   const [responsavelId, setResponsavelId] = useState("");
   const [camposValores, setCamposValores] = useState<Record<string, string>>({});
   const [tarefasStatus, setTarefasStatus] = useState<TarefaStatus[]>([]);
   const [showReopenConfirm, setShowReopenConfirm] = useState(false);
   const [pendingTaskToggle, setPendingTaskToggle] = useState<{ tarefaId: string; concluida: boolean } | null>(null);
   const [dataPrevisao, setDataPrevisao] = useState<Date | undefined>(undefined);
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [observacoes, setObservacoes] = useState("");
   const [abaAtiva, setAbaAtiva] = useState<string>("geral");
   const [executandoAcao, setExecutandoAcao] = useState<string | null>(null);
@@ -73,8 +72,20 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
     camposValores: Record<string, string>;
     tarefasStatus: TarefaStatus[];
   } | null>(null);
+  
+  // Ref para rastrear demanda em edição (evita reset por WebSocket)
+  const demandaEmEdicaoRef = useRef<string | null>(null);
 
   const template = demanda ? getTemplate(demanda.template_id) : null;
+  
+  // Rastrear quando modal abre/fecha para ignorar WebSocket updates
+  useEffect(() => {
+    if (open && demanda?.id) {
+      demandaEmEdicaoRef.current = demanda.id;
+    } else {
+      demandaEmEdicaoRef.current = null;
+    }
+  }, [open, demanda?.id]);
 
   // Função auxiliar de salvamento parcial
   const savePartial = useCallback(async (payload: any) => {
@@ -97,17 +108,17 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
     }
   }, [demanda, updateDemanda]);
 
-  // Debounced save para campos de texto
+  // Debounced save para campos de texto (2s para melhor performance)
   const debouncedSaveCampo = useDebouncedCallback((idCampo: string, valor: string) => {
     savePartial({
       campos_preenchidos_patch: [{ id_campo: idCampo, valor }]
     });
-  }, 1000);
+  }, 2000);
 
-  // Debounced save para observações
+  // Debounced save para observações (2s para melhor performance)
   const debouncedSaveObservacoes = useDebouncedCallback((valor: string) => {
     savePartial({ observacoes: valor });
-  }, 1000);
+  }, 2000);
 
   // Verificar se todos os campos obrigatórios de uma ação estão preenchidos
   const verificarCamposAcaoPreenchidos = (tarefa: Tarefa) => {
@@ -198,37 +209,48 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
   };
 
   useEffect(() => {
-    if (demanda && template) {
-      setResponsavelId(demanda.responsavel_id);
-      
-      const valores: Record<string, string> = {};
-      demanda.campos_preenchidos.forEach((campo) => {
-        valores[campo.id_campo] = campo.valor;
-      });
-      setCamposValores(valores);
-      
-      // Detectar réplicas dos grupos
-      const replicas = detectarReplicasGrupos(demanda.campos_preenchidos, template.campos_preenchimento);
-      setGrupoReplicas(replicas);
-      
-      setTarefasStatus([...demanda.tarefas_status]);
-      setDataPrevisao(new Date(demanda.data_previsao));
-      setObservacoes(demanda.observacoes || "");
-      
-      // Selecionar primeira aba
-      if (abas.length > 0) {
-        setAbaAtiva(abas[0].id);
-      }
-
-      // Snapshot inicial para merge por campo (evita sobrescrever alterações concorrentes)
-      initialSnapshotRef.current = {
-        responsavel_id: demanda.responsavel_id,
-        data_previsao: demanda.data_previsao,
-        observacoes: demanda.observacoes || "",
-        camposValores: valores,
-        tarefasStatus: [...demanda.tarefas_status],
-      };
+    if (!demanda || !template) return;
+    
+    // Ignorar updates WebSocket da demanda que está sendo editada
+    // Só sincronizar quando:
+    // - Modal acabou de abrir (estado ainda não foi inicializado)
+    // - Ou é uma demanda diferente
+    const jaInicializado = responsavelId !== "" || Object.keys(camposValores).length > 0;
+    if (demandaEmEdicaoRef.current === demanda.id && jaInicializado) {
+      // Modal já está editando esta demanda - ignorar updates do WebSocket
+      return;
     }
+    
+    setResponsavelId(demanda.responsavel_id);
+    
+    const valores: Record<string, string> = {};
+    demanda.campos_preenchidos.forEach((campo) => {
+      valores[campo.id_campo] = campo.valor;
+    });
+    setCamposValores(valores);
+    
+    // Detectar réplicas dos grupos
+    const replicas = detectarReplicasGrupos(demanda.campos_preenchidos, template.campos_preenchimento);
+    setGrupoReplicas(replicas);
+    
+    setTarefasStatus([...demanda.tarefas_status]);
+    setDataPrevisao(new Date(demanda.data_previsao));
+    setObservacoes(demanda.observacoes || "");
+    
+    // Selecionar primeira aba
+    if (abas.length > 0) {
+      setAbaAtiva(abas[0].id);
+    }
+
+    // Snapshot inicial para merge por campo (evita sobrescrever alterações concorrentes)
+    initialSnapshotRef.current = {
+      responsavel_id: demanda.responsavel_id,
+      data_previsao: demanda.data_previsao,
+      observacoes: demanda.observacoes || "",
+      camposValores: valores,
+      tarefasStatus: [...demanda.tarefas_status],
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [demanda, template, abas]);
 
   // Atualizar valores quando número de réplicas muda
@@ -399,6 +421,55 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
     });
   };
 
+  // Verificar se há múltiplos responsáveis com tarefas visíveis e disponíveis
+  const verificarMultiplosResponsaveis = useMemo(() => {
+    if (!template || !template.tarefas || !demanda) return false;
+
+    const responsaveisVisiveis = new Set<string>();
+    
+    // Obter tarefas visíveis (mesma lógica de getTarefasVisiveis)
+    const tarefasVisiveis = template.tarefas.filter((tarefa) => {
+      if (tarefa.link_pai) {
+        const tarefaPai = tarefasStatus.find((t) => t.id_tarefa === tarefa.link_pai);
+        if (!tarefaPai?.concluida) return false;
+      }
+      return true;
+    });
+
+    // Coletar responsáveis únicos das tarefas visíveis que estão em aberto
+    tarefasVisiveis.forEach((tarefa) => {
+      const status = tarefasStatus.find((t) => t.id_tarefa === tarefa.id_tarefa);
+      
+      // Apenas tarefas em aberto
+      if (status?.concluida) return;
+      
+      // Obter responsável
+      const responsavelId = status?.cargo_responsavel_id || status?.responsavel_id || demanda.responsavel_id;
+      
+      if (responsavelId) {
+        responsaveisVisiveis.add(responsavelId);
+      }
+    });
+
+    // Retorna true se houver 2 ou mais responsáveis diferentes
+    return responsaveisVisiveis.size >= 2;
+  }, [template, tarefasStatus, demanda]);
+
+  // Verificar se uma tarefa específica pertence ao usuário logado
+  const ehTarefaDoUsuarioLogado = (tarefa: Tarefa, status?: TarefaStatus) => {
+    if (!user || !demanda) return false;
+    
+    const responsavelId = status?.cargo_responsavel_id || status?.responsavel_id || demanda.responsavel_id;
+    
+    // Verifica se o responsável é o usuário logado
+    if (responsavelId === user.id) return true;
+    
+    // Verifica se o responsável é o cargo do usuário logado
+    if (user.cargo_id && responsavelId === user.cargo_id) return true;
+    
+    return false;
+  };
+
   const handleCampoChange = (idCampo: string, valor: string) => {
     setCamposValores(prev => ({ ...prev, [idCampo]: valor }));
     
@@ -527,35 +598,16 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
               </div>
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">Data de Previsão</Label>
-                <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal h-9",
-                        !dataPrevisao && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {dataPrevisao ? formatarData(dataPrevisao.toISOString()) : "Selecione uma data"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={dataPrevisao}
-                      onSelect={(date) => {
-                        setDataPrevisao(date);
-                        setIsCalendarOpen(false);
-                        if (date) {
-                          savePartial({ data_previsao: date.toISOString() });
-                        }
-                      }}
-                      locale={ptBR}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <DatePicker
+                  selected={dataPrevisao}
+                  onChange={(date) => {
+                    setDataPrevisao(date ?? undefined);
+                    if (date) {
+                      savePartial({ data_previsao: date.toISOString() });
+                    }
+                  }}
+                  placeholder="Selecione uma data"
+                />
               </div>
               {demanda.data_finalizacao && (
                 <div className="space-y-1 sm:col-span-2 p-3 rounded-md bg-green-500/10 border border-green-500/30">
@@ -665,12 +717,19 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
                 const responsavelTarefa =
                   status?.cargo_responsavel_id || status?.responsavel_id || demanda.responsavel_id;
 
+                // Verificar se deve aplicar highlight
+                const deveAplicarHighlight = 
+                  verificarMultiplosResponsaveis && 
+                  !status?.concluida && 
+                  ehTarefaDoUsuarioLogado(tarefa, status);
+
                 return (
                   <div
                     key={tarefa.id_tarefa}
                     className={cn(
                       "p-3 rounded-lg border bg-background space-y-2 transition-colors",
-                      status?.concluida && "bg-green-500/5 border-green-500/30"
+                      status?.concluida && "bg-green-500/5 border-green-500/30",
+                      deveAplicarHighlight && "bg-blue-100/60 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700"
                     )}
                   >
                     <div className="flex items-start gap-3">

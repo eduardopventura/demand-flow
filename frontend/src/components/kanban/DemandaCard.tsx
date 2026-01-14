@@ -78,17 +78,35 @@ const DemandaCardComponent = ({ demanda, onClick, isDragging }: DemandaCardProps
         if (!tarefaPai?.concluida) return; // Dependência não concluída, tarefa bloqueada
       }
       
-      // Tarefa está visível, adicionar responsável
-      let responsavelId = tarefaStatus.cargo_responsavel_id || tarefaStatus.responsavel_id;
+      // Tarefa está visível, determinar responsável (mesma lógica do modal)
+      // Prioridade: cargo_responsavel_id > responsavel_id > demanda.responsavel_id
+      const responsavelId = tarefaStatus.cargo_responsavel_id || tarefaStatus.responsavel_id || demanda.responsavel_id;
       
-      if (!responsavelId && demanda.responsavel_id) {
-        responsavelId = demanda.responsavel_id;
+      // Debug temporário - remover após identificar problema
+      if (demanda.nome_demanda.includes("Clarisse")) {
+        console.log(`[DEBUG] Tarefa ${tarefaStatus.id_tarefa}:`, {
+          cargo_responsavel_id: tarefaStatus.cargo_responsavel_id,
+          responsavel_id: tarefaStatus.responsavel_id,
+          demanda_responsavel_id: demanda.responsavel_id,
+          responsavel_final: responsavelId,
+          usuario: getUsuario(responsavelId)?.nome,
+          cargo: getCargo(responsavelId)?.nome
+        });
       }
       
       if (responsavelId) {
         responsaveisVisiveis.add(responsavelId);
       }
     });
+    
+    // Debug temporário - mostrar resultado final
+    if (demanda.nome_demanda.includes("Clarisse")) {
+      console.log(`[DEBUG] Responsáveis visíveis finais:`, Array.from(responsaveisVisiveis).map(id => ({
+        id,
+        usuario: getUsuario(id)?.nome,
+        cargo: getCargo(id)?.nome
+      })));
+    }
   }
 
   const handleDelete = (e: React.MouseEvent) => {

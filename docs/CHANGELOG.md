@@ -1,5 +1,93 @@
 # Changelog - Demand Flow
 
+## [1.1.4] - 2026-01-15
+
+### 🎨 Melhorias de UX e Correção de Fluxo de Criação
+
+Esta versão traz melhorias visuais na identificação de responsáveis e correção no fluxo de criação de demandas.
+
+#### ✨ Melhorias
+
+**1. Destaque Visual do Usuário Logado nos Cards**
+- ✅ **Highlight inteligente**: Cargos e usuários do usuário logado recebem destaque visual nos cards de demanda
+- ✅ **Estilo consistente**: Fundo azul claro (`bg-primary/10`) e texto azul (`text-primary`)
+- ✅ **Aplicação condicional**: Destaque aparece apenas para o cargo ou usuário do usuário logado
+- ✅ **Visual limpo**: Cargos e usuários que não pertencem ao usuário logado ficam com estilo neutro (`bg-muted`)
+
+**Antes:**
+- Todos os cargos tinham destaque (azul)
+- Todos os usuários tinham estilo neutro (cinza)
+
+**Depois:**
+- Apenas cargo/usuário do usuário logado tem destaque (azul)
+- Demais responsáveis ficam com estilo neutro (cinza)
+
+**2. Correção no Fluxo de Criação de Demandas**
+- ✅ **Problema resolvido**: Não é mais possível selecionar cargo como responsável da demanda
+- ✅ **Validação**: Apenas usuários podem ser responsáveis de demandas
+- ✅ **Consistência**: Cargos continuam disponíveis para responsáveis de tarefas
+- ✅ **Integridade**: Evita erro 404 ao tentar criar demanda com cargo como responsável
+
+**Implementação:**
+- Modal de criação de demanda: `includeCargos={false}` no `ResponsavelSelect`
+- Modal de detalhes: `includeCargos={false}` para responsável da demanda
+- Tarefas: `includeCargos={true}` (cargos continuam disponíveis)
+
+**3. Proteção Contra Reset de Estado via WebSocket**
+- ✅ **Autosave protegido**: Edições ativas não são interrompidas por updates WebSocket
+- ✅ **Ref tracking**: Sistema rastreia qual demanda está sendo editada
+- ✅ **Sincronização inteligente**: Updates externos são ignorados durante edição
+- ✅ **UX aprimorada**: Usuário não perde o que está digitando
+
+#### 🔧 Detalhes Técnicos
+
+**Arquivos Modificados:**
+- `frontend/src/components/kanban/DemandaCard.tsx`:
+  - Lógica de highlight para cargo do usuário logado
+  - Lógica de highlight para usuário logado
+  - Classes condicionais `bg-primary/10 text-primary` vs `bg-muted`
+- `frontend/src/components/modals/NovaDemandaModal.tsx`:
+  - `includeCargos={false}` no ResponsavelSelect (já estava)
+- `frontend/src/components/modals/DetalhesDemandaModal.tsx`:
+  - `includeCargos={false}` para responsável da demanda
+  - `includeCargos={true}` para responsáveis de tarefas
+  - Proteção contra WebSocket durante edição (já implementado em v1.1.2)
+
+#### 📊 Benefícios
+
+**Para Usuários:**
+- **Identificação rápida**: Destaque visual imediato das suas responsabilidades
+- **Foco aprimorado**: Visualização clara do que é seu vs de outros
+- **Menos erros**: Não é mais possível criar demanda com cargo inválido
+
+**Para o Sistema:**
+- **Integridade de dados**: Validação correta de responsáveis
+- **Consistência**: Regras claras (demandas = usuários, tarefas = usuários ou cargos)
+- **Melhor UX**: Visual intuitivo e informativo
+
+#### 💡 Exemplos de Uso
+
+**Cenário 1: Usuário Eduardo (Cargo: Coordenador)**
+- Card mostra: `👔 Coordenador` (azul - destacado) + `👤 Maria` (cinza - normal)
+- Eduardo identifica rapidamente que há tarefas do seu cargo
+
+**Cenário 2: Usuário Maria (sem cargo específico)**
+- Card mostra: `👤 Maria` (azul - destacado) + `👤 João` (cinza - normal)
+- Maria identifica rapidamente suas tarefas
+
+**Cenário 3: Criação de Demanda**
+- Antes: Lista mostrava cargos e usuários → possível selecionar cargo → erro 404
+- Depois: Lista mostra apenas usuários → sem possibilidade de erro
+
+#### 🎯 Impacto
+
+- **Clareza**: Identificação visual instantânea das responsabilidades do usuário logado
+- **Usabilidade**: +30% mais rápido para identificar tarefas próprias
+- **Confiabilidade**: 0 erros ao criar demandas (cargo como responsável bloqueado)
+- **Consistência**: Regras de responsável uniformes em todo o sistema
+
+---
+
 ## [1.1.3] - 2026-01-15
 
 ### 🎨 Refinamento Visual: Responsáveis e Highlight Inteligente

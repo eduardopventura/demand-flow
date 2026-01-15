@@ -84,6 +84,20 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
       demandaEmEdicaoRef.current = demanda.id;
     } else {
       demandaEmEdicaoRef.current = null;
+      // Limpar estado local quando modal fecha para evitar mostrar dados antigos
+      // quando outra demanda for aberta rapidamente
+      if (!open) {
+        setResponsavelId("");
+        setCamposValores({});
+        setTarefasStatus([]);
+        setDataPrevisao(undefined);
+        setObservacoes("");
+        setGrupoReplicas({});
+        setAbaAtiva("geral");
+        setSavingStatus("idle");
+        setLastSaved(null);
+        initialSnapshotRef.current = null;
+      }
     }
   }, [open, demanda?.id]);
 

@@ -182,8 +182,14 @@ const DemandaCardComponent = ({ demanda, onClick, isDragging }: DemandaCardProps
             const cargo = getCargo(responsavelId);
             // Verificar se é um cargo
             if (cargo) {
+              // Destacar apenas se for o cargo do usuário logado
+              const isUsuarioLogado = user?.cargo_id === responsavelId;
+              const estiloDestaque = isUsuarioLogado 
+                ? "bg-primary/10 text-primary" 
+                : "bg-muted";
+              
               return (
-                <div key={responsavelId} className="flex items-center gap-1 text-xs bg-primary/10 text-primary px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md">
+                <div key={responsavelId} className={`flex items-center gap-1 text-xs ${estiloDestaque} px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md`}>
                   <Tag className="w-3 h-3" />
                   <span className="font-medium truncate max-w-[80px] sm:max-w-none">{cargo.nome}</span>
                 </div>
@@ -196,8 +202,14 @@ const DemandaCardComponent = ({ demanda, onClick, isDragging }: DemandaCardProps
               return null;
             }
             
+            // Destacar apenas se for o usuário logado
+            const isUsuarioLogado = user?.id === responsavelId;
+            const estiloDestaque = isUsuarioLogado 
+              ? "bg-primary/10 text-primary" 
+              : "bg-muted";
+            
             return (
-              <div key={responsavelId} className="flex items-center gap-1 text-xs bg-muted px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md">
+              <div key={responsavelId} className={`flex items-center gap-1 text-xs ${estiloDestaque} px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md`}>
                 <User className="w-3 h-3" />
                 <span className="font-medium truncate max-w-[80px] sm:max-w-none">{getPrimeiroNome(usuario.nome)}</span>
               </div>

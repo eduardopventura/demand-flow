@@ -450,6 +450,12 @@ Sistema inteligente de salvamento automático para garantir integridade dos dado
 
 ## 📝 Histórico de Versões
 
+### v1.1.4 - 15/01/2026
+- Destaque visual para cargo e usuário do usuário logado nos cards
+- Correção no fluxo de criação: não é mais possível selecionar cargo como responsável da demanda
+- Proteção contra reset de estado via WebSocket durante edição (v1.1.2)
+- Visual consistente: apenas responsáveis do usuário logado recebem highlight
+
 ### v1.1.3 - 15/01/2026
 - Refinamento visual de responsáveis nos cards (removido contador)
 - Filtro inteligente que mostra apenas responsáveis com tarefas disponíveis
@@ -611,5 +617,5 @@ Ver histórico completo em [CHANGELOG.md](./CHANGELOG.md)
 
 ---
 
-**Versão:** 1.1.3  
+**Versão:** 1.1.4  
 **Última Atualização:** 15/01/2026

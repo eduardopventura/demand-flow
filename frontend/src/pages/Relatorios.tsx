@@ -37,7 +37,7 @@ import {
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { StatusDemanda } from "@/types";
+import type { ColunaKanban } from "@/types";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -68,7 +68,7 @@ const tooltipStyle = {
 };
 
 export default function Relatorios() {
-  const { demandas, templates, usuarios, getTemplate, getUsuario } = useData();
+  const { demandas, templates, usuarios, getTemplate, getUsuario, colunasKanban } = useData();
   
   // Estado dos filtros
   const [filters, setFilters] = useState<DashboardFilters>(DEFAULT_FILTERS);
@@ -132,7 +132,7 @@ export default function Relatorios() {
     if (value === "all") {
       setFilters({ ...filters, status: [] });
     } else {
-      setFilters({ ...filters, status: [value as StatusDemanda] });
+      setFilters({ ...filters, status: [value] });
     }
   };
 
@@ -347,9 +347,9 @@ export default function Relatorios() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos os status</SelectItem>
-                  <SelectItem value={StatusDemanda.CRIADA}>Criada</SelectItem>
-                  <SelectItem value={StatusDemanda.EM_ANDAMENTO}>Em Andamento</SelectItem>
-                  <SelectItem value={StatusDemanda.FINALIZADA}>Finalizada</SelectItem>
+                  {colunasKanban.map((col) => (
+                    <SelectItem key={col.id} value={col.nome}>{col.nome}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 

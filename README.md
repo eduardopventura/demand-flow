@@ -12,7 +12,7 @@ O **Demand Flow** é uma solução moderna para gerenciamento de processos e dem
 
 ### Principais Funcionalidades
 
-- 📊 **Quadro Kanban** - Interface drag & drop para gerenciar demandas
+- 📊 **Quadro Kanban** - Interface drag & drop com colunas customizáveis
 - 📝 **Templates Dinâmicos** - Modelos reutilizáveis com campos e tarefas personalizados
 - ✅ **Gestão de Tarefas** - Com dependências e responsáveis individuais
 - 📅 **Controle de Prazos** - Alertas visuais e notificações automáticas
@@ -246,7 +246,7 @@ Detalhes das features em [docs/FEATURES.md](./docs/FEATURES.md#-próximas-funcio
 
 ## 📝 Versão Atual
 
-**v1.1.4** - Janeiro de 2026
+**v1.3.0** - Março de 2026
 
 Ver [CHANGELOG.md](./docs/CHANGELOG.md) para histórico completo.
 

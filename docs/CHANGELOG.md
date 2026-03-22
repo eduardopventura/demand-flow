@@ -1,5 +1,222 @@
 # Changelog - Demand Flow
 
+## [1.3.0] - 2026-03-22
+
+### 📊 Colunas Customizáveis no Kanban
+
+Esta versão introduz a capacidade de criar, renomear, reordenar e excluir colunas no quadro Kanban, mantendo as colunas "Criada" e "Finalizada" como fixas com suas regras existentes. Também melhora o comportamento de drag-and-drop dos cards e adiciona uma nova permissão de acesso.
+
+#### ✨ Novas Funcionalidades
+
+**1. Colunas Kanban Dinâmicas**
+- ✅ **Colunas customizáveis**: Crie quantas colunas intermediárias precisar entre "Criada" e "Finalizada"
+- ✅ **Colunas fixas preservadas**: "Criada" (primeira) e "Finalizada" (última) mantêm todas as regras existentes e não podem ser renomeadas/excluídas
+- ✅ **Renomear colunas**: Colunas intermediárias podem ser renomeadas; demandas são atualizadas automaticamente
+- ✅ **Reordenar colunas**: Altere a ordem das colunas intermediárias via setas (colunas fixas mantêm posição)
+- ✅ **Excluir colunas**: Remova colunas sem demandas (bloqueio automático se houver demandas vinculadas)
+- ✅ **Cores automáticas**: Paleta de cores gerada automaticamente para colunas intermediárias
+- ✅ **Coluna "Em Andamento" por padrão**: Criada automaticamente na instalação como primeira coluna intermediária
+
+**2. Modal de Gerenciamento de Colunas**
+- ✅ **Interface intuitiva**: Modal dedicado para gerenciar a estrutura do Kanban
+- ✅ **Colunas fixas travadas**: Criada e Finalizada aparecem com ícone de cadeado (sem edição)
+- ✅ **Inline rename**: Clique no nome da coluna para renomear
+- ✅ **Contagem de demandas**: Exibe quantidade de demandas em cada coluna
+- ✅ **Botão "Colunas"**: Acessível no header do Painel (visível apenas com permissão)
+
+**3. Permissão "Gerenciar Kanban"**
+- ✅ **Nova permissão**: `gerenciar_kanban` controla acesso à criação/edição/exclusão de colunas
+- ✅ **Admin automático**: Cargos admin recebem a permissão automaticamente
+- ✅ **Página de Cargos**: Toggle "Gerenciar Kanban" adicionado na lista de permissões
+- ✅ **Proteção no backend**: Rotas de mutação protegidas via middleware de permissão
+
+**4. Drag-and-Drop Aprimorado**
+- ✅ **Card inteiro arrastável**: Não é mais necessário clicar no ícone de arraste — segure e arraste de qualquer ponto do card
+- ✅ **Distinção click vs drag**: Movimentos menores que 8px abrem o modal de detalhes; acima de 8px inicia o arraste
+- ✅ **Sem abertura acidental**: Ao arrastar e soltar, o modal de detalhes NÃO abre
+- ✅ **Cursor visual**: `cursor-grab` no hover, `cursor-grabbing` ao arrastar
+
+**5. Botão "Iniciar Andamento" Dinâmico**
+- ✅ **Primeira coluna custom**: O botão "Iniciar Andamento" move a demanda para a primeira coluna intermediária (baseada na ordem), não mais hardcodado "Em Andamento"
+- ✅ **Adaptável**: Funciona corretamente independente de quantas colunas customizadas existam
+
+#### 🔧 Detalhes Técnicos
+
+**Schema (Prisma):**
+```prisma
+model ColunaKanban {
+  id         String   @id @default(uuid())
+  nome       String   @unique
+  ordem      Int
+  fixa       Boolean  @default(false)
+  cor        String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  @@index([ordem])
+}
+```
+
+**Nova permissão em `Cargo`:**
+- `gerenciar_kanban Boolean @default(false)`
+
+**API de Colunas Kanban:**
+- `GET    /api/colunas-kanban` — Listar colunas ordenadas (auth-only)
+- `POST   /api/colunas-kanban` — Criar coluna (requer `gerenciar_kanban`)
+- `PATCH  /api/colunas-kanban/:id` — Editar nome/cor (requer `gerenciar_kanban`, bloqueia fixas)
+- `DELETE /api/colunas-kanban/:id` — Excluir coluna (requer `gerenciar_kanban`, bloqueia fixas e colunas com demandas)
+- `PUT    /api/colunas-kanban/reorder` — Reordenar colunas (requer `gerenciar_kanban`)
+
+**Arquivos Criados:**
+- `backend/src/repositories/coluna-kanban.repository.js` — Repositório CRUD para ColunaKanban
+- `backend/routes/colunas-kanban.routes.js` — Rotas REST com proteção de permissão
+- `backend/prisma/migrations/2_add_kanban_columns/migration.sql` — Migration + seed de colunas default
+- `frontend/src/components/modals/GerenciarColunasModal.tsx` — Modal de gerenciamento de colunas
+
+**Arquivos Modificados:**
+- `backend/prisma/schema.prisma` — Novo modelo `ColunaKanban`, campo `gerenciar_kanban` em `Cargo`
+- `backend/scripts/init-db.js` — Seed de colunas Kanban padrão + permissão admin
+- `backend/routes/index.js` — Registro da nova rota `/api/colunas-kanban`
+- `backend/routes/cargos.routes.js` — Suporte a `gerenciar_kanban` em create/update
+- `backend/middlewares/auth.middleware.js` — `gerenciar_kanban` no select do cargo
+- `backend/utils/status.utils.js` — `calcularNovoStatus` aceita primeira coluna intermediária como parâmetro
+- `backend/services/demanda.service.js` — Validação dinâmica de status contra colunas do banco
+- `backend/src/repositories/demanda.repository.js` — `findComPrazoProximo` usa `not: 'Finalizada'`
+- `frontend/src/types/index.ts` — Interface `ColunaKanban`, `STATUS_FIXOS`, `gerenciar_kanban` em `CargoPermissionKey`
+- `frontend/src/constants/index.ts` — `buildStatusConfig()` gera config dinâmica a partir das colunas
+- `frontend/src/services/api.service.ts` — Métodos CRUD para colunas Kanban
+- `frontend/src/contexts/DataContext.tsx` — Estado `colunasKanban` + operações CRUD
+- `frontend/src/pages/PainelDemandas.tsx` — Grid dinâmico, `PointerSensor` com `distance: 8`, botão "Colunas"
+- `frontend/src/components/kanban/DemandaCard.tsx` — Drag no card inteiro, distinção click vs drag
+- `frontend/src/components/kanban/KanbanColumn.tsx` — Config de cor/label dinâmica via props
+- `frontend/src/components/modals/DetalhesDemandaModal.tsx` — "Iniciar Andamento" usa primeira coluna custom
+- `frontend/src/pages/Cargos.tsx` — Toggle `gerenciar_kanban` na lista de permissões
+- `frontend/src/pages/Relatorios.tsx` — Select de status dinâmico baseado nas colunas
+- `frontend/src/pages/Finalizadas.tsx` — Usa `STATUS_FIXOS.FINALIZADA`
+- `frontend/src/schemas/validation.schemas.ts` — Status validado como `z.string()` (dinâmico)
+- `frontend/src/utils/dashboard/aggregations.ts` — KPIs adaptados para status dinâmico
+- `frontend/src/utils/dashboard/filters.ts` — Filtros adaptados para status dinâmico
+
+**Migrations:**
+- `backend/prisma/migrations/2_add_kanban_columns/` — Cria tabela `ColunaKanban` com 3 colunas default + campo `gerenciar_kanban` em `Cargo`
+
+#### 📊 Benefícios
+
+**Para Gestores:**
+- **Fluxo personalizado**: Defina etapas do processo que refletem a realidade da equipe (ex: "Análise", "Aprovação", "Em Execução")
+- **Controle de acesso**: Apenas usuários autorizados podem alterar a estrutura do Kanban
+- **Sem perda de dados**: Colunas com demandas não podem ser excluídas; renomear atualiza tudo automaticamente
+
+**Para Usuários:**
+- **Arraste mais natural**: Todo o card é arrastável, sem necessidade de encontrar o ícone de drag
+- **Sem cliques acidentais**: Arrastar e soltar não abre o modal de detalhes
+- **Experiência fluida**: Transição visual suave com cursores adequados
+
+**Para o Sistema:**
+- **Retrocompatível**: A coluna "Em Andamento" é criada por padrão; demandas existentes continuam funcionando
+- **Regras preservadas**: "Criada" e "Finalizada" mantêm todas as regras de negócio (imutabilidade do nome, data_finalizacao, prazo, etc.)
+- **Status dinâmico**: Todo o sistema foi adaptado para funcionar com qualquer número de colunas
+
+#### 💡 Fluxo
+
+```
+1. Admin acessa "Colunas" no header do Painel
+2. Cria novas colunas (ex: "Análise", "Aprovação")
+3. Reordena colunas via setas ↑ ↓
+4. Demandas podem ser arrastadas entre todas as colunas
+5. "Iniciar Andamento" move para a primeira coluna intermediária
+6. Regras de "Criada" e "Finalizada" continuam inalteradas
+```
+
+---
+
+## [1.2.0] - 2026-02-25
+
+### 📌 Versionamento de Templates (Template Snapshot)
+
+Esta versão introduz o sistema de versionamento automático de templates, garantindo que demandas criadas preservem exatamente a estrutura do template no momento da criação, mesmo que o template seja alterado posteriormente.
+
+#### ✨ Novas Funcionalidades
+
+**1. Snapshots Automáticos de Templates**
+- ✅ **Versionamento automático**: Toda criação ou edição de template gera um snapshot (versão) automaticamente
+- ✅ **Label de versão**: Cada versão recebe um label no formato `DDMMaaHHmm` (ex: `2502261520` = 25/02/26 às 15:20)
+- ✅ **Histórico completo**: Versões ordenadas da mais recente para a mais antiga, armazenadas em banco
+- ✅ **Cascade delete**: Ao excluir um template, todas as suas versões são removidas automaticamente
+
+**2. Pinagem de Versão nas Demandas**
+- ✅ **Versão pinada na criação**: Ao criar uma demanda, a versão mais recente do template é automaticamente vinculada (`template_version_id`)
+- ✅ **Snapshot completo**: O campo `template_snapshot` traz a estrutura completa da versão (abas, campos, tarefas) para renderização
+- ✅ **Imutabilidade garantida**: Alterações no template não afetam demandas já criadas
+- ✅ **Fallback transparente**: Demandas antigas (sem versão pinada) continuam funcionando com o template live
+
+**3. Uso do Snapshot em Toda a Cadeia**
+- ✅ **Criação de demanda**: Usa snapshot para calcular nome, prazo e tarefas
+- ✅ **Atualização de demanda**: Operações de status e tarefas usam snapshot quando disponível
+- ✅ **Execução de ações**: Webhooks de tarefas usam a estrutura do snapshot para localizar a ação correta
+
+**4. API de Versões**
+- ✅ `GET /api/templates/:id/versoes` — Lista versões do template (id, nome/label, created_at)
+- ✅ `GET /api/templates/:id/versoes/:versionId` — Retorna dados completos de uma versão específica
+
+#### 🔧 Detalhes Técnicos
+
+**Schema (Prisma):**
+```prisma
+model TemplateVersion {
+  id          String   @id @default(uuid())
+  template_id String
+  nome        String   // Label DDMMaaHHmm, ex: "2502261520"
+  dados       Json     // Snapshot: { id, nome, tempo_medio, abas, campos_preenchimento, tarefas }
+  created_at  DateTime @default(now())
+  template    Template  @relation(...)
+  demandas    Demanda[]
+}
+```
+
+**Campos adicionados em `Demanda`:**
+- `template_version_id` — ID da versão pinada (nullable para retrocompatibilidade)
+- `template_version_nome` — Label da versão (retornado na API para exibição)
+- `template_snapshot` — Dados completos do snapshot (campo virtual, não persiste no banco)
+
+**Arquivos Modificados:**
+- `backend/prisma/schema.prisma` — Novo modelo `TemplateVersion` + campo `template_version_id` em `Demanda`
+- `backend/src/repositories/template.repository.js` — Criação automática de versão em `create()` e `update()` + métodos `findVersionsByTemplateId()` e `findVersionById()`
+- `backend/src/repositories/demanda.repository.js` — Inclusão do snapshot na resposta de demandas
+- `backend/services/demanda.service.js` — Pinagem de versão na criação, uso do snapshot em atualização e execução de ações
+- `backend/routes/templates.routes.js` — Novas rotas de versões
+- `backend/routes/demandas.routes.js` — Suporte ao `template_version_id`
+- `frontend/src/types/index.ts` — Interface `TemplateVersion` + campos `template_version_id`, `template_version_nome`, `template_snapshot` em `Demanda`
+- `frontend/src/services/api.service.ts` — Métodos para listar e buscar versões
+- `frontend/src/contexts/DataContext.tsx` — Atualização do tipo `executarAcaoTarefa`
+- `frontend/src/components/modals/DetalhesDemandaModal.tsx` — Renderização usando snapshot
+- `frontend/src/pages/PainelDemandas.tsx` — Suporte à versão pinada
+
+**Migrations:**
+- `backend/prisma/migrations/1_add_template_versions/` — Migration de criação da tabela `TemplateVersion` e coluna `template_version_id` em `Demanda`
+
+#### 📊 Benefícios
+
+**Para Gestores:**
+- **Confiabilidade total**: Fechar um contrato sempre usará o template vigente no momento da criação
+- **Auditoria**: É possível saber exatamente qual versão do template foi usada em cada demanda
+- **Flexibilidade**: Templates podem ser atualizados sem medo de afetar demandas em andamento
+
+**Para o Sistema:**
+- **Integridade**: Ações de webhook sempre localizam a tarefa correta mesmo após mudanças no template
+- **Retrocompatibilidade**: Demandas existentes sem versão continuam funcionando normalmente
+- **Rastreabilidade**: Histórico completo de todas as versões de cada template
+
+#### 💡 Fluxo
+
+```
+1. Admin edita template → Snapshot criado automaticamente (DDMMaaHHmm)
+2. Operador cria demanda → Versão mais recente do template é pinada na demanda
+3. Admin edita template novamente → Novo snapshot gerado, demandas antigas preservadas
+4. Operador executa ação → Sistema usa snapshot da demanda (não o template atual)
+```
+
+---
+
 ## [1.1.4] - 2026-01-15
 
 ### 🎨 Melhorias de UX e Correção de Fluxo de Criação

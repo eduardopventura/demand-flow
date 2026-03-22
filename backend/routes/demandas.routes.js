@@ -141,6 +141,13 @@ router.post('/:id/tarefas/:taskId/executar', asyncHandler(async (req, res) => {
 
   const resultado = await demandaService.executarAcaoTarefa(id, taskId, userId);
 
+  // Se o webhook retornou um arquivo binário, enviar como download
+  if (resultado.tipo === 'arquivo') {
+    res.set('Content-Type', resultado.contentType || 'application/zip');
+    res.set('Content-Disposition', `attachment; filename="${resultado.filename}"`);
+    return res.send(resultado.buffer);
+  }
+
   res.json(resultado);
 }));
 

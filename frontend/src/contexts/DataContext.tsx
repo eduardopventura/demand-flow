@@ -11,6 +11,7 @@ import type {
   Acao,
   DemandaUpdatePayload,
   DataContextType,
+  ColunaKanban,
 } from "@/types";
 import { hasPermission } from "@/utils/permissions";
 import { log, error as logError } from "@/utils/logger";
@@ -35,6 +36,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [templates, setTemplates] = useState<Template[]>([]);
   const [demandas, setDemandas] = useState<Demanda[]>([]);
   const [acoes, setAcoes] = useState<Acao[]>([]);
+  const [colunasKanban, setColunasKanban] = useState<ColunaKanban[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,12 +55,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const canAcoes = hasPermission(user, "acesso_acoes");
 
-        const [usuariosData, cargosData, demandasData, templatesData, acoesData] = await Promise.all([
+        const [usuariosData, cargosData, demandasData, templatesData, acoesData, colunasData] = await Promise.all([
           apiService.getPublicUsuarios(),
           apiService.getPublicCargos(),
           apiService.getDemandas(),
-          apiService.getTemplates(), // Sempre buscar templates (necessário para criar/visualizar demandas)
+          apiService.getTemplates(),
           canAcoes ? apiService.getAcoes() : Promise.resolve([] as Acao[]),
+          apiService.getColunasKanban(),
         ]);
 
         setUsuarios(usuariosData);
@@ -66,6 +69,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setTemplates(templatesData);
         setDemandas(demandasData);
         setAcoes(acoesData);
+        setColunasKanban(colunasData);
 
         log("✅ Dados carregados da API com sucesso");
       } catch (err: any) {
@@ -272,21 +276,73 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const executarAcaoTarefa = useCallback(async (demandaId: string, tarefaId: string) => {
     try {
       const result = await apiService.executarAcaoTarefa(demandaId, tarefaId);
-      
-      // Atualizar demanda no estado local com a resposta
-      if (result.demanda) {
+
+      // Resposta binária: acionar download no browser
+      if ('tipo' in result && result.tipo === 'arquivo') {
+        const url = URL.createObjectURL(result.blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = result.filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success("Arquivo baixado com sucesso!");
+        return result;
+      }
+
+      // Resposta JSON normal: atualizar demanda no estado local
+      if ('demanda' in result && result.demanda) {
         setDemandas((prev) =>
           prev.map((d) => (d.id === demandaId ? result.demanda : d))
         );
       }
-      
+
       toast.success("Ação executada com sucesso!");
+      return result;
     } catch (err: unknown) {
       logError("Erro ao executar ação:", err);
       const errorMessage = err instanceof Error ? err.message : "Erro desconhecido";
       toast.error(`Erro ao executar ação: ${errorMessage}`);
       throw err;
     }
+  }, []);
+
+  // ColunaKanban operations
+  const addColunaKanban = useCallback(async (data: { nome: string; cor?: string }) => {
+    const nova = await apiService.createColunaKanban(data);
+    setColunasKanban((prev) => [...prev, nova].sort((a, b) => a.ordem - b.ordem));
+    toast.success("Coluna criada com sucesso!");
+    return nova;
+  }, []);
+
+  const updateColunaKanban = useCallback(async (id: string, data: { nome?: string; cor?: string }) => {
+    const updated = await apiService.updateColunaKanban(id, data);
+    setColunasKanban((prev) =>
+      prev.map((c) => (c.id === id ? updated : c)).sort((a, b) => a.ordem - b.ordem)
+    );
+    // When a column is renamed, update the status on all local demandas
+    if (data.nome) {
+      const oldCol = colunasKanban.find((c) => c.id === id);
+      if (oldCol && oldCol.nome !== data.nome) {
+        setDemandas((prev) =>
+          prev.map((d) => (d.status === oldCol.nome ? { ...d, status: data.nome! } : d))
+        );
+      }
+    }
+    toast.success("Coluna atualizada!");
+    return updated;
+  }, [colunasKanban]);
+
+  const deleteColunaKanban = useCallback(async (id: string) => {
+    await apiService.deleteColunaKanban(id);
+    setColunasKanban((prev) => prev.filter((c) => c.id !== id));
+    toast.success("Coluna excluída!");
+  }, []);
+
+  const reorderColunasKanban = useCallback(async (ordens: Array<{ id: string; ordem: number }>) => {
+    const updated = await apiService.reorderColunasKanban(ordens);
+    setColunasKanban(updated);
   }, []);
 
   // Getters
@@ -318,6 +374,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       templates,
       demandas,
       acoes,
+      colunasKanban,
       refreshPublicData,
       addUsuario,
       updateUsuario,
@@ -331,6 +388,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       addAcao,
       updateAcao,
       deleteAcao,
+      addColunaKanban,
+      updateColunaKanban,
+      deleteColunaKanban,
+      reorderColunasKanban,
       getTemplate,
       getUsuario,
       getCargo,
@@ -343,6 +404,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       templates,
       demandas,
       acoes,
+      colunasKanban,
       refreshPublicData,
       addUsuario,
       updateUsuario,
@@ -356,6 +418,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       addAcao,
       updateAcao,
       deleteAcao,
+      addColunaKanban,
+      updateColunaKanban,
+      deleteColunaKanban,
+      reorderColunasKanban,
       getTemplate,
       getUsuario,
       getCargo,

@@ -37,15 +37,16 @@ async function getOrCreateAdminCargo() {
       deletar_demandas: true,
       cargo_disponivel_como_responsavel: true,
       usuarios_disponiveis_como_responsaveis: true,
+      gerenciar_kanban: true,
     },
     update: {
-      // Garantir que todas permissões estão habilitadas
       acesso_templates: true,
       acesso_acoes: true,
       acesso_usuarios: true,
       deletar_demandas: true,
       cargo_disponivel_como_responsavel: true,
       usuarios_disponiveis_como_responsaveis: true,
+      gerenciar_kanban: true,
     },
   });
   
@@ -95,6 +96,31 @@ async function createAdminUser(adminCargoId) {
 }
 
 /**
+ * Cria colunas Kanban padrão se não existirem
+ */
+async function seedDefaultKanbanColumns() {
+  console.log('📊 Criando colunas Kanban padrão...');
+  
+  const existingCount = await prisma.colunaKanban.count();
+  if (existingCount > 0) {
+    console.log('⚠️  Colunas Kanban já existem, pulando criação...');
+    return;
+  }
+
+  const defaults = [
+    { nome: 'Criada', ordem: 0, fixa: true },
+    { nome: 'Em Andamento', ordem: 1, fixa: false },
+    { nome: 'Finalizada', ordem: 999, fixa: true },
+  ];
+
+  for (const col of defaults) {
+    await prisma.colunaKanban.create({ data: col });
+  }
+
+  console.log('✅ Colunas Kanban padrão criadas (Criada, Em Andamento, Finalizada)');
+}
+
+/**
  * Função principal de inicialização
  */
 async function initializeDatabase() {
@@ -128,6 +154,10 @@ async function initializeDatabase() {
     
     // Criar usuário admin
     await createAdminUser(adminCargo.id);
+    console.log('');
+    
+    // Criar colunas Kanban padrão
+    await seedDefaultKanbanColumns();
     console.log('');
     
     console.log('═══════════════════════════════════════════════════');

@@ -1,6 +1,6 @@
 import { useDraggable } from "@dnd-kit/core";
 import { Card } from "@/components/ui/card";
-import { User, GripVertical, Trash2, Calendar as CalendarIcon, Tag } from "lucide-react";
+import { User, Trash2, Calendar as CalendarIcon, Tag } from "lucide-react";
 import { useData } from "@/contexts/DataContext";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Demanda } from "@/types";
@@ -18,7 +18,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { memo, useState } from "react";
+import { memo, useState, useRef } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DatePicker } from "@/components/ui/date-picker";
 
@@ -36,10 +36,15 @@ const DemandaCardComponent = ({ demanda, onClick, isDragging }: DemandaCardProps
     id: demanda.id,
   });
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const wasDragged = useRef(false);
+
+  // Track whether a drag occurred so we can suppress the click
+  if (transform && (Math.abs(transform.x) > 2 || Math.abs(transform.y) > 2)) {
+    wasDragged.current = true;
+  }
 
   const template = getTemplate(demanda.template_id);
   
-  // Calcular cor da borda baseado no prazo
   const corBorda = getCorBordaPrazo(
     demanda.data_previsao,
     demanda.data_finalizacao
@@ -60,58 +65,39 @@ const DemandaCardComponent = ({ demanda, onClick, isDragging }: DemandaCardProps
     }
   };
 
-  // Coletar responsáveis com tarefas visíveis (em aberto E sem dependências bloqueadoras)
   const responsaveisVisiveis = new Set<string>();
   
   if (template && template.tarefas) {
     demanda.tarefas_status.forEach((tarefaStatus) => {
-      // Ignorar tarefas concluídas
       if (tarefaStatus.concluida) return;
       
-      // Buscar definição da tarefa no template para verificar dependências
       const tarefaTemplate = template.tarefas.find(t => t.id_tarefa === tarefaStatus.id_tarefa);
       if (!tarefaTemplate) return;
       
-      // Verificar se a tarefa está disponível (sem dependência ou dependência concluída)
       if (tarefaTemplate.link_pai) {
         const tarefaPai = demanda.tarefas_status.find(t => t.id_tarefa === tarefaTemplate.link_pai);
-        if (!tarefaPai?.concluida) return; // Dependência não concluída, tarefa bloqueada
+        if (!tarefaPai?.concluida) return;
       }
       
-      // Tarefa está visível, determinar responsável (mesma lógica do modal)
-      // Prioridade: cargo_responsavel_id > responsavel_id > demanda.responsavel_id
       const responsavelId = tarefaStatus.cargo_responsavel_id || tarefaStatus.responsavel_id || demanda.responsavel_id;
-      
-      // Debug temporário - remover após identificar problema
-      if (demanda.nome_demanda.includes("Clarisse")) {
-        console.log(`[DEBUG] Tarefa ${tarefaStatus.id_tarefa}:`, {
-          cargo_responsavel_id: tarefaStatus.cargo_responsavel_id,
-          responsavel_id: tarefaStatus.responsavel_id,
-          demanda_responsavel_id: demanda.responsavel_id,
-          responsavel_final: responsavelId,
-          usuario: getUsuario(responsavelId)?.nome,
-          cargo: getCargo(responsavelId)?.nome
-        });
-      }
       
       if (responsavelId) {
         responsaveisVisiveis.add(responsavelId);
       }
     });
-    
-    // Debug temporário - mostrar resultado final
-    if (demanda.nome_demanda.includes("Clarisse")) {
-      console.log(`[DEBUG] Responsáveis visíveis finais:`, Array.from(responsaveisVisiveis).map(id => ({
-        id,
-        usuario: getUsuario(id)?.nome,
-        cargo: getCargo(id)?.nome
-      })));
-    }
   }
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
     deleteDemanda(demanda.id);
+  };
+
+  const handleCardClick = () => {
+    if (wasDragged.current) {
+      wasDragged.current = false;
+      return;
+    }
+    onClick?.();
   };
 
   const style = transform
@@ -124,12 +110,14 @@ const DemandaCardComponent = ({ demanda, onClick, isDragging }: DemandaCardProps
     <Card
       ref={setNodeRef}
       style={style}
+      {...listeners}
+      {...attributes}
       className={cn(
-        "p-3 sm:p-4 cursor-pointer hover:shadow-md transition-all touch-manipulation",
+        "p-3 sm:p-4 cursor-grab active:cursor-grabbing hover:shadow-md transition-all touch-manipulation select-none",
         classeBorda,
         isDragging && "opacity-50 rotate-3"
       )}
-      onClick={onClick}
+      onClick={handleCardClick}
     >
       <div className="flex items-start justify-between gap-2 mb-2 sm:mb-3">
         <h4 className="font-semibold text-foreground flex-1 text-sm sm:text-base line-clamp-2">
@@ -166,13 +154,6 @@ const DemandaCardComponent = ({ demanda, onClick, isDragging }: DemandaCardProps
               </AlertDialogContent>
             </AlertDialog>
           )}
-          <div 
-            {...listeners} 
-            {...attributes} 
-            className="cursor-grab active:cursor-grabbing p-1.5 sm:p-0 touch-manipulation"
-          >
-            <GripVertical className="w-5 h-5 sm:w-4 sm:h-4 text-muted-foreground" />
-          </div>
         </div>
       </div>
 
@@ -180,9 +161,7 @@ const DemandaCardComponent = ({ demanda, onClick, isDragging }: DemandaCardProps
         {responsaveisVisiveis.size > 0 ? (
           Array.from(responsaveisVisiveis).map((responsavelId) => {
             const cargo = getCargo(responsavelId);
-            // Verificar se é um cargo
             if (cargo) {
-              // Destacar apenas se for o cargo do usuário logado
               const isUsuarioLogado = user?.cargo_id === responsavelId;
               const estiloDestaque = isUsuarioLogado 
                 ? "bg-primary/10 text-primary" 
@@ -196,13 +175,11 @@ const DemandaCardComponent = ({ demanda, onClick, isDragging }: DemandaCardProps
               );
             }
             
-            // É um usuário
             const usuario = getUsuario(responsavelId);
             if (!usuario) {
               return null;
             }
             
-            // Destacar apenas se for o usuário logado
             const isUsuarioLogado = user?.id === responsavelId;
             const estiloDestaque = isUsuarioLogado 
               ? "bg-primary/10 text-primary" 
@@ -220,7 +197,6 @@ const DemandaCardComponent = ({ demanda, onClick, isDragging }: DemandaCardProps
         )}
       </div>
 
-      {/* Datas de criação e previsão */}
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1.5 sm:mt-2">
         <CalendarIcon className="w-3 h-3 shrink-0" />
         <span className="truncate">Criação: {formatarData(demanda.data_criacao)}</span>
@@ -256,10 +232,6 @@ const DemandaCardComponent = ({ demanda, onClick, isDragging }: DemandaCardProps
   );
 };
 
-// Memoize component to prevent unnecessary re-renders
 export const DemandaCard = memo(DemandaCardComponent, (prevProps, nextProps) => {
-  // Importante: se o objeto da demanda mudar (ex.: observações, campos, modificado_por),
-  // precisamos re-renderizar o card. A comparação por referência cobre todos os casos
-  // sem precisar listar cada campo.
   return prevProps.demanda === nextProps.demanda && prevProps.isDragging === nextProps.isDragging;
 });

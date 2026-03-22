@@ -19,6 +19,9 @@ class DemandaRepository {
     
     const include = {
       template: options.includeTemplate !== false,
+      template_version: options.includeTemplateVersion !== false ? {
+        select: { id: true, nome: true, dados: true }
+      } : false,
       responsavel: options.includeResponsavel !== false,
       modificado_por: options.includeModificadoPor !== false ? {
         select: { id: true, nome: true, email: true }
@@ -74,6 +77,9 @@ class DemandaRepository {
       where,
       include: {
         template: true,
+        template_version: {
+          select: { id: true, nome: true, dados: true }
+        },
         responsavel: true,
         modificado_por: {
           select: { id: true, nome: true, email: true }
@@ -107,6 +113,9 @@ class DemandaRepository {
       },
       include: {
         template: true,
+        template_version: {
+          select: { id: true, nome: true, dados: true }
+        },
         responsavel: true,
         modificado_por: {
           select: { id: true, nome: true, email: true }
@@ -169,6 +178,9 @@ class DemandaRepository {
           where: { id },
           include: {
             template: true,
+            template_version: {
+              select: { id: true, nome: true, dados: true }
+            },
             responsavel: true,
             modificado_por: {
               select: { id: true, nome: true, email: true }
@@ -188,6 +200,9 @@ class DemandaRepository {
       data,
       include: {
         template: true,
+        template_version: {
+          select: { id: true, nome: true, dados: true }
+        },
         responsavel: true,
         modificado_por: {
           select: { id: true, nome: true, email: true }
@@ -220,7 +235,7 @@ class DemandaRepository {
   async findComPrazoProximo(dataLimite, notificacaoEnviada = false) {
     const where = {
       status: {
-        in: ['Criada', 'Em Andamento']
+        not: 'Finalizada'
       },
       data_previsao: {
         lte: dataLimite
@@ -236,6 +251,9 @@ class DemandaRepository {
       where,
       include: {
         template: true,
+        template_version: {
+          select: { id: true, nome: true, dados: true }
+        },
         responsavel: true,
         modificado_por: {
           select: { id: true, nome: true, email: true }
@@ -257,7 +275,10 @@ class DemandaRepository {
       data_previsao: demanda.data_previsao ? demanda.data_previsao.toISOString() : null,
       data_finalizacao: demanda.data_finalizacao ? demanda.data_finalizacao.toISOString() : null,
       created_at: demanda.created_at ? demanda.created_at.toISOString() : null,
-      updated_at: demanda.updated_at ? demanda.updated_at.toISOString() : null
+      updated_at: demanda.updated_at ? demanda.updated_at.toISOString() : null,
+      // Expor snapshot da versão do template para o frontend
+      template_snapshot: demanda.template_version?.dados || null,
+      template_version_nome: demanda.template_version?.nome || null,
     };
 
     if (demanda.tarefas_status) {

@@ -1,8 +1,23 @@
-// Enums for better type safety
+// Fixed status constants (columns that cannot be renamed/removed)
+export const STATUS_FIXOS = {
+  CRIADA: "Criada",
+  FINALIZADA: "Finalizada",
+} as const;
+
+// Keep enum for backward compat references to fixed statuses
 export enum StatusDemanda {
   CRIADA = "Criada",
-  EM_ANDAMENTO = "Em Andamento",
   FINALIZADA = "Finalizada",
+}
+
+export interface ColunaKanban {
+  id: string;
+  nome: string;
+  ordem: number;
+  fixa: boolean;
+  cor: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export enum TipoCampo {
@@ -25,7 +40,8 @@ export type CargoPermissionKey =
   | "acesso_usuarios"
   | "deletar_demandas"
   | "cargo_disponivel_como_responsavel"
-  | "usuarios_disponiveis_como_responsaveis";
+  | "usuarios_disponiveis_como_responsaveis"
+  | "gerenciar_kanban";
 
 export interface Cargo {
   id: string;
@@ -38,6 +54,7 @@ export interface Cargo {
   deletar_demandas?: boolean;
   cargo_disponivel_como_responsavel?: boolean;
   usuarios_disponiveis_como_responsaveis?: boolean;
+  gerenciar_kanban?: boolean;
 
   // Metadados opcionais (dependendo do endpoint)
   created_at?: string;
@@ -127,6 +144,12 @@ export interface Template {
   tarefas: Tarefa[];
 }
 
+export interface TemplateVersion {
+  id: string;
+  nome: string; // Label DDMMyyHHmm, ex: "2402261520"
+  created_at: string;
+}
+
 export interface CampoPreenchido {
   id_campo: string;
   valor: string;
@@ -149,8 +172,11 @@ export type DemandaUpdatePayload = Partial<Demanda> & {
 export interface Demanda {
   id: string;
   template_id: string;
+  template_version_id?: string | null; // ID da versão do template pinada nesta demanda
+  template_version_nome?: string | null; // Nome da versão (label DDMMyyHHmm)
+  template_snapshot?: Template | null; // Snapshot completo da versão — usado para renderização
   nome_demanda: string;
-  status: StatusDemanda;
+  status: string;
   responsavel_id: string;
   tempo_esperado: number; // Tempo esperado em dias (derivado do template no momento da criação)
   campos_preenchidos: CampoPreenchido[];
@@ -172,6 +198,7 @@ export interface DataContextType {
   templates: Template[];
   demandas: Demanda[];
   acoes: Acao[];
+  colunasKanban: ColunaKanban[];
   refreshPublicData: () => Promise<void>;
   addUsuario: (usuario: Omit<Usuario, "id">) => void;
   updateUsuario: (id: string, usuario: Omit<Usuario, "id">) => void;
@@ -185,11 +212,15 @@ export interface DataContextType {
   addAcao: (acao: Omit<Acao, "id">) => void;
   updateAcao: (id: string, acao: Omit<Acao, "id">) => void;
   deleteAcao: (id: string) => void;
+  addColunaKanban: (data: { nome: string; cor?: string }) => Promise<ColunaKanban>;
+  updateColunaKanban: (id: string, data: { nome?: string; cor?: string }) => Promise<ColunaKanban>;
+  deleteColunaKanban: (id: string) => Promise<void>;
+  reorderColunasKanban: (ordens: Array<{ id: string; ordem: number }>) => Promise<void>;
   getTemplate: (id: string) => Template | undefined;
   getUsuario: (id: string) => Usuario | undefined;
   getCargo: (id: string) => Cargo | undefined;
   getAcao: (id: string) => Acao | undefined;
-  executarAcaoTarefa: (demandaId: string, tarefaId: string) => Promise<void>;
+  executarAcaoTarefa: (demandaId: string, tarefaId: string) => Promise<{ tipo: 'arquivo'; blob: Blob; filename: string } | void>;
 }
 
 export * from "./socket-events";

@@ -12,6 +12,7 @@ const cargosRoutes = require('./cargos.routes');
 const publicRoutes = require('./public.routes');
 const templatesRoutes = require('./templates.routes');
 const acoesRoutes = require('./acoes.routes');
+const colunasKanbanRoutes = require('./colunas-kanban.routes');
 const { authMiddleware } = require('../middlewares/auth.middleware');
 const { requireCargoPermission } = require('../middlewares/permissions.middleware');
 
@@ -39,6 +40,9 @@ function setupRoutes(server) {
   
   // Rotas de demandas (com lógica de negócio)
   server.use('/api/demandas', authMiddleware, demandasRoutes);
+
+  // Rotas de colunas Kanban (leitura livre, gestão requer gerenciar_kanban)
+  server.use('/api/colunas-kanban', authMiddleware, colunasKanbanRoutes);
 }
 
 module.exports = {
@@ -48,6 +52,7 @@ module.exports = {
   demandasRoutes,
   usuariosRoutes,
   templatesRoutes,
-  acoesRoutes
+  acoesRoutes,
+  colunasKanbanRoutes
 };
 

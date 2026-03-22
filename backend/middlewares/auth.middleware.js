@@ -56,6 +56,7 @@ async function authMiddleware(req, res, next) {
             deletar_demandas: true,
             cargo_disponivel_como_responsavel: true,
             usuarios_disponiveis_como_responsaveis: true,
+            gerenciar_kanban: true,
           },
         },
       },

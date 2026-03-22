@@ -41,6 +41,7 @@ const PERMISSIONS: Array<{ key: CargoPermissionKey; label: string }> = [
   { key: "acesso_acoes", label: "Acesso Ações" },
   { key: "acesso_usuarios", label: "Acesso Usuários" },
   { key: "deletar_demandas", label: "Deletar Demandas" },
+  { key: "gerenciar_kanban", label: "Gerenciar Kanban" },
   { key: "cargo_disponivel_como_responsavel", label: "Cargo Disponível Como Responsável" },
   { key: "usuarios_disponiveis_como_responsaveis", label: "Usuários Disponíveis como Responsáveis" },
 ];
@@ -54,6 +55,7 @@ function withDefaults(c: Cargo): Cargo {
     deletar_demandas: !!c.deletar_demandas,
     cargo_disponivel_como_responsavel: !!c.cargo_disponivel_como_responsavel,
     usuarios_disponiveis_como_responsaveis: !!c.usuarios_disponiveis_como_responsaveis,
+    gerenciar_kanban: !!c.gerenciar_kanban,
   };
 }
 
@@ -72,6 +74,7 @@ function isCargoDirty(d: CargoDraft): boolean {
     a.deletar_demandas !== b.deletar_demandas ||
     a.cargo_disponivel_como_responsavel !== b.cargo_disponivel_como_responsavel ||
     a.usuarios_disponiveis_como_responsaveis !== b.usuarios_disponiveis_como_responsaveis ||
+    a.gerenciar_kanban !== b.gerenciar_kanban ||
     d.ui.isDeleted
   );
 }
@@ -197,6 +200,7 @@ export default function Cargos() {
       deletar_demandas: false,
       cargo_disponivel_como_responsavel: false,
       usuarios_disponiveis_como_responsaveis: false,
+      gerenciar_kanban: false,
       ui: {
         expanded: true,
         isNew: true,
@@ -253,6 +257,7 @@ export default function Cargos() {
           deletar_demandas: !!d.deletar_demandas,
           cargo_disponivel_como_responsavel: !!d.cargo_disponivel_como_responsavel,
           usuarios_disponiveis_como_responsaveis: !!d.usuarios_disponiveis_como_responsaveis,
+          gerenciar_kanban: !!d.gerenciar_kanban,
         }));
 
       const updates = drafts
@@ -266,6 +271,7 @@ export default function Cargos() {
           deletar_demandas: !!d.deletar_demandas,
           cargo_disponivel_como_responsavel: !!d.cargo_disponivel_como_responsavel,
           usuarios_disponiveis_como_responsaveis: !!d.usuarios_disponiveis_como_responsaveis,
+          gerenciar_kanban: !!d.gerenciar_kanban,
         }));
 
       const deletes = drafts

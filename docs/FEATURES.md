@@ -8,40 +8,60 @@ O Demand Flow é um sistema completo de gerenciamento de demandas com interface 
 
 ## ✅ Funcionalidades Atuais
 
-### 📋 Quadro Kanban
+### 📋 Quadro Kanban com Colunas Customizáveis
 
-Interface visual com três colunas para gerenciamento de demandas:
+Interface visual com colunas dinâmicas para gerenciamento de demandas:
 
 ```
-┌─────────────┬─────────────┬─────────────┐
-│   CRIADA    │ EM ANDAMENTO│  FINALIZADA │
-├─────────────┼─────────────┼─────────────┤
-│ • Demanda 1 │ • Demanda 3 │ • Demanda 5 │
-│ • Demanda 2 │ • Demanda 4 │ • Demanda 6 │
-└─────────────┴─────────────┴─────────────┘
+┌─────────────┬─────────────┬──────────────┬─────────────┐
+│   CRIADA    │  ANÁLISE    │  EM EXECUÇÃO │  FINALIZADA │
+│   (fixa)    │  (custom)   │  (custom)    │  (fixa)     │
+├─────────────┼─────────────┼──────────────┼─────────────┤
+│ • Demanda 1 │ • Demanda 3 │ • Demanda 5  │ • Demanda 7 │
+│ • Demanda 2 │ • Demanda 4 │ • Demanda 6  │ • Demanda 8 │
+└─────────────┴─────────────┴──────────────┴─────────────┘
 ```
 
-- ✅ Drag & Drop entre colunas
-- ✅ Status atualizado automaticamente
+- ✅ **Colunas fixas**: "Criada" (primeira) e "Finalizada" (última) com regras preservadas
+- ✅ **Colunas intermediárias customizáveis**: Crie, renomeie, reordene e exclua livremente
+- ✅ **Drag & Drop aprimorado**: Card inteiro arrastável (sem ícone de arraste)
+- ✅ **Distinção click vs drag**: Movimentos < 8px = abrir detalhes; ≥ 8px = arrastar
+- ✅ **Status atualizado automaticamente** ao arrastar entre colunas
 - ✅ Contadores por coluna
 - ✅ Indicadores visuais de prazo (verde/amarelo/vermelho)
+- ✅ Cores automáticas para colunas intermediárias
 - ✅ Ordenação inteligente:
-  - **Criadas/Em Andamento**: Data de previsão crescente → Alfabética (ignorando template)
+  - **Criadas/Intermediárias**: Data de previsão crescente → Alfabética (ignorando template)
   - **Finalizadas**: Data de finalização decrescente → Alfabética (ignorando template)
 - ✅ Limitação de exibição: 15 últimas finalizadas no painel
 - ✅ Link "Ver todas" para página completa de finalizadas
 
+**Gerenciamento de Colunas:**
+- ✅ Modal dedicado acessível via botão "Colunas" no header do painel
+- ✅ Criar novas colunas intermediárias
+- ✅ Renomear colunas (demandas atualizadas automaticamente)
+- ✅ Reordenar via setas ↑ ↓ (colunas fixas mantêm posição)
+- ✅ Excluir colunas sem demandas vinculadas
+- ✅ Permissão `gerenciar_kanban` necessária para criar/editar/excluir colunas
+
 ---
 
-### 🎨 Templates Customizáveis
+### 🎨 Templates Customizáveis com Versionamento
 
-Crie modelos reutilizáveis para tipos de demanda:
+Crie modelos reutilizáveis para tipos de demanda. Todo template possui histórico completo de versões.
 
 **Componentes:**
 - **Campos de Preenchimento:** Texto, Número, Número Decimal, Data, Arquivo, Dropdown
 - **Tempo Médio:** Dias esperados para conclusão (calcula previsão) - obrigatório
 - **Tarefas:** Lista pré-definida com dependências
 - **Responsáveis:** Por tarefa (opcional)
+
+**Versionamento Automático:**
+- ✅ **Snapshot automático**: Toda criação ou edição de template gera uma versão imediatamente
+- ✅ **Label de versão**: Formato `DDMMaaHHmm` (ex: `2502261520` = 25/02/26 às 15:20)
+- ✅ **Pinagem na demanda**: Ao criar uma demanda, a versão mais recente é vinculada automaticamente
+- ✅ **Imutabilidade**: Alterações no template não afetam demandas já criadas
+- ✅ **Retrocompatível**: Demandas antigas (sem versão) continuam usando o template live normalmente
 
 **Tipos de Campo:**
 - `texto` - Input de texto simples
@@ -170,10 +190,15 @@ Tarefas:
 
 ### 🔒 Regras de Status
 
+**Colunas Fixas:**
+- ✅ "Criada" e "Finalizada" são colunas fixas que não podem ser renomeadas, excluídas ou reordenadas
+- ✅ "Criada" é sempre a primeira coluna; "Finalizada" é sempre a última
+- ✅ Regras de data_finalizacao, prazo e confirmações continuam inalteradas
+
 **Prevenção de Regressão:**
 - ✅ Demandas nunca voltam para status "Criada" após ter outro status
 - ✅ Se todas as tarefas não estão concluídas, mantém status atual
-- ✅ Lógica: Finalizada → Em Andamento → (mantém) → nunca volta para Criada
+- ✅ "Iniciar Andamento" move para a primeira coluna intermediária (dinâmico)
 
 ---
 
@@ -258,7 +283,7 @@ Sistema visual de validação no modal de criação de demanda:
 - ✅ Volume Docker para persistência
 
 **Estrutura:**
-- ✅ Tabelas: Usuario, Template, Demanda, TarefaStatus, Acao, CampoPreenchido, Cargo
+- ✅ Tabelas: Usuario, Template, Demanda, TarefaStatus, Acao, CampoPreenchido, Cargo, ColunaKanban
 - ✅ Timestamps automáticos (created_at, updated_at)
 - ✅ Soft deletes quando aplicável
 - ✅ Índices para performance
@@ -273,13 +298,14 @@ Sistema visual de validação no modal de criação de demanda:
 - ✅ Salvar em lote (criar/renomear/excluir/permissões)
 - ✅ Reassignment obrigatório ao excluir cargo com usuários
 
-**Permissões (v1):**
+**Permissões:**
 - ✅ Acesso Templates
 - ✅ Acesso Ações
 - ✅ Acesso Usuários (inclui página de Cargos)
 - ✅ Deletar Demandas
 - ✅ Cargo Disponível Como Responsável
 - ✅ Usuários Disponíveis como Responsáveis
+- ✅ Gerenciar Kanban (criar/editar/excluir colunas)
 
 **Regras Globais:**
 - ✅ Páginas sempre liberadas: Painel de Demandas, Relatórios, Finalizadas
@@ -301,6 +327,7 @@ Sistema visual de validação no modal de criação de demanda:
 - ✅ `demanda:created` - Nova demanda criada
 - ✅ `demanda:updated` - Demanda atualizada
 - ✅ `demanda:deleted` - Demanda deletada
+- ✅ `coluna-kanban:updated` - Coluna Kanban criada/editada/excluída/reordenada
 - ✅ Merge por campo (PATCH por delta) para evitar sobrescritas
 
 **Benefícios:**
@@ -339,10 +366,21 @@ GET/POST/PATCH/DELETE  /api/demandas
 GET/POST/PATCH/DELETE  /api/acoes
 GET/POST/PATCH/DELETE  /api/cargos
 
+# Colunas Kanban
+GET    /api/colunas-kanban                        # Listar colunas (auth-only)
+POST   /api/colunas-kanban                        # Criar coluna (gerenciar_kanban)
+PATCH  /api/colunas-kanban/:id                    # Editar coluna (gerenciar_kanban)
+DELETE /api/colunas-kanban/:id                    # Excluir coluna (gerenciar_kanban)
+PUT    /api/colunas-kanban/reorder                # Reordenar (gerenciar_kanban)
+
+# Versionamento de Templates
+GET    /api/templates/:id/versoes              # Lista versões (id, label, created_at)
+GET    /api/templates/:id/versoes/:versionId   # Dados completos de uma versão
+
 # Endpoints Especiais
-POST   /api/demandas/criar        # Com notificações
+POST   /api/demandas/criar        # Com notificações + pinagem de versão
 PATCH  /api/demandas/:id/atualizar # Com notificações
-POST   /api/demandas/:id/tarefas/:taskId/executar  # Executa ação
+POST   /api/demandas/:id/tarefas/:taskId/executar  # Executa ação via snapshot
 POST   /api/upload                # Upload de arquivos
 PUT    /api/cargos/batch          # Salvar cargos em lote
 GET    /api/public/usuarios      # Lista pública (auth-only)
@@ -449,6 +487,25 @@ Sistema inteligente de salvamento automático para garantir integridade dos dado
 ---
 
 ## 📝 Histórico de Versões
+
+### v1.3.0 - 22/03/2026
+- Colunas Kanban customizáveis (criar, renomear, reordenar, excluir)
+- Colunas fixas "Criada" e "Finalizada" preservadas com regras existentes
+- Modal de gerenciamento de colunas
+- Nova permissão "Gerenciar Kanban" no sistema de cargos
+- Drag-and-drop no card inteiro com distinção click vs drag (8px threshold)
+- Botão "Iniciar Andamento" dinâmico (primeira coluna intermediária)
+- API REST completa para colunas Kanban com proteção de permissão
+- Status dinâmico em relatórios, filtros e validações
+- Sincronização de colunas via WebSocket
+
+### v1.2.0 - 25/02/2026
+- Versionamento automático de templates (snapshots)
+- Pinagem de versão do template em cada demanda criada
+- Imutabilidade: edições no template não afetam demandas existentes
+- API de versões: listar e consultar versões de templates
+- Uso do snapshot em toda a cadeia (criação, atualização, execução de ações)
+- Retrocompatibilidade total com demandas criadas antes do versionamento
 
 ### v1.1.4 - 15/01/2026
 - Destaque visual para cargo e usuário do usuário logado nos cards
@@ -617,5 +674,5 @@ Ver histórico completo em [CHANGELOG.md](./CHANGELOG.md)
 
 ---
 
-**Versão:** 1.1.4  
-**Última Atualização:** 15/01/2026
+**Versão:** 1.3.0  
+**Última Atualização:** 22/03/2026

@@ -79,19 +79,32 @@ export const CampoInput = memo(function CampoInput({ campo, value, onChange, sho
       );
     
     case "data": {
-      // Converter string para Date se existir valor válido
       let dateValue: Date | null = null;
       if (value) {
-        const parsed = new Date(value);
-        dateValue = isNaN(parsed.getTime()) ? null : parsed;
+        // Interpretar "YYYY-MM-DD" como meia-noite LOCAL (não UTC)
+        const parts = value.split('-');
+        if (parts.length === 3) {
+          const [y, m, d] = parts.map(Number);
+          const parsed = new Date(y, m - 1, d);
+          dateValue = isNaN(parsed.getTime()) ? null : parsed;
+        } else {
+          const parsed = new Date(value);
+          dateValue = isNaN(parsed.getTime()) ? null : parsed;
+        }
       }
       
       return (
         <DatePicker
           selected={dateValue}
           onChange={(date) => {
-            // Salvar como ISO string (YYYY-MM-DD) para compatibilidade com backend
-            onChange(date ? date.toISOString().split('T')[0] : "");
+            if (date) {
+              const y = date.getFullYear();
+              const m = String(date.getMonth() + 1).padStart(2, '0');
+              const d = String(date.getDate()).padStart(2, '0');
+              onChange(`${y}-${m}-${d}`);
+            } else {
+              onChange("");
+            }
           }}
           placeholder={campo.obrigatorio_criacao ? "Selecione uma data" : "Data (opcional)"}
         />

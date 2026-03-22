@@ -4,22 +4,21 @@
  * Lógica centralizada para cálculo de status de demandas
  */
 
-// Constantes de status
+// Constantes de status fixos (colunas que não podem ser renomeadas/removidas)
 const STATUS = {
   CRIADA: 'Criada',
-  EM_ANDAMENTO: 'Em Andamento',
   FINALIZADA: 'Finalizada'
 };
 
 /**
- * Calcula o novo status baseado nas tarefas
+ * Calcula o novo status baseado nas tarefas.
  * @param {Array} tarefasStatus - Array de status das tarefas
- * @param {string} statusAtual - Status atual da demanda (opcional)
+ * @param {string} statusAtual - Status atual da demanda
+ * @param {string} [primeiraColIntermed] - Nome da primeira coluna intermediária (ex: "Em Andamento")
  * @returns {string} - Novo status da demanda
  */
-function calcularNovoStatus(tarefasStatus, statusAtual) {
+function calcularNovoStatus(tarefasStatus, statusAtual, primeiraColIntermed) {
   if (!tarefasStatus || tarefasStatus.length === 0) {
-    // Se não tem tarefas, retornar Criada apenas se ainda não teve outro status
     return statusAtual && statusAtual !== STATUS.CRIADA ? statusAtual : STATUS.CRIADA;
   }
 
@@ -29,10 +28,13 @@ function calcularNovoStatus(tarefasStatus, statusAtual) {
   if (todasConcluidas) {
     return STATUS.FINALIZADA;
   } else if (algumaConcluida) {
-    return STATUS.EM_ANDAMENTO;
+    // If already in an intermediate column, keep it; otherwise move to the first one
+    if (statusAtual && statusAtual !== STATUS.CRIADA && statusAtual !== STATUS.FINALIZADA) {
+      return statusAtual;
+    }
+    return primeiraColIntermed || statusAtual || STATUS.CRIADA;
   }
   
-  // Se nenhuma tarefa concluída, manter status atual se já teve outro status (não voltar para Criada)
   if (statusAtual && statusAtual !== STATUS.CRIADA) {
     return statusAtual;
   }
@@ -74,16 +76,16 @@ function verificarPrazo(dataFinalizacao, dataPrevisao) {
  * Calcula as atualizações necessárias baseado no status das tarefas
  * @param {Array} tarefasStatus - Novo status das tarefas
  * @param {Object} demandaAtual - Demanda atual
+ * @param {string} [primeiraColIntermed] - Nome da primeira coluna intermediária
  * @returns {Object} - Objeto com as atualizações (status, data_finalizacao, prazo)
  */
-function calcularAtualizacoesStatus(tarefasStatus, demandaAtual) {
+function calcularAtualizacoesStatus(tarefasStatus, demandaAtual, primeiraColIntermed) {
   const updates = {};
-  const novoStatus = calcularNovoStatus(tarefasStatus, demandaAtual.status);
+  const novoStatus = calcularNovoStatus(tarefasStatus, demandaAtual.status, primeiraColIntermed);
   
   updates.status = novoStatus;
 
   if (novoStatus === STATUS.FINALIZADA) {
-    // Definir data de finalização se ainda não existe
     if (!demandaAtual.data_finalizacao) {
       updates.data_finalizacao = new Date().toISOString();
       updates.prazo = verificarPrazo(
@@ -91,17 +93,12 @@ function calcularAtualizacoesStatus(tarefasStatus, demandaAtual) {
         demandaAtual.data_previsao
       );
     }
-  } else if (novoStatus === STATUS.EM_ANDAMENTO) {
-    // Se estava finalizada e foi reaberta, remover data de finalização
-    if (demandaAtual.status === STATUS.FINALIZADA) {
-      updates.data_finalizacao = null;
-    }
-    // Se tinha data_finalizacao mas mudou para Em Andamento, remover
+  } else if (novoStatus !== STATUS.CRIADA) {
+    // Any intermediate column: clear data_finalizacao if it had one
     if (demandaAtual.data_finalizacao) {
       updates.data_finalizacao = null;
     }
   } else {
-    // Status Criada - limpar data de finalização
     updates.data_finalizacao = null;
     updates.prazo = true;
   }

@@ -3,7 +3,7 @@
  */
 
 import type { Demanda, Usuario, Template } from "@/types";
-import { StatusDemanda } from "@/types";
+import { STATUS_FIXOS } from "@/types";
 
 // ============================================
 // TIPOS PARA MÉTRICAS E GRÁFICOS
@@ -78,9 +78,9 @@ export function formatarNomeUsuario(nomeCompleto: string): string {
  */
 export function computeKPIs(demandas: Demanda[]): DashboardKPIs {
   const total = demandas.length;
-  const criadas = demandas.filter(d => d.status === StatusDemanda.CRIADA).length;
-  const emAndamento = demandas.filter(d => d.status === StatusDemanda.EM_ANDAMENTO).length;
-  const finalizadas = demandas.filter(d => d.status === StatusDemanda.FINALIZADA).length;
+  const criadas = demandas.filter(d => d.status === STATUS_FIXOS.CRIADA).length;
+  const emAndamento = demandas.filter(d => d.status !== STATUS_FIXOS.CRIADA && d.status !== STATUS_FIXOS.FINALIZADA).length;
+  const finalizadas = demandas.filter(d => d.status === STATUS_FIXOS.FINALIZADA).length;
   
   // Taxa de conclusão geral (evitar divisão por zero)
   const taxaConclusao = total > 0 
@@ -89,7 +89,7 @@ export function computeKPIs(demandas: Demanda[]): DashboardKPIs {
   
   // Taxa de conclusão no prazo: finalizadas com prazo=true / total finalizadas
   const finalizadasNoPrazo = demandas.filter(d => 
-    d.status === StatusDemanda.FINALIZADA && d.prazo === true
+    d.status === STATUS_FIXOS.FINALIZADA && d.prazo === true
   ).length;
   
   const taxaConclusaoNoPrazo = finalizadas > 0
@@ -98,12 +98,12 @@ export function computeKPIs(demandas: Demanda[]): DashboardKPIs {
   
   // Em atraso: prazo=false E não finalizada
   const emAtraso = demandas.filter(d => 
-    d.prazo === false && d.status !== StatusDemanda.FINALIZADA
+    d.prazo === false && d.status !== STATUS_FIXOS.FINALIZADA
   ).length;
   
   // Tempo médio de conclusão (somente finalizadas com data_finalizacao)
   const demandasFinalizadasComData = demandas.filter(d => 
-    d.status === StatusDemanda.FINALIZADA && d.data_finalizacao
+    d.status === STATUS_FIXOS.FINALIZADA && d.data_finalizacao
   );
   
   let tempoMedioConclusao = 0;
@@ -179,15 +179,15 @@ export function computeBucketsMensais(demandas: Demanda[]): BucketMensal[] {
     const bucket = bucketsMap.get(mesKey)!;
     bucket.criadas++;
     
-    // Contar status atual no mês de criação
-    if (d.status === StatusDemanda.EM_ANDAMENTO) {
+    // Count intermediate statuses (anything not Criada/Finalizada)
+    if (d.status !== STATUS_FIXOS.CRIADA && d.status !== STATUS_FIXOS.FINALIZADA) {
       bucket.emAndamento++;
     }
   });
   
   // Processar finalizadas - contar por data de finalização
   demandas
-    .filter(d => d.status === StatusDemanda.FINALIZADA && d.data_finalizacao)
+    .filter(d => d.status === STATUS_FIXOS.FINALIZADA && d.data_finalizacao)
     .forEach(d => {
       const dataFinalizacao = new Date(d.data_finalizacao!);
       const mesKey = gerarMesKey(dataFinalizacao);
@@ -251,7 +251,7 @@ export function computeAgrupamentoPorTemplate(
     const grupo = templateMap.get(d.template_id)!;
     grupo.total++;
     
-    if (d.status === StatusDemanda.FINALIZADA) {
+    if (d.status === STATUS_FIXOS.FINALIZADA) {
       grupo.finalizadas++;
     }
   });
@@ -296,7 +296,7 @@ export function computeAgrupamentoPorUsuario(
     const grupo = usuarioMap.get(d.responsavel_id)!;
     grupo.total++;
     
-    if (d.status === StatusDemanda.FINALIZADA) {
+    if (d.status === STATUS_FIXOS.FINALIZADA) {
       grupo.finalizadas++;
       if (d.prazo === true) {
         grupo.finalizadasNoPrazo++;

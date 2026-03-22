@@ -20,7 +20,7 @@ import {
 import { DetalhesDemandaModal } from "@/components/modals/DetalhesDemandaModal";
 import { DemandaCard } from "@/components/kanban/DemandaCard";
 import type { Demanda } from "@/types";
-import { StatusDemanda } from "@/types";
+import { STATUS_FIXOS } from "@/types";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -38,7 +38,7 @@ export default function Finalizadas() {
 
   // Filtrar apenas finalizadas
   const finalizadas = useMemo(() => {
-    return demandas.filter((d) => d.status === StatusDemanda.FINALIZADA);
+    return demandas.filter((d) => d.status === STATUS_FIXOS.FINALIZADA);
   }, [demandas]);
 
   // Aplicar filtros

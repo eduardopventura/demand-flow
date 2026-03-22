@@ -59,6 +59,7 @@ router.put('/batch', asyncHandler(async (req, res) => {
           deletar_demandas: !!c.deletar_demandas,
           cargo_disponivel_como_responsavel: !!c.cargo_disponivel_como_responsavel,
           usuarios_disponiveis_como_responsaveis: !!c.usuarios_disponiveis_como_responsaveis,
+          gerenciar_kanban: !!c.gerenciar_kanban,
         },
       });
       created.push(createdCargo);
@@ -79,6 +80,8 @@ router.put('/batch', asyncHandler(async (req, res) => {
         data.cargo_disponivel_como_responsavel = !!u.cargo_disponivel_como_responsavel;
       if (u.usuarios_disponiveis_como_responsaveis !== undefined)
         data.usuarios_disponiveis_como_responsaveis = !!u.usuarios_disponiveis_como_responsaveis;
+      if (u.gerenciar_kanban !== undefined)
+        data.gerenciar_kanban = !!u.gerenciar_kanban;
 
       const updatedCargo = await tx.cargo.update({
         where: { id: u.id },

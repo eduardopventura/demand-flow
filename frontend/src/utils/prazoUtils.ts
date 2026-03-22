@@ -93,11 +93,21 @@ export const getCorBordaPrazo = (
 
 /**
  * Formata data para exibição (DD/MM/YYYY)
+ * Strings date-only (YYYY-MM-DD) são tratadas como data local, não UTC
  */
 export const formatarData = (dataISO: string | null): string => {
   if (!dataISO) return '';
   
-  const data = new Date(dataISO);
+  let data: Date;
+  // Strings "YYYY-MM-DD" (sem componente de hora) são parseadas como UTC pelo JS,
+  // causando shift de -1 dia em timezones negativas. Tratar como data local.
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dataISO)) {
+    const [y, m, d] = dataISO.split('-').map(Number);
+    data = new Date(y, m - 1, d);
+  } else {
+    data = new Date(dataISO);
+  }
+  
   const dia = String(data.getDate()).padStart(2, '0');
   const mes = String(data.getMonth() + 1).padStart(2, '0');
   const ano = data.getFullYear();

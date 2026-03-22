@@ -135,7 +135,7 @@ export function DatePicker({
             disabled={disabled}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {selected ? formatarData(selected.toISOString()) : placeholder}
+            {selected ? formatarData(`${selected.getFullYear()}-${String(selected.getMonth() + 1).padStart(2, '0')}-${String(selected.getDate()).padStart(2, '0')}`) : placeholder}
           </Button>
         }
         calendarClassName="react-datepicker-shadcn"

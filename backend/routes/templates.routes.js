@@ -71,6 +71,16 @@ router.put('/:id', requireCargoPermission('acesso_templates'), asyncHandler(asyn
 }));
 
 /**
+ * GET /api/templates/:id/versions
+ * Lista todas as versões de um template (id, nome, created_at) — sem dados completos
+ */
+router.get('/:id/versions', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const versions = await templateRepository.findVersionsByTemplateId(id);
+  res.json(versions);
+}));
+
+/**
  * DELETE /api/templates/:id
  * Deleta um template (requer acesso_templates)
  */

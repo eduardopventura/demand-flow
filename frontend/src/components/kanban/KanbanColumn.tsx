@@ -1,8 +1,7 @@
 import { useDroppable } from "@dnd-kit/core";
 import { DemandaCard } from "./DemandaCard";
 import type { Demanda } from "@/types";
-import { StatusDemanda } from "@/types";
-import { STATUS_CONFIG } from "@/constants";
+import type { StatusColumnConfig } from "@/constants";
 import { cn } from "@/lib/utils";
 import { memo } from "react";
 import { Link } from "react-router-dom";
@@ -10,19 +9,18 @@ import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface KanbanColumnProps {
-  status: StatusDemanda;
+  columnName: string;
+  config: StatusColumnConfig;
   demandas: Demanda[];
   onCardClick: (demanda: Demanda) => void;
   isMobile?: boolean;
-  totalCount?: number; // Total count for showing "view all" link
-  showViewAllLink?: boolean; // Whether to show "view all" link
+  totalCount?: number;
+  showViewAllLink?: boolean;
 }
 
-const KanbanColumnComponent = ({ status, demandas, onCardClick, isMobile, totalCount, showViewAllLink }: KanbanColumnProps) => {
-  const { setNodeRef, isOver } = useDroppable({ id: status });
-  const config = STATUS_CONFIG[status];
+const KanbanColumnComponent = ({ columnName, config, demandas, onCardClick, isMobile, totalCount, showViewAllLink }: KanbanColumnProps) => {
+  const { setNodeRef, isOver } = useDroppable({ id: columnName });
 
-  // Mobile layout - simplified without header (tabs already show status)
   if (isMobile) {
     return (
       <div
@@ -48,19 +46,18 @@ const KanbanColumnComponent = ({ status, demandas, onCardClick, isMobile, totalC
     );
   }
 
-  // Desktop layout - original with header
   return (
     <div
       ref={setNodeRef}
       className={cn(
-        "flex flex-col rounded-xl border-2 transition-all h-full",
+        "flex flex-col rounded-xl border-2 transition-all h-full min-w-[280px]",
         config.border,
         isOver && "ring-2 ring-primary/50"
       )}
     >
       <div className={cn("p-4 rounded-t-xl", config.bg)}>
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-foreground">{status}</h3>
+          <h3 className="font-semibold text-foreground truncate">{config.label}</h3>
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-muted-foreground bg-background/50 px-2 py-1 rounded">
               {totalCount !== undefined ? totalCount : demandas.length}
@@ -94,17 +91,14 @@ const KanbanColumnComponent = ({ status, demandas, onCardClick, isMobile, totalC
   );
 };
 
-// Memoize component to prevent unnecessary re-renders
 export const KanbanColumn = memo(KanbanColumnComponent, (prevProps, nextProps) => {
-  if (prevProps.status !== nextProps.status) return false;
+  if (prevProps.columnName !== nextProps.columnName) return false;
   if (prevProps.isMobile !== nextProps.isMobile) return false;
   if (prevProps.totalCount !== nextProps.totalCount) return false;
   if (prevProps.showViewAllLink !== nextProps.showViewAllLink) return false;
+  if (prevProps.config !== nextProps.config) return false;
   if (prevProps.demandas.length !== nextProps.demandas.length) return false;
 
-  // Importante: não comparar só IDs.
-  // Se o objeto da demanda mudou (ex.: data_previsao, tarefas_status, observacoes),
-  // precisamos re-renderizar para refletir no card/coluna.
   for (let i = 0; i < prevProps.demandas.length; i++) {
     const prev = prevProps.demandas[i];
     const next = nextProps.demandas[i];

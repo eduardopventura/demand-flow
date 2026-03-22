@@ -2,7 +2,8 @@
  * Dashboard Filters - Tipos e funções para filtragem de demandas no dashboard
  */
 
-import type { Demanda, StatusDemanda } from "@/types";
+import type { Demanda } from "@/types";
+import { STATUS_FIXOS } from "@/types";
 
 // Tipos de período pré-definidos
 export type PeriodoPreset = "3" | "6" | "12" | "all" | "custom";
@@ -22,7 +23,7 @@ export interface DashboardFilters {
   templateId: string | null; // null = todos
   
   // Filtros de status (múltiplos permitidos, vazio = todos)
-  status: StatusDemanda[];
+  status: string[];
   
   // Filtro de prazo
   prazo: FiltroPrazo;
@@ -113,10 +114,9 @@ export function applyDashboardFilters(
   if (filters.prazo !== "all") {
     if (filters.prazo === "dentro") {
       // Dentro do prazo: prazo=true OU já finalizada
-      resultado = resultado.filter(d => d.prazo === true || d.status === "Finalizada");
+      resultado = resultado.filter(d => d.prazo === true || d.status === STATUS_FIXOS.FINALIZADA);
     } else if (filters.prazo === "atrasado") {
-      // Em atraso: prazo=false E não finalizada
-      resultado = resultado.filter(d => d.prazo === false && d.status !== "Finalizada");
+      resultado = resultado.filter(d => d.prazo === false && d.status !== STATUS_FIXOS.FINALIZADA);
     }
   }
   

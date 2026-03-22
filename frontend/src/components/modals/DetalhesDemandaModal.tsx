@@ -17,6 +17,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -28,15 +35,17 @@ import {
 } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DatePicker } from "@/components/ui/date-picker";
-import { Zap, Play, Check, AlertCircle, Loader2, CheckCircle, XCircle } from "lucide-react";
+import { Zap, Play, Check, AlertCircle, Loader2, CheckCircle, XCircle, History } from "lucide-react";
 import { toast } from "sonner";
-import type { Demanda, TarefaStatus, CampoPreenchimento, Tarefa } from "@/types";
+import type { Demanda, TarefaStatus, CampoPreenchimento, Tarefa, Template, TemplateVersion } from "@/types";
+import { STATUS_FIXOS } from "@/types";
 import { formatarData } from "@/utils/prazoUtils";
 import { avaliarCondicaoVisibilidade, ordenarCamposPorAba, buscarValorCampo } from "@/utils/campoUtils";
 import { StickyTabs } from "@/components/StickyTabs";
 import { CampoInput, ResponsavelSelect, GrupoCampos } from "@/components/form";
 import { cn } from "@/lib/utils";
 import { useDebouncedCallback } from "@/hooks/useDebounce";
+import { apiService } from "@/services/api.service";
 
 interface DetalhesDemandaModalProps {
   demanda: Demanda | null;
@@ -47,7 +56,7 @@ interface DetalhesDemandaModalProps {
 type SavingStatus = "idle" | "saving" | "saved" | "error";
 
 export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDemandaModalProps) => {
-  const { updateDemanda, getTemplate, acoes, getAcao, getCargo, executarAcaoTarefa } = useData();
+  const { updateDemanda, getTemplate, acoes, getAcao, getCargo, executarAcaoTarefa, colunasKanban } = useData();
   const { user } = useAuth();
   const [responsavelId, setResponsavelId] = useState("");
   const [camposValores, setCamposValores] = useState<Record<string, string>>({});
@@ -59,7 +68,12 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
   const [abaAtiva, setAbaAtiva] = useState<string>("geral");
   const [executandoAcao, setExecutandoAcao] = useState<string | null>(null);
   const [grupoReplicas, setGrupoReplicas] = useState<Record<string, number>>({});
-  
+
+  // Version selector state
+  const [versoes, setVersoes] = useState<TemplateVersion[]>([]);
+  const [showVersionConfirm, setShowVersionConfirm] = useState(false);
+  const [pendingVersionId, setPendingVersionId] = useState<string | null>(null);
+
   // Auto-save states
   const [savingStatus, setSavingStatus] = useState<SavingStatus>("idle");
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -75,8 +89,11 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
   
   // Ref para rastrear demanda em edição (evita reset por WebSocket)
   const demandaEmEdicaoRef = useRef<string | null>(null);
+  // Ref para controlar reload após troca de versão
+  const loadedVersionIdRef = useRef<string | undefined | null>(undefined);
 
-  const template = demanda ? getTemplate(demanda.template_id) : null;
+  // Usa o snapshot da versão como template efetivo; fallback para template live do contexto
+  const template: Template | null | undefined = demanda?.template_snapshot ?? (demanda ? getTemplate(demanda.template_id) : null);
   
   // Rastrear quando modal abre/fecha para ignorar WebSocket updates
   useEffect(() => {
@@ -84,8 +101,6 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
       demandaEmEdicaoRef.current = demanda.id;
     } else {
       demandaEmEdicaoRef.current = null;
-      // Limpar estado local quando modal fecha para evitar mostrar dados antigos
-      // quando outra demanda for aberta rapidamente
       if (!open) {
         setResponsavelId("");
         setCamposValores({});
@@ -96,10 +111,21 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
         setAbaAtiva("geral");
         setSavingStatus("idle");
         setLastSaved(null);
+        setVersoes([]);
+        loadedVersionIdRef.current = undefined;
         initialSnapshotRef.current = null;
       }
     }
   }, [open, demanda?.id]);
+
+  // Buscar versões do template quando o modal abre
+  useEffect(() => {
+    if (open && demanda?.template_id) {
+      apiService.getTemplateVersions(demanda.template_id)
+        .then(setVersoes)
+        .catch(() => { /* silencioso — versões são opcionais */ });
+    }
+  }, [open, demanda?.template_id]);
 
   // Função auxiliar de salvamento parcial
   const savePartial = useCallback(async (payload: any) => {
@@ -174,17 +200,42 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
     try {
       await executarAcaoTarefa(demanda.id, tarefaId);
       
-      // Atualizar o status local da tarefa
+      // Marcar tarefa como concluída localmente (seja download ou resposta JSON)
       setTarefasStatus(prev => prev.map(t => 
         t.id_tarefa === tarefaId ? { ...t, concluida: true } : t
       ));
-      
-      toast.success("Ação executada com sucesso!");
     } catch (error) {
       // Toast de erro já é mostrado no contexto
     } finally {
       setExecutandoAcao(null);
     }
+  };
+
+  // Handler para solicitar troca de versão (abre dialog de confirmação)
+  const handleSolicitarTrocaVersao = (novaVersaoId: string) => {
+    if (novaVersaoId === demanda?.template_version_id) return;
+    setPendingVersionId(novaVersaoId);
+    setShowVersionConfirm(true);
+  };
+
+  // Handler para confirmar troca de versão
+  const handleConfirmarTrocaVersao = async () => {
+    if (!pendingVersionId || !demanda) return;
+    setShowVersionConfirm(false);
+    // Limpar ref para forçar re-init da modal após a atualização chegar
+    loadedVersionIdRef.current = pendingVersionId;
+    demandaEmEdicaoRef.current = null;
+    try {
+      await savePartial({ template_version_id: pendingVersionId });
+    } catch {
+      // savePartial já exibe toast de erro
+    }
+    setPendingVersionId(null);
+  };
+
+  const handleCancelarTrocaVersao = () => {
+    setShowVersionConfirm(false);
+    setPendingVersionId(null);
   };
 
   // Abas do template (com fallback para aba Geral)
@@ -225,15 +276,15 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
   useEffect(() => {
     if (!demanda || !template) return;
     
-    // Ignorar updates WebSocket da demanda que está sendo editada
-    // Só sincronizar quando:
-    // - Modal acabou de abrir (estado ainda não foi inicializado)
-    // - Ou é uma demanda diferente
+    // Ignorar updates WebSocket da demanda que está sendo editada,
+    // exceto quando a versão do template foi trocada (forçar re-init).
     const jaInicializado = responsavelId !== "" || Object.keys(camposValores).length > 0;
-    if (demandaEmEdicaoRef.current === demanda.id && jaInicializado) {
-      // Modal já está editando esta demanda - ignorar updates do WebSocket
+    const versaoMudou = demanda.template_version_id !== loadedVersionIdRef.current;
+    if (demandaEmEdicaoRef.current === demanda.id && jaInicializado && !versaoMudou) {
       return;
     }
+
+    loadedVersionIdRef.current = demanda.template_version_id;
     
     setResponsavelId(demanda.responsavel_id);
     
@@ -384,45 +435,47 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
     setPendingTaskToggle(null);
   };
 
-  // Handler para iniciar andamento
+  const primeiraColIntermed = useMemo(() => {
+    return colunasKanban.find(c => !c.fixa)?.nome;
+  }, [colunasKanban]);
+
   const handleIniciarAndamento = () => {
-    if (!demanda) return;
+    if (!demanda || !primeiraColIntermed) return;
     savePartial({
-      status: "Em Andamento",
+      status: primeiraColIntermed,
       data_finalizacao: null,
     });
     toast.success("Demanda iniciada com sucesso!");
   };
 
-  // Handler para finalizar demanda
   const handleFinalizarDemanda = () => {
     if (!demanda) return;
     savePartial({
-      status: "Finalizada",
+      status: STATUS_FIXOS.FINALIZADA,
       data_finalizacao: new Date().toISOString(),
     });
     toast.success("Demanda finalizada com sucesso!");
   };
 
-  // Calcular condições para mostrar botão de status
   const podeMostrarBotaoStatus = useMemo(() => {
     if (!demanda) return { mostrar: false, tipo: null as null | "iniciar" | "finalizar" };
     
     const nenhumaTarefaConcluida = tarefasStatus.every(t => !t.concluida);
     const temTarefasAbertas = tarefasStatus.some(t => !t.concluida);
     
-    // Condição 1: Status "Criada" + nenhuma tarefa concluída
-    if (demanda.status === "Criada" && nenhumaTarefaConcluida) {
+    // Show "Iniciar Andamento" when status is "Criada" and no tasks completed
+    if (demanda.status === STATUS_FIXOS.CRIADA && nenhumaTarefaConcluida && primeiraColIntermed) {
       return { mostrar: true, tipo: "iniciar" as const };
     }
     
-    // Condição 2: Status "Em Andamento" + 1+ tarefas abertas
-    if (demanda.status === "Em Andamento" && temTarefasAbertas) {
+    // Show "Finalizar" for any intermediate column with open tasks
+    const isIntermediate = demanda.status !== STATUS_FIXOS.CRIADA && demanda.status !== STATUS_FIXOS.FINALIZADA;
+    if (isIntermediate && temTarefasAbertas) {
       return { mostrar: true, tipo: "finalizar" as const };
     }
     
     return { mostrar: false, tipo: null as null };
-  }, [demanda, tarefasStatus]);
+  }, [demanda, tarefasStatus, primeiraColIntermed]);
 
   const getTarefasVisiveis = () => {
     if (!template) return [];
@@ -568,26 +621,70 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
           <DialogTitle className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 pr-6 w-full">
             <span className="text-base sm:text-lg line-clamp-2">{demanda.nome_demanda}</span>
             
-            {/* Saving Indicator */}
-            <div className="flex items-center gap-1.5 sm:ml-auto mt-1 sm:mt-0">
-              {savingStatus === "saving" && (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground font-normal">Salvando...</span>
-                </>
+            <div className="flex items-center gap-2 sm:ml-auto mt-1 sm:mt-0 flex-wrap">
+              {/* Seletor de versão do template */}
+              {versoes.length > 1 && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-1">
+                      <History className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                      <Select
+                        value={demanda.template_version_id ?? ""}
+                        onValueChange={handleSolicitarTrocaVersao}
+                      >
+                        <SelectTrigger className="h-7 text-xs w-32 border-dashed">
+                          <SelectValue placeholder="Versão..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {versoes.map((v) => (
+                            <SelectItem key={v.id} value={v.id} className="text-xs font-mono">
+                              {v.nome}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">Versão do template em uso por esta demanda</p>
+                  </TooltipContent>
+                </Tooltip>
               )}
-              {savingStatus === "saved" && (
-                <>
-                  <CheckCircle className="w-3.5 h-3.5 text-green-600" />
-                  <span className="text-xs text-green-600 font-normal">Salvo</span>
-                </>
+              {versoes.length === 1 && demanda.template_version_nome && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <History className="w-3 h-3" />
+                      <span className="text-xs font-mono">{demanda.template_version_nome}</span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">Versão do template em uso por esta demanda</p>
+                  </TooltipContent>
+                </Tooltip>
               )}
-              {savingStatus === "error" && (
-                <>
-                  <XCircle className="w-3.5 h-3.5 text-red-600" />
-                  <span className="text-xs text-red-600 font-normal">Erro ao salvar</span>
-                </>
-              )}
+
+              {/* Saving Indicator */}
+              <div className="flex items-center gap-1.5">
+                {savingStatus === "saving" && (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground font-normal">Salvando...</span>
+                  </>
+                )}
+                {savingStatus === "saved" && (
+                  <>
+                    <CheckCircle className="w-3.5 h-3.5 text-green-600" />
+                    <span className="text-xs text-green-600 font-normal">Salvo</span>
+                  </>
+                )}
+                {savingStatus === "error" && (
+                  <>
+                    <XCircle className="w-3.5 h-3.5 text-red-600" />
+                    <span className="text-xs text-red-600 font-normal">Erro ao salvar</span>
+                  </>
+                )}
+              </div>
             </div>
           </DialogTitle>
         </DialogHeader>
@@ -951,6 +1048,31 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
             </AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmReopenFromTaskToggle} className="w-full sm:w-auto">
               Sim, reabrir demanda
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirmation Dialog for switching template version */}
+      <AlertDialog open={showVersionConfirm} onOpenChange={setShowVersionConfirm}>
+        <AlertDialogContent className="mx-4 sm:mx-auto max-w-[calc(100vw-2rem)] sm:max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Trocar versão do template</AlertDialogTitle>
+          </AlertDialogHeader>
+          <div className="px-6 py-4 space-y-2">
+            <p className="text-sm text-muted-foreground">
+              Ao trocar a versão, a estrutura de campos e tarefas desta demanda passará a usar o snapshot selecionado.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Campos preenchidos que não existam na nova versão ficarão inacessíveis (mas não serão apagados). Tem certeza?
+            </p>
+          </div>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+            <AlertDialogCancel onClick={handleCancelarTrocaVersao} className="w-full sm:w-auto">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmarTrocaVersao} className="w-full sm:w-auto">
+              Sim, trocar versão
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

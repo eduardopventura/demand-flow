@@ -11,7 +11,7 @@
  * - Add error handling middleware
  */
 
-import type { Usuario, Cargo, Template, Demanda, Acao, DemandaUpdatePayload } from "@/types";
+import type { Usuario, Cargo, Template, TemplateVersion, Demanda, Acao, DemandaUpdatePayload, ColunaKanban } from "@/types";
 import { error as logError } from "@/utils/logger";
 
 /**
@@ -240,6 +240,10 @@ export const apiService = {
     });
   },
 
+  async getTemplateVersions(templateId: string): Promise<TemplateVersion[]> {
+    return fetchAPI<TemplateVersion[]>(`/templates/${templateId}/versions`);
+  },
+
   async deleteTemplate(id: string): Promise<void> {
     return fetchAPI<void>(`/templates/${id}`, {
       method: "DELETE",
@@ -345,15 +349,81 @@ export const apiService = {
   },
 
   /**
-   * Executar ação automática de uma tarefa
-   * O backend:
-   * - Monta o payload baseado no mapeamento de campos
-   * - Envia para o webhook (n8n)
-   * - Marca a tarefa como concluída se sucesso
+   * Executar ação automática de uma tarefa.
+   * O backend envia para o webhook (n8n) e marca a tarefa como concluída.
+   * Se o n8n retornar um arquivo binário (zip/octet-stream), resolve com { tipo: 'arquivo', blob, filename }.
+   * Caso contrário resolve com { success, message, demanda }.
    */
-  async executarAcaoTarefa(demandaId: string, tarefaId: string): Promise<{ success: boolean; message: string; demanda: Demanda }> {
-    return fetchAPI<{ success: boolean; message: string; demanda: Demanda }>(`/demandas/${demandaId}/tarefas/${tarefaId}/executar`, {
+  async executarAcaoTarefa(
+    demandaId: string,
+    tarefaId: string
+  ): Promise<{ success: boolean; message: string; demanda: Demanda } | { tipo: 'arquivo'; blob: Blob; filename: string }> {
+    const url = `${API_URL}/demandas/${demandaId}/tarefas/${tarefaId}/executar`;
+    const token = getAuthToken();
+    const headers: HeadersInit = {};
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
+    const response = await fetch(url, { method: "POST", headers });
+
+    if (response.status === 401) {
+      if (onUnauthorized) onUnauthorized();
+      throw new Error("Sessão expirada. Por favor, faça login novamente.");
+    }
+
+    if (!response.ok) {
+      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        if (errorData.message) errorMessage = errorData.message;
+        else if (errorData.error) errorMessage = errorData.error;
+      } catch { /* ignore */ }
+      throw new Error(errorMessage);
+    }
+
+    const contentType = response.headers.get("content-type") || "";
+    if (contentType.includes("zip") || contentType.includes("octet-stream")) {
+      const blob = await response.blob();
+      const contentDisposition = response.headers.get("content-disposition") || "";
+      const match = contentDisposition.match(/filename[^;=\n]*=\s*(['"]?)([^'";\n]*)\1/);
+      const filename = (match ? match[2].trim() : "") || "download.zip";
+      return { tipo: "arquivo", blob, filename };
+    }
+
+    return response.json();
+  },
+
+  // ============================================================================
+  // COLUNAS KANBAN
+  // ============================================================================
+
+  async getColunasKanban(): Promise<ColunaKanban[]> {
+    return fetchAPI<ColunaKanban[]>("/colunas-kanban");
+  },
+
+  async createColunaKanban(data: { nome: string; cor?: string }): Promise<ColunaKanban> {
+    return fetchAPI<ColunaKanban>("/colunas-kanban", {
       method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  async updateColunaKanban(id: string, data: { nome?: string; cor?: string }): Promise<ColunaKanban> {
+    return fetchAPI<ColunaKanban>(`/colunas-kanban/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  },
+
+  async deleteColunaKanban(id: string): Promise<void> {
+    return fetchAPI<void>(`/colunas-kanban/${id}`, {
+      method: "DELETE",
+    });
+  },
+
+  async reorderColunasKanban(ordens: Array<{ id: string; ordem: number }>): Promise<ColunaKanban[]> {
+    return fetchAPI<ColunaKanban[]>("/colunas-kanban/reorder", {
+      method: "PUT",
+      body: JSON.stringify({ ordens }),
     });
   },
 

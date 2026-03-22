@@ -43,6 +43,7 @@ model Cargo {
   deletar_demandas                       Boolean @default(false)
   cargo_disponivel_como_responsavel      Boolean @default(false)
   usuarios_disponiveis_como_responsaveis Boolean @default(false)
+  gerenciar_kanban                       Boolean @default(false)
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -62,36 +63,54 @@ model Template {
   updated_at          DateTime @updatedAt
   
   demandas            Demanda[]
+  versoes             TemplateVersion[]
   
   @@index([nome])
 }
 
-model Demanda {
-  id                String   @id @default(uuid())
-  template_id       String
-  nome_demanda      String
-  status            String   // "Criada" | "Em Andamento" | "Finalizada"
-  responsavel_id    String
-  tempo_esperado    Int
-  data_criacao      DateTime @default(now())
-  data_previsao     DateTime
-  data_finalizacao  DateTime?
-  prazo             Boolean  @default(true)
-  observacoes       String?
-  notificacao_prazo_enviada Boolean @default(false)
-  modificado_por_id String?
-  created_at        DateTime @default(now())
-  updated_at        DateTime @updatedAt
+model TemplateVersion {
+  id          String   @id @default(uuid())
+  template_id String
+  nome        String   // Label gerado em DDMMyyHHmm, ex: "2402261520"
+  dados       Json     // Snapshot completo: { id, nome, tempo_medio, abas, campos_preenchimento, tarefas }
+  created_at  DateTime @default(now())
   
-  template          Template @relation(fields: [template_id], references: [id])
-  responsavel       Usuario  @relation("DemandaResponsavel", fields: [responsavel_id], references: [id])
-  modificado_por    Usuario? @relation("DemandaModificada", fields: [modificado_por_id], references: [id])
-  tarefas_status     TarefaStatus[]
-  campos_preenchidos CampoPreenchido[]
+  template    Template  @relation(fields: [template_id], references: [id], onDelete: Cascade)
+  demandas    Demanda[]
+  
+  @@index([template_id])
+  @@index([created_at])
+}
+
+model Demanda {
+  id                    String   @id @default(uuid())
+  template_id           String
+  template_version_id   String?
+  nome_demanda          String
+  status                String   // Nome da coluna Kanban (ex: "Criada", "Em Andamento", "Finalizada")
+  responsavel_id        String
+  tempo_esperado        Int
+  data_criacao          DateTime @default(now())
+  data_previsao         DateTime
+  data_finalizacao      DateTime?
+  prazo                 Boolean  @default(true)
+  observacoes           String?
+  notificacao_prazo_enviada Boolean @default(false)
+  modificado_por_id     String?
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+  
+  template              Template         @relation(fields: [template_id], references: [id])
+  template_version      TemplateVersion? @relation(fields: [template_version_id], references: [id])
+  responsavel           Usuario          @relation("DemandaResponsavel", fields: [responsavel_id], references: [id])
+  modificado_por        Usuario?         @relation("DemandaModificada", fields: [modificado_por_id], references: [id])
+  tarefas_status        TarefaStatus[]
+  campos_preenchidos    CampoPreenchido[]
   
   @@index([status])
   @@index([responsavel_id])
   @@index([template_id])
+  @@index([template_version_id])
   @@index([data_previsao])
   @@index([data_criacao])
   @@index([modificado_por_id])
@@ -139,5 +158,17 @@ model CampoPreenchido {
   
   @@index([demanda_id])
   @@index([id_campo])
+}
+
+model ColunaKanban {
+  id         String   @id @default(uuid())
+  nome       String   @unique
+  ordem      Int
+  fixa       Boolean  @default(false)
+  cor        String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([ordem])
 }
 

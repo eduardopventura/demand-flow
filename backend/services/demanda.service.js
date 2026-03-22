@@ -20,6 +20,9 @@ const {
   createDemanda
 } = require('../utils/db.helpers');
 
+const templateRepository = require('../src/repositories/template.repository');
+const colunaKanbanRepository = require('../src/repositories/coluna-kanban.repository');
+
 const { 
   calcularAtualizacoesStatus, 
   calcularDataPrevisao
@@ -54,21 +57,29 @@ async function criarDemanda({ template_id, responsavel_id, campos_valores, userI
     throw { status: 404, error: 'Responsável não encontrado', message: `Usuário com ID ${responsavel_id} não existe` };
   }
 
+  // Buscar versão mais recente do template para pinagem
+  const versoes = await templateRepository.findVersionsByTemplateId(template_id);
+  const versaoAtual = versoes[0] || null; // findVersionsByTemplateId ordena por created_at desc
+
+  // Usar dados do snapshot se disponível, senão usar template direto
+  const templateEfetivo = versaoAtual?.dados ? { ...template, ...versaoAtual.dados } : template;
+
   // Calcular nome da demanda
-  let nomeDemanda = template.nome;
-  const campoComplementaNome = template.campos_preenchimento.find(c => c.complementa_nome);
+  let nomeDemanda = templateEfetivo.nome;
+  const campoComplementaNome = templateEfetivo.campos_preenchimento.find(c => c.complementa_nome);
   if (campoComplementaNome && campos_valores && campos_valores[campoComplementaNome.id_campo]) {
-    nomeDemanda = `${template.nome} - ${campos_valores[campoComplementaNome.id_campo]}`;
+    nomeDemanda = `${templateEfetivo.nome} - ${campos_valores[campoComplementaNome.id_campo]}`;
   }
 
   // Calcular datas
   const dataCriacao = new Date();
-  const tempoMedio = template.tempo_medio || 7;
+  const tempoMedio = templateEfetivo.tempo_medio || 7;
   const dataPrevisao = calcularDataPrevisao(dataCriacao, tempoMedio);
 
-  // Preparar dados da demanda
+  // Preparar dados da demanda (incluindo template_version_id se disponível)
   const demandaData = {
     template_id: template_id,
+    ...(versaoAtual ? { template_version_id: versaoAtual.id } : {}),
     nome_demanda: nomeDemanda,
     status: 'Criada',
     responsavel_id: responsavel_id,
@@ -81,12 +92,12 @@ async function criarDemanda({ template_id, responsavel_id, campos_valores, userI
     notificacao_prazo_enviada: false
   };
 
-  if (!template.tarefas || template.tarefas.length === 0) {
+  if (!templateEfetivo.tarefas || templateEfetivo.tarefas.length === 0) {
     throw { status: 400, error: 'Template inválido', message: 'Template deve ter pelo menos uma tarefa' };
   }
   
   // Preparar tarefas_status: responsavel_id (usuário) ou cargo_responsavel_id (cargo)
-  const tarefasStatus = template.tarefas.map((t) => ({
+  const tarefasStatus = templateEfetivo.tarefas.map((t) => ({
     id_tarefa: t.id_tarefa,
     concluida: false,
     responsavel_id: t.responsavel_id || null,
@@ -110,7 +121,7 @@ async function criarDemanda({ template_id, responsavel_id, campos_valores, userI
     const responsaveisNotificados = new Set();
     responsaveisNotificados.add(`u:${responsavel_id}`); // responsável da demanda (usuário)
     
-    for (const tarefa of template.tarefas) {
+    for (const tarefa of templateEfetivo.tarefas) {
       const usuarioId = tarefa.responsavel_id || null;
       const cargoId = tarefa.cargo_responsavel_id || null;
       
@@ -226,8 +237,24 @@ async function atualizarDemanda(id, updates, userId) {
   delete updatesMerged.campos_preenchidos_patch;
   delete updatesMerged.campos_preenchidos_remove;
 
-  // Buscar template para referência
-  const template = await getTemplateById(demandaAntes.template_id);
+  // Buscar template para referência (usa snapshot da versão se disponível)
+  const templateLive = await getTemplateById(demandaAntes.template_id);
+  const template = demandaAntes.template_snapshot
+    ? { ...templateLive, ...demandaAntes.template_snapshot }
+    : templateLive;
+
+  // Validate status against kanban columns if status is being changed
+  if (updatesMerged.status && updatesMerged.status !== demandaAntes.status) {
+    const colunas = await colunaKanbanRepository.findAll();
+    const colunaNomes = colunas.map(c => c.nome);
+    if (!colunaNomes.includes(updatesMerged.status)) {
+      throw {
+        status: 400,
+        error: 'Status inválido',
+        message: `O status "${updatesMerged.status}" não corresponde a nenhuma coluna do Kanban`,
+      };
+    }
+  }
 
   if (updatesMerged.status === 'Criada' && demandaAntes.status !== 'Criada') {
     throw { 
@@ -237,28 +264,23 @@ async function atualizarDemanda(id, updates, userId) {
     };
   }
 
-  if (updatesMerged.status === 'Em Andamento' && demandaAntes.data_finalizacao) {
+  // Any intermediate column: clear data_finalizacao if moving away from Finalizada
+  if (updatesMerged.status && updatesMerged.status !== 'Criada' && updatesMerged.status !== 'Finalizada' && demandaAntes.data_finalizacao) {
     updatesMerged.data_finalizacao = null;
   }
 
-  // Recalcular prazo sempre que a demanda é finalizada
   if (updatesMerged.status === 'Finalizada') {
     const { verificarPrazo } = require('../utils/status.utils');
     
-    // Usar data_finalizacao do payload, ou existente, ou criar nova
     let dataFin = updatesMerged.data_finalizacao || demandaAntes.data_finalizacao;
     if (!dataFin) {
       dataFin = new Date();
       updatesMerged.data_finalizacao = dataFin;
     }
     
-    // Usar data_previsao atualizada (se enviada) ou a existente
     const dataPrevisao = updatesMerged.data_previsao || demandaAntes.data_previsao;
-    
-    // Converter para string ISO se necessário
     const dataFinStr = typeof dataFin === 'string' ? dataFin : dataFin.toISOString();
     
-    // Sempre recalcular o prazo para garantir consistência
     updatesMerged.prazo = verificarPrazo(dataFinStr, dataPrevisao);
   }
 
@@ -370,10 +392,12 @@ async function atualizarDemanda(id, updates, userId) {
     console.log('🔍 [DEBUG] Total de tarefas processadas:', tarefasStatus.length);
     
     // Calcular status automaticamente se tarefas foram atualizadas
-    const statusUpdates = calcularAtualizacoesStatus(tarefasStatus, demandaAntes);
+    const colunas = await colunaKanbanRepository.findAll();
+    const primeiraIntermed = colunas.find(c => !c.fixa)?.nome;
+    const statusUpdates = calcularAtualizacoesStatus(tarefasStatus, demandaAntes, primeiraIntermed);
     Object.assign(updateData, statusUpdates);
     
-    delete updateData.tarefas_status; // Remover do updateData, será tratado separadamente
+    delete updateData.tarefas_status;
   }
 
   if (updatesMerged.campos_preenchidos) {
@@ -568,13 +592,17 @@ async function executarAcaoTarefa(demandaId, tarefaId, userId) {
     throw { status: 404, error: 'Demanda não encontrada', message: `Demanda com ID ${demandaId} não existe` };
   }
 
-  const template = await getTemplateById(demanda.template_id);
-  if (!template) {
+  // Usar snapshot da versão se disponível; senão buscar template live
+  let templateEfetivo = demanda.template_snapshot
+    ? { ...demanda.template_snapshot }
+    : await getTemplateById(demanda.template_id);
+
+  if (!templateEfetivo) {
     throw { status: 404, error: 'Template não encontrado', message: `Template da demanda não existe` };
   }
 
-  // Buscar tarefa no template
-  const tarefaTemplate = template.tarefas.find(t => t.id_tarefa === tarefaId);
+  // Buscar tarefa no template (snapshot ou live)
+  const tarefaTemplate = templateEfetivo.tarefas.find(t => t.id_tarefa === tarefaId);
   if (!tarefaTemplate) {
     throw { status: 404, error: 'Tarefa não encontrada', message: `Tarefa com ID ${tarefaId} não existe no template` };
   }
@@ -618,12 +646,14 @@ async function executarAcaoTarefa(demandaId, tarefaId, userId) {
     throw { status: 502, error: 'Erro ao executar webhook', message: userMessage, webhookStatus: statusCode, webhookUrl: acao.url };
   }
 
-  // Atualizar tarefa como concluída
+  // Atualizar tarefa como concluída (independente do tipo de resposta)
   const novasTarefasStatus = demanda.tarefas_status.map(t => 
     t.id_tarefa === tarefaId ? { ...t, concluida: true } : t
   );
 
-  const statusUpdates = calcularAtualizacoesStatus(novasTarefasStatus, demanda);
+  const colunasAll = await colunaKanbanRepository.findAll();
+  const primeiraIntermedAcao = colunasAll.find(c => !c.fixa)?.nome;
+  const statusUpdates = calcularAtualizacoesStatus(novasTarefasStatus, demanda, primeiraIntermedAcao);
   const updates = {
     tarefas_status: novasTarefasStatus,
     ...statusUpdates
@@ -631,8 +661,18 @@ async function executarAcaoTarefa(demandaId, tarefaId, userId) {
 
   const demandaAtualizada = await atualizarDemanda(demandaId, updates, userId);
 
-  // Evento específico (opcional) para indicar que uma tarefa foi finalizada
   socketService.emitTarefaFinalizada(demandaId, tarefaId, { actorId: userId });
+
+  // Se o webhook retornou um arquivo binário, propagar para o caller
+  if (webhookResponse.tipo === 'arquivo') {
+    return {
+      tipo: 'arquivo',
+      buffer: webhookResponse.buffer,
+      filename: webhookResponse.filename,
+      contentType: webhookResponse.contentType,
+      demanda: demandaAtualizada,
+    };
+  }
 
   return {
     success: true,
@@ -643,14 +683,37 @@ async function executarAcaoTarefa(demandaId, tarefaId, userId) {
 }
 
 /**
- * Executa um webhook (POST)
- * @param {string} url - URL do webhook
- * @param {Object} payload - Dados a enviar
- * @param {boolean} hasFile - Se tem arquivo
- * @param {string} fileField - Nome do campo do arquivo
- * @param {string} filePath - Caminho do arquivo
- * @returns {Promise<Object>} - Resposta do webhook
+ * Extrai o filename do header Content-Disposition.
+ * Retorna 'download.zip' como fallback.
  */
+function extrairFilename(contentDisposition, fallback = 'download.zip') {
+  if (!contentDisposition) return fallback;
+  const match = contentDisposition.match(/filename[^;=\n]*=\s*(['"]?)([^'";\n]*)\1/);
+  return match ? match[2].trim() || fallback : fallback;
+}
+
+/**
+ * Interpreta a resposta do axios como arquivo binário ou JSON.
+ * Sempre solicita responseType 'arraybuffer' para suportar ambos.
+ */
+function interpretarResposta(response) {
+  const contentType = (response.headers['content-type'] || '').toLowerCase();
+  if (contentType.includes('zip') || contentType.includes('octet-stream')) {
+    const filename = extrairFilename(response.headers['content-disposition']);
+    return {
+      tipo: 'arquivo',
+      buffer: Buffer.from(response.data),
+      filename,
+      contentType: response.headers['content-type'],
+    };
+  }
+  // Resposta JSON: arraybuffer → string → parse
+  const text = Buffer.from(response.data).toString('utf-8');
+  let data;
+  try { data = JSON.parse(text); } catch { data = text; }
+  return { ...response, data };
+}
+
 async function executarWebhook(url, payload, hasFile, fileField, filePath) {
   if (hasFile && filePath) {
     const absolutePath = path.join(__dirname, '..', filePath.replace(/^\//, ''));
@@ -668,15 +731,19 @@ async function executarWebhook(url, payload, hasFile, fileField, filePath) {
     const fileName = path.basename(absolutePath);
     formData.append(fileField, fs.createReadStream(absolutePath), fileName);
     
-    return axios.post(url, formData, {
+    const response = await axios.post(url, formData, {
       headers: formData.getHeaders(),
       timeout: 30000,
+      responseType: 'arraybuffer',
     });
+    return interpretarResposta(response);
   } else {
-    return axios.post(url, payload, {
+    const response = await axios.post(url, payload, {
       headers: { 'Content-Type': 'application/json' },
       timeout: 30000,
+      responseType: 'arraybuffer',
     });
+    return interpretarResposta(response);
   }
 }
 

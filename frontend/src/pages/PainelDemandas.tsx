@@ -1,12 +1,14 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useData } from "@/contexts/DataContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Plus, ExternalLink } from "lucide-react";
-import { DndContext, DragEndEvent, DragOverlay, closestCorners } from "@dnd-kit/core";
+import { Plus, Settings2 } from "lucide-react";
+import { DndContext, DragEndEvent, DragStartEvent, DragOverlay, closestCorners, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { KanbanColumn } from "@/components/kanban/KanbanColumn";
 import { DemandaCard } from "@/components/kanban/DemandaCard";
 import { NovaDemandaModal } from "@/components/modals/NovaDemandaModal";
 import { DetalhesDemandaModal } from "@/components/modals/DetalhesDemandaModal";
+import { GerenciarColunasModal } from "@/components/modals/GerenciarColunasModal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertDialog,
@@ -17,45 +19,64 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import type { Demanda } from "@/types";
-import { StatusDemanda } from "@/types";
-import { STATUS_CONFIG } from "@/constants";
+import { STATUS_FIXOS } from "@/types";
+import { buildStatusConfig } from "@/constants";
 import { ordenarDemandasCriadasOuEmAndamento, ordenarDemandasFinalizadas } from "@/utils/prazoUtils";
 import { cn } from "@/lib/utils";
+import { hasPermission } from "@/utils/permissions";
+import { log } from "@/utils/logger";
 
 export default function PainelDemandas() {
-  const { demandas, updateDemanda } = useData();
+  const { demandas, updateDemanda, colunasKanban } = useData();
+  const { user } = useAuth();
+  const canManageKanban = hasPermission(user, "gerenciar_kanban");
+  const hasLoggedConnection = useRef(false);
   const [novaDemandaOpen, setNovaDemandaOpen] = useState(false);
+  const [gerenciarColunasOpen, setGerenciarColunasOpen] = useState(false);
   const [demandaSelecionadaId, setDemandaSelecionadaId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<StatusDemanda>(StatusDemanda.CRIADA);
-  
-  // State for confirmation dialog when moving from Finalizada
-  const [pendingMove, setPendingMove] = useState<{ demandaId: string; newStatus: StatusDemanda } | null>(null);
+  const [activeTab, setActiveTab] = useState<string>(STATUS_FIXOS.CRIADA);
+  const [pendingMove, setPendingMove] = useState<{ demandaId: string; newStatus: string } | null>(null);
 
-  // Memoize filtered and sorted demandas to prevent unnecessary recalculations
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    })
+  );
+
+  useEffect(() => {
+    if (demandas.length >= 0 && !hasLoggedConnection.current) {
+      const apiUrl = window.location.origin + '/api';
+      log("✅ [FRONTEND] Conectado ao backend com sucesso!");
+      log(`🔗 [FRONTEND] API URL: ${apiUrl}`);
+      log(`📊 [FRONTEND] Dados carregados: ${demandas.length} demandas disponíveis`);
+      log(`⏰ [FRONTEND] Timestamp: ${new Date().toLocaleString('pt-BR')}`);
+      hasLoggedConnection.current = true;
+    }
+  }, [demandas.length]);
+
+  const statusConfig = useMemo(() => buildStatusConfig(colunasKanban), [colunasKanban]);
+
   const totalFinalizadas = useMemo(() => {
-    return demandas.filter((d) => d.status === StatusDemanda.FINALIZADA).length;
+    return demandas.filter((d) => d.status === STATUS_FIXOS.FINALIZADA).length;
   }, [demandas]);
 
   const demandaPorStatus = useMemo(() => {
-    const criadas = demandas.filter((d) => d.status === StatusDemanda.CRIADA);
-    const emAndamento = demandas.filter((d) => d.status === StatusDemanda.EM_ANDAMENTO);
-    const finalizadas = demandas.filter((d) => d.status === StatusDemanda.FINALIZADA);
-    
-    // Ordenar finalizadas e limitar a 15
-    const finalizadasOrdenadas = ordenarDemandasFinalizadas(finalizadas).slice(0, 15);
-    
-    return {
-      [StatusDemanda.CRIADA]: ordenarDemandasCriadasOuEmAndamento(criadas),
-      [StatusDemanda.EM_ANDAMENTO]: ordenarDemandasCriadasOuEmAndamento(emAndamento),
-      [StatusDemanda.FINALIZADA]: finalizadasOrdenadas,
-    };
-  }, [demandas]);
+    const result: Record<string, Demanda[]> = {};
+    for (const col of colunasKanban) {
+      const filtered = demandas.filter((d) => d.status === col.nome);
+      if (col.nome === STATUS_FIXOS.FINALIZADA) {
+        result[col.nome] = ordenarDemandasFinalizadas(filtered).slice(0, 15);
+      } else {
+        result[col.nome] = ordenarDemandasCriadasOuEmAndamento(filtered);
+      }
+    }
+    return result;
+  }, [demandas, colunasKanban]);
 
-  const handleDragStart = useCallback((event: DragEndEvent) => {
+  const handleDragStart = useCallback((event: DragStartEvent) => {
     setActiveId(event.active.id as string);
   }, []);
 
@@ -66,34 +87,31 @@ export default function PainelDemandas() {
     if (!over) return;
 
     const demandaId = active.id as string;
-    const newStatus = over.id as StatusDemanda;
+    const newStatus = over.id as string;
 
     const demanda = demandas.find((d) => d.id === demandaId);
     if (demanda && demanda.status !== newStatus) {
-      // BLOQUEAR: Não permitir arrastar para "Criada" de outras seções
-      if (newStatus === StatusDemanda.CRIADA && demanda.status !== StatusDemanda.CRIADA) {
+      // Block: cannot move back to "Criada"
+      if (newStatus === STATUS_FIXOS.CRIADA && demanda.status !== STATUS_FIXOS.CRIADA) {
         toast.error("Não é possível voltar uma demanda para o status 'Criada' após ela ter sido movida para outro status");
         return;
       }
 
-      // Se está saindo de Finalizada, mostrar confirmação
-      if (demanda.status === StatusDemanda.FINALIZADA) {
+      // Moving FROM Finalizada: show confirmation
+      if (demanda.status === STATUS_FIXOS.FINALIZADA) {
         setPendingMove({ demandaId, newStatus });
-      } else if (newStatus === StatusDemanda.EM_ANDAMENTO) {
-        // Ao arrastar para "Em Andamento", remover data_finalizacao se existir
-        const updates: Partial<Demanda> = { status: newStatus };
-        if (demanda.data_finalizacao) {
-          updates.data_finalizacao = null;
-        }
-        updateDemanda(demandaId, updates);
-      } else if (newStatus === StatusDemanda.FINALIZADA) {
-        // Ao arrastar para "Finalizada", adicionar data_finalizacao
+      } else if (newStatus === STATUS_FIXOS.FINALIZADA) {
         updateDemanda(demandaId, { 
           status: newStatus,
           data_finalizacao: new Date().toISOString()
         });
       } else {
-        updateDemanda(demandaId, { status: newStatus });
+        // Any intermediate column transition
+        const updates: Partial<Demanda> = { status: newStatus };
+        if (demanda.data_finalizacao) {
+          updates.data_finalizacao = null;
+        }
+        updateDemanda(demandaId, updates);
       }
     }
   }, [demandas, updateDemanda]);
@@ -102,7 +120,7 @@ export default function PainelDemandas() {
     if (pendingMove) {
       updateDemanda(pendingMove.demandaId, { 
         status: pendingMove.newStatus,
-        data_finalizacao: null, // Remove a data de finalização
+        data_finalizacao: null,
       });
       setPendingMove(null);
     }
@@ -117,22 +135,16 @@ export default function PainelDemandas() {
     [activeId, demandas]
   );
 
-  // Evita “stale props”: sempre deriva a demanda selecionada do estado atual do DataContext
   const demandaSelecionada = useMemo(
     () => (demandaSelecionadaId ? demandas.find((d) => d.id === demandaSelecionadaId) ?? null : null),
     [demandaSelecionadaId, demandas]
   );
 
-  // Mobile tab config with shorter labels
-  const tabConfig = [
-    { status: StatusDemanda.CRIADA, label: "Criada", shortLabel: "Criada" },
-    { status: StatusDemanda.EM_ANDAMENTO, label: "Em Andamento", shortLabel: "Andamento" },
-    { status: StatusDemanda.FINALIZADA, label: "Finalizada", shortLabel: "Finalizada" },
-  ];
+  const colCount = colunasKanban.length;
 
   return (
     <div className="h-full flex flex-col">
-      {/* Header - Responsive */}
+      {/* Header */}
       <div className="p-4 sm:p-6 border-b bg-card">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
@@ -141,38 +153,44 @@ export default function PainelDemandas() {
               Gerencie todas as demandas em um quadro Kanban
             </p>
           </div>
-          <Button onClick={() => setNovaDemandaOpen(true)} size="lg" className="gap-2 w-full sm:w-auto">
-            <Plus className="w-5 h-5" />
-            <span className="sm:inline">Nova Demanda</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            {canManageKanban && (
+              <Button variant="outline" onClick={() => setGerenciarColunasOpen(true)} className="gap-2">
+                <Settings2 className="w-4 h-4" />
+                <span className="hidden sm:inline">Colunas</span>
+              </Button>
+            )}
+            <Button onClick={() => setNovaDemandaOpen(true)} size="lg" className="gap-2 w-full sm:w-auto">
+              <Plus className="w-5 h-5" />
+              <span className="sm:inline">Nova Demanda</span>
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* Desktop Kanban Grid */}
       <div className="flex-1 p-4 sm:p-6 overflow-auto hidden lg:block">
         <DndContext
+          sensors={sensors}
           collisionDetection={closestCorners}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="grid grid-cols-3 gap-6 h-full">
-            <KanbanColumn
-              status={StatusDemanda.CRIADA}
-              demandas={demandaPorStatus[StatusDemanda.CRIADA]}
-              onCardClick={(d) => setDemandaSelecionadaId(d.id)}
-            />
-            <KanbanColumn
-              status={StatusDemanda.EM_ANDAMENTO}
-              demandas={demandaPorStatus[StatusDemanda.EM_ANDAMENTO]}
-              onCardClick={(d) => setDemandaSelecionadaId(d.id)}
-            />
-            <KanbanColumn
-              status={StatusDemanda.FINALIZADA}
-              demandas={demandaPorStatus[StatusDemanda.FINALIZADA]}
-              onCardClick={(d) => setDemandaSelecionadaId(d.id)}
-              totalCount={totalFinalizadas}
-              showViewAllLink={totalFinalizadas > 15}
-            />
+          <div
+            className="grid gap-6 h-full"
+            style={{ gridTemplateColumns: `repeat(${colCount}, minmax(280px, 1fr))` }}
+          >
+            {colunasKanban.map((col) => (
+              <KanbanColumn
+                key={col.id}
+                columnName={col.nome}
+                config={statusConfig[col.nome] || { bg: "bg-muted", border: "border-muted", label: col.nome }}
+                demandas={demandaPorStatus[col.nome] || []}
+                onCardClick={(d) => setDemandaSelecionadaId(d.id)}
+                totalCount={col.nome === STATUS_FIXOS.FINALIZADA ? totalFinalizadas : undefined}
+                showViewAllLink={col.nome === STATUS_FIXOS.FINALIZADA && totalFinalizadas > 15}
+              />
+            ))}
           </div>
 
           <DragOverlay>
@@ -185,27 +203,29 @@ export default function PainelDemandas() {
       <div className="flex-1 overflow-hidden lg:hidden flex flex-col">
         <Tabs 
           value={activeTab} 
-          onValueChange={(value) => setActiveTab(value as StatusDemanda)}
+          onValueChange={setActiveTab}
           className="flex flex-col h-full"
         >
           <div className="px-4 pt-4 bg-background sticky top-0 z-10">
-            <TabsList className="w-full grid grid-cols-3">
-              {tabConfig.map(({ status, shortLabel }) => {
-                const config = STATUS_CONFIG[status];
-                const count = demandaPorStatus[status].length;
+            <TabsList className={cn("w-full grid", `grid-cols-${Math.min(colCount, 5)}`)}>
+              {colunasKanban.map((col) => {
+                const config = statusConfig[col.nome];
+                const count = (demandaPorStatus[col.nome] || []).length;
                 return (
                   <TabsTrigger 
-                    key={status} 
-                    value={status}
+                    key={col.id} 
+                    value={col.nome}
                     className="text-xs sm:text-sm flex gap-1 items-center"
                   >
-                    <span className="truncate">{shortLabel}</span>
-                    <span className={cn(
-                      "text-xs px-1.5 py-0.5 rounded-full",
-                      config.bg
-                    )}>
-                      {count}
-                    </span>
+                    <span className="truncate">{col.nome}</span>
+                    {config && (
+                      <span className={cn(
+                        "text-xs px-1.5 py-0.5 rounded-full",
+                        config.bg
+                      )}>
+                        {count}
+                      </span>
+                    )}
                   </TabsTrigger>
                 );
               })}
@@ -213,19 +233,21 @@ export default function PainelDemandas() {
           </div>
           
           <DndContext
+            sensors={sensors}
             collisionDetection={closestCorners}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
           >
-            {tabConfig.map(({ status }) => (
+            {colunasKanban.map((col) => (
               <TabsContent 
-                key={status} 
-                value={status} 
+                key={col.id} 
+                value={col.nome} 
                 className="flex-1 overflow-auto px-4 pb-4 mt-0 data-[state=active]:flex data-[state=active]:flex-col"
               >
                 <KanbanColumn
-                  status={status}
-                  demandas={demandaPorStatus[status]}
+                  columnName={col.nome}
+                  config={statusConfig[col.nome] || { bg: "bg-muted", border: "border-muted", label: col.nome }}
+                  demandas={demandaPorStatus[col.nome] || []}
                   onCardClick={(d) => setDemandaSelecionadaId(d.id)}
                   isMobile
                 />
@@ -245,6 +267,12 @@ export default function PainelDemandas() {
         open={!!demandaSelecionada}
         onOpenChange={(open) => !open && setDemandaSelecionadaId(null)}
       />
+      {canManageKanban && (
+        <GerenciarColunasModal
+          open={gerenciarColunasOpen}
+          onOpenChange={setGerenciarColunasOpen}
+        />
+      )}
 
       {/* Confirmation Dialog for moving from Finalizada */}
       <AlertDialog open={!!pendingMove} onOpenChange={(open) => !open && setPendingMove(null)}>

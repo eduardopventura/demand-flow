@@ -102,7 +102,7 @@ export const demandaSchema = z.object({
   data_previsao: z.string(), // Data prevista para conclusão (editável)
   data_finalizacao: z.string().nullable(),
   prazo: z.boolean(),
-  observacoes: z.string().max(250, "Observações deve ter no máximo 250 caracteres"),
+  observacoes: z.string().max(500, "Observações deve ter no máximo 500 caracteres"),
   notificacao_prazo_enviada: z.boolean().optional(), // Controle para enviar notificação de prazo apenas uma vez
 });
 

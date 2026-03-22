@@ -139,6 +139,10 @@ async function fetchAPI<T>(
       throw new Error(errorMessage);
     }
 
+    if (response.status === 204 || response.headers.get('content-length') === '0') {
+      return undefined as T;
+    }
+
     return await response.json();
   } catch (err) {
     logError(`API Error [${endpoint}]:`, err);

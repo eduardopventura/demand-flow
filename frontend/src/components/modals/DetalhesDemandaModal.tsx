@@ -27,7 +27,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/RichTextEditor";
 import {
   Tooltip,
   TooltipContent,
@@ -741,29 +741,15 @@ export const DetalhesDemandaModal = ({ demanda, open, onOpenChange }: DetalhesDe
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm">Observações</Label>
-                <span className={cn(
-                  "text-xs",
-                  observacoes.length > 250 ? "text-destructive" : "text-muted-foreground"
-                )}>
-                  {observacoes.length}/250
-                </span>
-              </div>
-              <Textarea
+              <Label className="text-sm">Observações</Label>
+              <RichTextEditor
                 value={observacoes}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  if (value.length > 250) {
-                    toast.error("Observações deve ter no máximo 250 caracteres");
-                    return;
-                  }
-                  setObservacoes(value);
-                  debouncedSaveObservacoes(value);
+                onChange={(html) => {
+                  setObservacoes(html);
+                  debouncedSaveObservacoes(html);
                 }}
                 placeholder="Adicione observações sobre esta demanda..."
-                className="resize-none"
-                rows={2}
+                maxLength={500}
               />
             </div>
           </div>

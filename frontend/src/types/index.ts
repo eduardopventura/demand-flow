@@ -185,7 +185,7 @@ export interface Demanda {
   data_previsao: string; // ISO date string - data prevista para conclusão (editável)
   data_finalizacao: string | null; // ISO date string ou null se não finalizada
   prazo: boolean; // true se dentro do prazo, false se fora
-  observacoes: string; // Campo fixo de observações (max 100 caracteres)
+  observacoes: string; // Campo fixo de observações (max 500 caracteres, suporta HTML)
   notificacao_prazo_enviada?: boolean; // Controle para enviar notificação de prazo apenas uma vez
   modificado_por_id?: string; // ID do usuário que modificou a demanda pela última vez
   modificado_por?: { id: string; nome: string; email: string }; // Dados do usuário que modificou

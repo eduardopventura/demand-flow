@@ -1,5 +1,50 @@
 # Changelog - Demand Flow
 
+## [1.3.1] - 2026-03-22
+
+### 🐛 Correções e Melhorias
+
+#### ✨ Campo de Observações Aprimorado
+
+**1. Editor de Texto Rico**
+- ✅ **Negrito**: Botão na toolbar + atalho `Ctrl+B`
+- ✅ **Sublinhado**: Botão na toolbar + atalho `Ctrl+U`
+- ✅ **Tachado**: Botão na toolbar
+- ✅ **Cor da fonte**: Paleta de 12 cores pré-definidas via popover; aplica-se ao texto selecionado ou ao que for digitado a partir daquele ponto
+- ✅ **Cor padrão**: Sempre reiniciada para preto ao abrir uma demanda
+- ✅ **Limite expandido**: De 250 para 500 caracteres
+
+**2. Comportamento de Cor Consistente**
+- ✅ Ao selecionar uma cor e digitar, o texto novo sai na cor selecionada
+- ✅ Ao selecionar um trecho de texto e escolher uma cor, apenas o trecho muda
+- ✅ Ao trocar de cor (incluindo voltar ao preto), o próximo texto digitado usa a nova cor
+
+#### 🐛 Correção: Erro de JSON ao Excluir Coluna do Kanban
+
+- ✅ **Problema**: A exclusão de coluna funcionava corretamente no banco de dados, mas exibia um erro de JSON no frontend e não atualizava a tela automaticamente
+- ✅ **Causa**: O backend retorna `204 No Content` (sem body) ao deletar, mas `fetchAPI` sempre chamava `response.json()`, causando falha no parse
+- ✅ **Solução**: `fetchAPI` agora verifica se a resposta é `204` antes de tentar parsear JSON, retornando `undefined` nesses casos
+
+#### 🔧 Correção: Nginx - Limite de Upload
+
+- ✅ **Problema**: Arquivos maiores que 1MB falhavam com erro `413 Request Entity Too Large`
+- ✅ **Causa**: Nginx sem `client_max_body_size` usa o padrão de 1MB, enquanto o Multer aceita até 10MB
+- ✅ **Solução**: Adicionado `client_max_body_size 10m` no bloco `location /api` do `nginx.conf`
+
+#### 🔧 Detalhes Técnicos
+
+**Arquivos Criados:**
+- `frontend/src/components/RichTextEditor.tsx` — Componente de editor rich text com toolbar (negrito, sublinhado, tachado, cor)
+
+**Arquivos Modificados:**
+- `frontend/src/components/modals/DetalhesDemandaModal.tsx` — Substituição do `Textarea` pelo `RichTextEditor`
+- `frontend/src/schemas/validation.schemas.ts` — Limite de observações: 250 → 500 caracteres
+- `frontend/src/types/index.ts` — Comentário atualizado (max 500, suporta HTML)
+- `frontend/src/services/api.service.ts` — `fetchAPI` trata respostas `204 No Content` sem tentar parsear JSON
+- `frontend/nginx.conf` — `client_max_body_size 10m` no bloco `/api`
+
+---
+
 ## [1.3.0] - 2026-03-22
 
 ### 📊 Colunas Customizáveis no Kanban

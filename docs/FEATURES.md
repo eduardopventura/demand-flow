@@ -143,8 +143,12 @@ Tarefas:
 ### 📝 Campo de Observações
 
 - Disponível em todas as demandas
-- Limite de 100 caracteres
-- Contador em tempo real
+- Limite de **500 caracteres** com contador em tempo real
+- **Editor de texto rico** com toolbar de formatação:
+  - **Negrito** (botão + `Ctrl+B`)
+  - **Sublinhado** (botão + `Ctrl+U`)
+  - **Tachado** (botão)
+  - **Cor da fonte** — paleta de 12 cores; aplica-se ao texto selecionado ou ao digitado a partir do cursor; sempre reinicia para preto ao abrir uma demanda
 
 ---
 
@@ -488,6 +492,12 @@ Sistema inteligente de salvamento automático para garantir integridade dos dado
 
 ## 📝 Histórico de Versões
 
+### v1.3.1 - 22/03/2026
+- Editor de texto rico nas observações (negrito, sublinhado, tachado, cor da fonte)
+- Limite de observações expandido para 500 caracteres
+- Correção do erro de JSON ao excluir colunas do Kanban (resposta 204)
+- Correção do limite de upload no nginx (client_max_body_size 10m)
+
 ### v1.3.0 - 22/03/2026
 - Colunas Kanban customizáveis (criar, renomear, reordenar, excluir)
 - Colunas fixas "Criada" e "Finalizada" preservadas com regras existentes
@@ -674,5 +684,5 @@ Ver histórico completo em [CHANGELOG.md](./CHANGELOG.md)
 
 ---
 
-**Versão:** 1.3.0  
+**Versão:** 1.3.1  
 **Última Atualização:** 22/03/2026

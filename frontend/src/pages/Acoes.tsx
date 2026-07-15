@@ -27,7 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Edit, Trash2, Zap, Link2, GripVertical, X } from "lucide-react";
+import { Plus, Edit, Trash2, Zap, Link2, GripVertical, X, Lock } from "lucide-react";
 import { toast } from "sonner";
 import type { Acao, CampoAcao, TipoCampo } from "@/types";
 import { FIELD_TYPE_OPTIONS } from "@/constants";
@@ -51,6 +51,9 @@ export default function Acoes() {
   const [campos, setCampos] = useState<CampoFormData[]>([]);
   const [novaOpcao, setNovaOpcao] = useState<{ [key: string]: string }>({});
 
+  // Ação de sistema (fixa): só a URL é editável. Campos, nome e exclusão ficam travados.
+  const camposBloqueados = !!acaoEditando?.fixa;
+
   const generateCampoId = () => `ac${Date.now()}${Math.random().toString(36).substr(2, 4)}`;
 
   const handleOpenModal = (acao?: Acao) => {
@@ -71,7 +74,10 @@ export default function Acoes() {
       );
     } else {
       setAcaoEditando(null);
-      setFormData({ nome: "", url: "" });
+      setFormData({
+        nome: "",
+        url: "",
+      });
       setCampos([]);
     }
     setNovaOpcao({});
@@ -136,6 +142,13 @@ export default function Acoes() {
       return;
     }
 
+    // Ação de sistema: só a URL é editável — envia apenas a URL.
+    if (camposBloqueados && acaoEditando) {
+      updateAcao(acaoEditando.id, { ...acaoEditando, url: formData.url });
+      setModalOpen(false);
+      return;
+    }
+
     // Validar campos
     for (const campo of campos) {
       if (!campo.nome_campo) {
@@ -169,9 +182,13 @@ export default function Acoes() {
     setModalOpen(false);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = (acao: Acao) => {
+    if (acao.fixa) {
+      toast.error("Ação de sistema não pode ser excluída.");
+      return;
+    }
     if (confirm("Tem certeza que deseja excluir esta ação?")) {
-      deleteAcao(id);
+      deleteAcao(acao.id);
     }
   };
 
@@ -202,6 +219,7 @@ export default function Acoes() {
                   <div className="flex items-center gap-2">
                     <Zap className="w-4 h-4 text-yellow-500 shrink-0" />
                     <h3 className="font-semibold text-foreground truncate">{acao.nome}</h3>
+                    {acao.fixa && <Lock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
                   </div>
                   <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-1">
                     <Link2 className="w-3.5 h-3.5 shrink-0" />
@@ -222,14 +240,16 @@ export default function Acoes() {
                   >
                     <Edit className="w-4 h-4" />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive hover:text-destructive"
-                    onClick={() => handleDelete(acao.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  {!acao.fixa && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => handleDelete(acao)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
             </Card>
@@ -261,6 +281,12 @@ export default function Acoes() {
                     <div className="flex items-center gap-2">
                       <Zap className="w-4 h-4 text-yellow-500" />
                       {acao.nome}
+                      {acao.fixa && (
+                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
+                          <Lock className="w-3 h-3" />
+                          Sistema
+                        </span>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -297,13 +323,15 @@ export default function Acoes() {
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(acao.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      {!acao.fixa && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(acao)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -330,6 +358,16 @@ export default function Acoes() {
           </DialogHeader>
 
           <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+            {camposBloqueados && (
+              <div className="flex items-start gap-2 p-3 rounded-md border bg-muted/30 text-sm text-muted-foreground">
+                <Lock className="w-4 h-4 mt-0.5 shrink-0" />
+                <span>
+                  Ação de sistema (integração). Os campos são pré-definidos e imutáveis —
+                  apenas a <strong>URL de destino</strong> pode ser editada.
+                </span>
+              </div>
+            )}
+
             {/* Informações básicas */}
             <div className="p-4 rounded-lg border bg-card space-y-4">
               <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
@@ -342,18 +380,19 @@ export default function Acoes() {
                     value={formData.nome}
                     onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
                     placeholder="Ex: Enviar Email, Gerar Documento..."
+                    disabled={camposBloqueados}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label>URL do Webhook</Label>
+                  <Label>URL de destino</Label>
                   <Input
                     value={formData.url}
                     onChange={(e) => setFormData({ ...formData, url: e.target.value })}
                     placeholder="https://n8n.exemplo.com/webhook/..."
                   />
                   <p className="text-xs text-muted-foreground">
-                    URL do webhook que será chamado quando a ação for executada (ex: n8n, Zapier, etc)
+                    URL chamada quando a ação for executada (webhook n8n/Zapier ou endpoint de API, ex: .../api/v1/students/import-mol)
                   </p>
                 </div>
               </div>
@@ -365,10 +404,12 @@ export default function Acoes() {
                 <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
                   Campos de Entrada
                 </h3>
-                <Button variant="outline" size="sm" onClick={handleAddCampo} className="gap-1">
-                  <Plus className="w-4 h-4" />
-                  Adicionar Campo
-                </Button>
+                {!camposBloqueados && (
+                  <Button variant="outline" size="sm" onClick={handleAddCampo} className="gap-1">
+                    <Plus className="w-4 h-4" />
+                    Adicionar Campo
+                  </Button>
+                )}
               </div>
 
               {campos.length === 0 && (
@@ -395,6 +436,7 @@ export default function Acoes() {
                             }
                             placeholder="Nome do campo"
                             className="h-9"
+                            disabled={camposBloqueados}
                           />
                         </div>
                         <div className="space-y-1">
@@ -404,6 +446,7 @@ export default function Acoes() {
                             onValueChange={(value) =>
                               handleCampoChange(index, "tipo_campo", value)
                             }
+                            disabled={camposBloqueados}
                           >
                             <SelectTrigger className="h-9">
                               <SelectValue />
@@ -425,6 +468,7 @@ export default function Acoes() {
                               onCheckedChange={(checked) =>
                                 handleCampoChange(index, "obrigatorio", checked)
                               }
+                              disabled={camposBloqueados}
                             />
                             <Label
                               htmlFor={`obrigatorio-${index}`}
@@ -433,14 +477,16 @@ export default function Acoes() {
                               Obrigatório
                             </Label>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-9 w-9 text-destructive hover:text-destructive shrink-0"
-                            onClick={() => handleRemoveCampo(index)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                          {!camposBloqueados && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-9 w-9 text-destructive hover:text-destructive shrink-0"
+                              onClick={() => handleRemoveCampo(index)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -456,40 +502,44 @@ export default function Acoes() {
                               className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-1 rounded"
                             >
                               {opcao}
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveOpcao(index, opcaoIndex)}
-                                className="hover:text-destructive"
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
+                              {!camposBloqueados && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveOpcao(index, opcaoIndex)}
+                                  className="hover:text-destructive"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              )}
                             </span>
                           ))}
                         </div>
-                        <div className="flex gap-2">
-                          <Input
-                            value={novaOpcao[index] || ""}
-                            onChange={(e) =>
-                              setNovaOpcao({ ...novaOpcao, [index]: e.target.value })
-                            }
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault();
-                                handleAddOpcao(index);
+                        {!camposBloqueados && (
+                          <div className="flex gap-2">
+                            <Input
+                              value={novaOpcao[index] || ""}
+                              onChange={(e) =>
+                                setNovaOpcao({ ...novaOpcao, [index]: e.target.value })
                               }
-                            }}
-                            placeholder="Nova opção..."
-                            className="h-8 text-sm"
-                          />
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleAddOpcao(index)}
-                            className="h-8"
-                          >
-                            Adicionar
-                          </Button>
-                        </div>
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  handleAddOpcao(index);
+                                }
+                              }}
+                              placeholder="Nova opção..."
+                              className="h-8 text-sm"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleAddOpcao(index)}
+                              className="h-8"
+                            >
+                              Adicionar
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -511,4 +561,3 @@ export default function Acoes() {
     </div>
   );
 }
-

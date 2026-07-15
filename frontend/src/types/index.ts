@@ -25,10 +25,23 @@ export enum TipoCampo {
   NUMERO = "numero",
   NUMERO_DECIMAL = "numero_decimal",
   DATA = "data",
+  BOOLEANO = "booleano",
   ARQUIVO = "arquivo",
   DROPDOWN = "dropdown",
+  DIAS_SEMANA = "dias_semana",
   GRUPO = "grupo",
 }
+
+// Dias da semana canônicos (0=Domingo ... 6=Sábado) — valor armazenado é o número.
+export const DIAS_SEMANA_OPCOES = [
+  { value: "0", label: "Domingo" },
+  { value: "1", label: "Segunda-feira" },
+  { value: "2", label: "Terça-feira" },
+  { value: "3", label: "Quarta-feira" },
+  { value: "4", label: "Quinta-feira" },
+  { value: "5", label: "Sexta-feira" },
+  { value: "6", label: "Sábado" },
+] as const;
 
 // =========================
 // Cargos e Permissões (Fase 4)
@@ -121,12 +134,14 @@ export interface CampoAcao {
   obrigatorio: boolean;
 }
 
-// Ação automática (webhook)
+// Ação automática (webhook n8n "plano" ou Ação de sistema fixa)
 export interface Acao {
   id: string;
   nome: string;
-  url: string; // URL do webhook (n8n, etc)
+  url: string; // URL do webhook (n8n) ou endpoint da API (ex.: kumon /students/import-mol)
   campos: CampoAcao[];
+  fixa?: boolean; // Ação de sistema pré-criada e imutável (só a URL é editável)
+  slug?: string; // Identificador estável da Ação de sistema (ex.: "kumon_cadastro")
 }
 
 export interface AbaTemplate {

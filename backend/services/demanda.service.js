@@ -28,10 +28,16 @@ const {
   calcularDataPrevisao
 } = require('../utils/status.utils');
 
-const { 
-  buscarValorCampo, 
-  mapearCamposParaAcao 
+const {
+  buscarValorCampo,
+  mapearCamposParaAcao,
+  coagirValor,
 } = require('../utils/campo.utils');
+
+const {
+  KUMON_CADASTRO_SLUG,
+  CAMPOS_KUMON,
+} = require('../config/kumon-cadastro');
 
 const notificationService = require('./notification.service');
 const socketService = require('./socket.service');
@@ -624,26 +630,44 @@ async function executarAcaoTarefa(demandaId, tarefaId, userId) {
     throw { status: 400, error: 'Tarefa já concluída', message: 'Não é possível executar ação em uma tarefa já concluída' };
   }
 
-  const { payload, hasFile, fileField, filePath } = mapearCamposParaAcao(demanda, acao, tarefaTemplate.mapeamento_campos);
   let webhookResponse;
-  try {
-    webhookResponse = await executarWebhook(acao.url, payload, hasFile, fileField, filePath);
-  } catch (webhookError) {
-    const statusCode = webhookError.response?.status;
-    const errorMessage = webhookError.response?.data?.message || webhookError.message;
-    
-    console.error(`   ❌ Erro ao executar ação:`, webhookError.message);
-    
-    let userMessage = errorMessage;
-    if (statusCode === 404) {
-      userMessage = `Webhook não encontrado (404). Verifique se a URL está correta e se o workflow está ativo no n8n: ${acao.url}`;
-    } else if (statusCode === 500) {
-      userMessage = `Erro interno no servidor do webhook (500). Verifique os logs do n8n.`;
-    } else if (!statusCode) {
-      userMessage = `Não foi possível conectar ao webhook. Verifique se a URL está acessível: ${acao.url}`;
+
+  if (acao.slug === KUMON_CADASTRO_SLUG) {
+    // Ação de sistema Kumon: handler dedicado monta o JSON canônico + anexa o PDF.
+    const { json, filePath } = montarPayloadKumonCadastro(demanda, acao, tarefaTemplate.mapeamento_campos);
+    try {
+      webhookResponse = await enviarCadastroKumon(acao.url, json, filePath);
+    } catch (webhookError) {
+      // Erros de configuração/arquivo já vêm estruturados (sem response HTTP) → repassa.
+      if (webhookError && webhookError.status && !webhookError.response) throw webhookError;
+
+      const statusCode = webhookError.response?.status;
+      console.error('   ❌ Erro ao executar cadastro Kumon:', webhookError.message);
+      // Erros estruturados da API do Kumon (corpo vem como arraybuffer → precisa parse).
+      const userMessage = mensagemErroApi(webhookError, statusCode);
+      throw { status: 502, error: 'Erro ao executar ação', message: userMessage, webhookStatus: statusCode, webhookUrl: acao.url };
     }
-    
-    throw { status: 502, error: 'Erro ao executar webhook', message: userMessage, webhookStatus: statusCode, webhookUrl: acao.url };
+  } else {
+    // Fluxo webhook n8n (formato plano): monta payload + arquivo.
+    const { payload, hasFile, fileField, filePath } = mapearCamposParaAcao(demanda, acao, tarefaTemplate.mapeamento_campos);
+    try {
+      webhookResponse = await executarWebhook(acao.url, payload, hasFile, fileField, filePath);
+    } catch (webhookError) {
+      const statusCode = webhookError.response?.status;
+
+      console.error(`   ❌ Erro ao executar ação:`, webhookError.message);
+
+      let userMessage = webhookError.response?.data?.message || webhookError.message;
+      if (statusCode === 404) {
+        userMessage = `Webhook não encontrado (404). Verifique se a URL está correta e se o workflow está ativo no n8n: ${acao.url}`;
+      } else if (statusCode === 500) {
+        userMessage = `Erro interno no servidor do webhook (500). Verifique os logs do n8n.`;
+      } else if (!statusCode) {
+        userMessage = `Não foi possível conectar ao webhook. Verifique se a URL está acessível: ${acao.url}`;
+      }
+
+      throw { status: 502, error: 'Erro ao executar ação', message: userMessage, webhookStatus: statusCode, webhookUrl: acao.url };
+    }
   }
 
   // Atualizar tarefa como concluída (independente do tipo de resposta)
@@ -714,32 +738,240 @@ function interpretarResposta(response) {
   return { ...response, data };
 }
 
-async function executarWebhook(url, payload, hasFile, fileField, filePath) {
+/**
+ * Faz parse do corpo de erro de uma API estruturada (ex.: kumon).
+ * Com responseType 'arraybuffer', webhookError.response.data é um Buffer — precisa decodificar.
+ * @param {Error} webhookError - Erro do axios
+ * @returns {{code?: string, message?: string, details?: Object}|null}
+ */
+function parseErroApi(webhookError) {
+  const raw = webhookError.response?.data;
+  if (!raw) return null;
+  try {
+    const text = Buffer.isBuffer(raw) ? raw.toString('utf-8') : (typeof raw === 'string' ? raw : JSON.stringify(raw));
+    const parsed = JSON.parse(text);
+    // kumon retorna { error: { code, message, details } }
+    return parsed.error || parsed;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Traduz um erro de API estruturada em mensagem amigável para o usuário.
+ * @param {Error} webhookError - Erro do axios
+ * @param {number} statusCode - Status HTTP da resposta (se houver)
+ * @returns {string}
+ */
+function mensagemErroApi(webhookError, statusCode) {
+  const corpo = parseErroApi(webhookError);
+  const baseMsg = corpo?.message || webhookError.message;
+
+  switch (statusCode) {
+    case 400: {
+      // VALIDATION_ERROR — anexa as issues de validação, se houver
+      const issues = corpo?.details?.issues;
+      if (Array.isArray(issues) && issues.length) {
+        const linhas = issues
+          .map(i => `${(i.path && (Array.isArray(i.path) ? i.path.join('.') : i.path)) || 'campo'}: ${i.message}`)
+          .join('; ');
+        return `Dados inválidos: ${linhas}`;
+      }
+      return `Dados inválidos: ${baseMsg}`;
+    }
+    case 401:
+      return 'Falha de autenticação com a API (verifique a chave/variável de ambiente configurada).';
+    case 403:
+      return "Sem permissão na API. A chave precisa da permissão 'students' (e 'settings' se o cadastro incluir contrato).";
+    case 409:
+      return `Registro possivelmente duplicado. Para forçar o cadastro, habilite a opção 'skipDuplicateCheck'. (${baseMsg})`;
+    case 429:
+      return 'Limite de requisições atingido. Aguarde alguns instantes e tente novamente.';
+    case 503:
+      return 'API indisponível no momento. Tente novamente mais tarde.';
+    default:
+      if (!statusCode) return `Não foi possível conectar à API. Verifique se a URL está acessível.`;
+      return baseMsg;
+  }
+}
+
+/**
+ * Handler dedicado da Ação de sistema Kumon: monta o JSON canônico esperado pelo
+ * endpoint POST /students/import-mol a partir dos campos preenchidos na demanda.
+ * Concentra TODA a lógica específica do Kumon (0=isento, scheduleDays, enums,
+ * datas, Data KSIS no contrato) — a API do Kumon permanece estrita/canônica.
+ * @returns {{ json: Object, filePath: string|undefined }}
+ */
+/** 'Tradicional' | '6 Meses' | '12 Meses' → { fidelidade, mesesFidelidade? } canônico do Kumon. */
+function derivarFidelidadeKumon(valorBruto) {
+  if (valorBruto === null || valorBruto === undefined) return {};
+  const s = String(valorBruto).trim().toLowerCase();
+  if (s === '') return {};
+  if (s.includes('tradicional')) return { fidelidade: false };
+  const meses = parseInt(s.replace(/\D/g, ''), 10);
+  if (!Number.isNaN(meses) && meses > 0) return { fidelidade: true, mesesFidelidade: meses };
+  return {};
+}
+
+/** 'P' | 'V' (ou já canônico) → 'in_person' | 'virtual'. */
+function mapModalidadeKumon(valorBruto) {
+  if (!valorBruto) return undefined;
+  const s = String(valorBruto).trim().toLowerCase();
+  if (s === 'p' || s === 'in_person' || s === 'presencial') return 'in_person';
+  if (s === 'v' || s === 'virtual') return 'virtual';
+  return undefined;
+}
+
+/** 'Boleto Bancário' | 'Cartão Recorrente' (ou já canônico) → 'boleto' | 'cartao'. */
+function mapFormaRecorrenciaKumon(valorBruto) {
+  if (!valorBruto) return undefined;
+  const s = String(valorBruto).trim().toLowerCase();
+  if (s.includes('boleto')) return 'boleto';
+  if (s.includes('cart')) return 'cartao';
+  return undefined;
+}
+
+function montarPayloadKumonCadastro(demanda, acao, mapeamento = {}) {
+  const C = CAMPOS_KUMON;
+
+  const raw = (idCampo) => {
+    const origem = mapeamento[idCampo];
+    if (!origem) return undefined;
+    return buscarValorCampo(demanda.campos_preenchidos, origem);
+  };
+  const val = (idCampo, tipo) => coagirValor(raw(idCampo), tipo);
+
+  // ── Aluno ──
+  const student = {
+    escola: val(C.ESCOLA, 'texto'),
+    // needsAttention é um campo fixo da Ação, mapeado a partir do Demand (não tem default).
+    needsAttention: val(C.NEEDS_ATTENTION, 'booleano'),
+  };
+
+  // Matrícula: 0 = isento; senão o valor informado.
+  const matricula = val(C.MATRICULA_VALOR, 'numero_decimal');
+  if (matricula === 0) {
+    student.matriculaIsento = true;
+  } else if (matricula !== undefined) {
+    student.matriculaValor = matricula;
+  }
+
+  const mensalidade = val(C.MENSALIDADE_VALOR, 'numero_decimal');
+  if (mensalidade !== undefined) student.mensalidadeValor = mensalidade;
+
+  // scheduleDays: até 2 blocos (dia/hora/modalidade).
+  const scheduleDays = [];
+  const addBloco = (diaId, horaId, modId) => {
+    const weekday = val(diaId, 'dias_semana');
+    const firstStartTime = val(horaId, 'texto');
+    if (weekday === undefined || !firstStartTime) return;
+    const bloco = { weekday, firstStartTime };
+    const modality = mapModalidadeKumon(raw(modId));
+    if (modality) bloco.modality = modality;
+    scheduleDays.push(bloco);
+  };
+  addBloco(C.DIA1, C.HORA1, C.MOD1);
+  addBloco(C.DIA2, C.HORA2, C.MOD2);
+  if (scheduleDays.length > 0) student.scheduleDays = scheduleDays;
+
+  const json = { student };
+
+  // ── Responsável (só o CEP; o restante é extraído do MOL) ──
+  const cep = val(C.CEP, 'texto');
+  if (cep) json.guardians = [{ cep }];
+
+  // ── Contrato (montado só quando houver data de início) ──
+  const dataInicio = val(C.CONTRATO_DATA_INICIO, 'data');
+  if (dataInicio) {
+    const fidelidade = derivarFidelidadeKumon(raw(C.CONTRATO_TIPO_FIDELIDADE));
+    const contract = {
+      dataInicio,
+      registrationDate: val(C.CONTRATO_DATA_KSIS, 'data'), // Data KSIS
+      tipoContrato: val(C.CONTRATO_TIPO, 'texto'),
+      fidelidade: fidelidade.fidelidade,
+      formaPagamentoMensalidade: mapFormaRecorrenciaKumon(raw(C.CONTRATO_FORMA_RECORRENCIA)),
+      firstPayment: {
+        data: val(C.FP_DATA, 'data'),
+        forma: val(C.FP_FORMA, 'texto'),
+      },
+    };
+    if (fidelidade.mesesFidelidade !== undefined) contract.mesesFidelidade = fidelidade.mesesFidelidade;
+    const fpStatus = val(C.FP_STATUS, 'texto');
+    if (fpStatus) contract.firstPayment.status = fpStatus;
+    json.contract = contract;
+  }
+
+  // PDF do MOL (campo do tipo arquivo → caminho salvo em /uploads/...).
+  const filePathRaw = raw(C.ARQUIVO_MOL);
+  const filePath = typeof filePathRaw === 'string' && filePathRaw.trim() ? filePathRaw.trim() : undefined;
+
+  return { json, filePath };
+}
+
+/**
+ * Envia o cadastro para o Kumon: multipart com `file` (PDF do MOL) + `payload`
+ * (JSON canônico stringificado) e header X-Api-Key vindo de KUMON_API_KEY.
+ */
+async function enviarCadastroKumon(url, jsonPayload, filePath) {
+  const apiKey = process.env.KUMON_API_KEY;
+  if (!apiKey) {
+    throw {
+      status: 500,
+      error: 'Configuração ausente',
+      message: 'Chave de API do Kumon não configurada no servidor (KUMON_API_KEY).',
+    };
+  }
+  if (!filePath) {
+    throw {
+      status: 400,
+      error: 'Arquivo ausente',
+      message: 'O PDF do MOL é obrigatório para o cadastro no Kumon.',
+    };
+  }
+
+  const absolutePath = path.join(__dirname, '..', String(filePath).replace(/^\//, ''));
+  if (!fs.existsSync(absolutePath)) {
+    throw { status: 400, error: 'Arquivo não encontrado', message: `O arquivo ${filePath} não existe no servidor` };
+  }
+
+  const formData = new FormData();
+  formData.append('file', fs.createReadStream(absolutePath), path.basename(absolutePath));
+  formData.append('payload', JSON.stringify(jsonPayload));
+
+  const response = await axios.post(url, formData, {
+    headers: { ...formData.getHeaders(), 'X-Api-Key': apiKey },
+    timeout: 30000,
+    responseType: 'arraybuffer',
+  });
+  return interpretarResposta(response);
+}
+
+async function executarWebhook(url, payload, hasFile, fileField, filePath, extraHeaders = {}) {
   if (hasFile && filePath) {
     const absolutePath = path.join(__dirname, '..', filePath.replace(/^\//, ''));
-    
+
     if (!fs.existsSync(absolutePath)) {
       throw { status: 400, error: 'Arquivo não encontrado', message: `O arquivo ${filePath} não existe no servidor` };
     }
 
     const formData = new FormData();
-    
+
     for (const [key, value] of Object.entries(payload)) {
       formData.append(key, String(value));
     }
-    
+
     const fileName = path.basename(absolutePath);
     formData.append(fileField, fs.createReadStream(absolutePath), fileName);
-    
+
     const response = await axios.post(url, formData, {
-      headers: formData.getHeaders(),
+      headers: { ...formData.getHeaders(), ...extraHeaders },
       timeout: 30000,
       responseType: 'arraybuffer',
     });
     return interpretarResposta(response);
   } else {
     const response = await axios.post(url, payload, {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...extraHeaders },
       timeout: 30000,
       responseType: 'arraybuffer',
     });

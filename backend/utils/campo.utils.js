@@ -107,10 +107,90 @@ function mapearCamposParaAcao(demanda, acao, mapeamento = {}) {
   return { payload, hasFile, fileField, filePath };
 }
 
+/**
+ * Coage o valor (string) de um campo da demanda para o tipo esperado pela API alvo.
+ * Retorna `undefined` para valores vazios — assim campos opcionais são omitidos do payload
+ * (importante para não enviar strings vazias em campos opcionais do endpoint do kumon).
+ * @param {string} valor - Valor bruto do campo (sempre string na demanda)
+ * @param {string} tipoCampo - Tipo do campo da Ação (texto, numero, numero_decimal, data, booleano, ...)
+ * @returns {*} - Valor coagido, ou undefined se vazio/ inválido
+ */
+function coagirValor(valor, tipoCampo) {
+  if (valor === null || valor === undefined) return undefined;
+  const str = String(valor).trim();
+  if (str === '') return undefined;
+
+  switch (tipoCampo) {
+    case 'numero': {
+      const n = parseInt(str, 10);
+      return Number.isNaN(n) ? undefined : n;
+    }
+    case 'dias_semana': {
+      // Dia da semana canônico (0=Domingo ... 6=Sábado); a UI já envia o número.
+      const n = parseInt(str, 10);
+      return Number.isNaN(n) || n < 0 || n > 6 ? undefined : n;
+    }
+    case 'numero_decimal': {
+      // Aceita vírgula decimal (pt-BR) além de ponto
+      const n = parseFloat(str.replace(',', '.'));
+      return Number.isNaN(n) ? undefined : n;
+    }
+    case 'booleano': {
+      return ['true', 'sim', '1', 'x', 'verdadeiro'].includes(str.toLowerCase());
+    }
+    case 'data': {
+      // Normaliza para "YYYY-MM-DD". Aceita já-ISO ou "DD/MM/YYYY".
+      const iso = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+      const br = str.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+      if (br) return `${br[3]}-${br[2]}-${br[1]}`;
+      return str; // deixa o backend do kumon validar/rejeitar formatos inesperados
+    }
+    default:
+      // texto, dropdown, uuid, etc.
+      return str;
+  }
+}
+
+/**
+ * Define um valor em um objeto seguindo um caminho com segmentos e índices de array.
+ * Ex.: setByPath(obj, 'guardians[0].email', 'x') => obj.guardians[0].email = 'x'
+ * Cria objetos/arrays intermediários conforme necessário.
+ * @param {Object} obj - Objeto raiz a ser mutado
+ * @param {string} caminho - Caminho dotted com suporte a [n] (ex.: 'enrollments[0].disciplineId')
+ * @param {*} valor - Valor a definir
+ */
+function setByPath(obj, caminho, valor) {
+  // Transforma "guardians[0].email" em ['guardians', 0, 'email']
+  const tokens = [];
+  for (const parte of String(caminho).split('.')) {
+    const regex = /([^[\]]+)|\[(\d+)\]/g;
+    let match;
+    while ((match = regex.exec(parte)) !== null) {
+      if (match[1] !== undefined) tokens.push(match[1]);
+      else tokens.push(parseInt(match[2], 10));
+    }
+  }
+  if (tokens.length === 0) return;
+
+  let atual = obj;
+  for (let i = 0; i < tokens.length - 1; i++) {
+    const token = tokens[i];
+    const proximoEhIndice = typeof tokens[i + 1] === 'number';
+    if (atual[token] === undefined || atual[token] === null) {
+      atual[token] = proximoEhIndice ? [] : {};
+    }
+    atual = atual[token];
+  }
+  atual[tokens[tokens.length - 1]] = valor;
+}
+
 module.exports = {
   buscarValorCampo,
   buscarValoresCampoGrupo,
   sanitizarNomeCampo,
-  mapearCamposParaAcao
+  mapearCamposParaAcao,
+  coagirValor,
+  setByPath,
 };
 

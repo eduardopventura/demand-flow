@@ -1,5 +1,60 @@
 # Changelog - Demand Flow
 
+## [1.4.0] - 2026-07-15
+
+### 🔗 Integração Kumon — Ação de sistema "Realizar Cadastro Kumon"
+
+Esta versão adiciona a capacidade de disparar o cadastro de um aluno no sistema **Kumon** diretamente a partir de uma tarefa de demanda, via uma **Ação de sistema fixa**. O handler dedicado monta o payload canônico esperado pela API do Kumon (`POST /api/v1/students/import-mol`), anexa o PDF do MOL e autentica com `X-Api-Key`.
+
+#### ✨ Novas Funcionalidades
+
+**1. Ações de Sistema (fixas)**
+- ✅ **Novo conceito de Ação fixa**: ações pré-criadas e imutáveis (campos `fixa` e `slug` em `Acao`); apenas a **URL de destino** é editável na tela de Ações
+- ✅ **Proteção no backend**: ações fixas não podem ser excluídas (`403`) e ignoram alterações de qualquer campo que não seja a URL
+- ✅ **Seed idempotente**: a Ação "Realizar Cadastro Kumon" é criada no boot quando `SISTEMA_GESTAO_KUMON=true` (roda em todo boot, permitindo ligar a integração em bancos já inicializados)
+
+**2. Handler dedicado de cadastro Kumon**
+- ✅ **Payload canônico**: `montarPayloadKumonCadastro` traduz os campos preenchidos na demanda para o JSON esperado pelo Kumon (aluno, responsável, contrato + 1º pagamento, `scheduleDays`)
+- ✅ **Regras de negócio do Kumon concentradas no Demand Flow**: matrícula `0` = isento (`matriculaIsento`), fidelidade derivada de "Tradicional/6 Meses/12 Meses", modalidade `P`/`V` → `in_person`/`virtual`, forma de recorrência "Boleto/Cartão" → `boleto`/`cartao`, Data KSIS no contrato (`registrationDate`)
+- ✅ **Envio multipart** com `file` (PDF do MOL) + `payload` (JSON) e header `X-Api-Key` (de `KUMON_API_KEY`)
+- ✅ **Erros amigáveis**: respostas de erro estruturadas da API do Kumon são interpretadas e traduzidas (400 validação com issues, 401/403 credencial/permissão, 409 duplicata, 429 rate limit, 503 indisponível)
+
+**3. Novos tipos de campo**
+- ✅ `booleano` (Sim/Não), `dias_semana` (dropdown fixo Domingo–Sábado, valor canônico 0–6) e `numero_decimal` disponíveis no editor de template e no preenchimento de demanda
+- ✅ Coerção de tipos (`coagirValor`) ao montar payloads de integração (número, decimal com vírgula pt-BR, data ISO/DD-MM-AAAA, booleano, dia da semana), omitindo campos vazios
+
+#### 🔧 Detalhes Técnicos
+
+**Schema (Prisma):**
+- `Acao.fixa Boolean @default(false)` e `Acao.slug String? @unique`
+
+**Variáveis de ambiente novas (`backend/.env.example`):**
+- `SISTEMA_GESTAO_KUMON` — liga/desliga a integração (cria a Ação de sistema no seed)
+- `KUMON_API_KEY` — chave `X-Api-Key` do Kumon usada pelo handler
+
+**Arquivos Criados:**
+- `backend/config/kumon-cadastro.js` — definição canônica da Ação e dos campos (compartilhada entre seed e handler)
+- `backend/prisma/migrations/3_add_acao_fixa_slug/migration.sql` — colunas `fixa`/`slug` + índice único de `slug`
+
+**Arquivos Modificados:**
+- `backend/scripts/init-db.js` — seed idempotente da Ação de sistema Kumon
+- `backend/routes/acoes.routes.js` — proteção de ações fixas (só URL editável; sem exclusão)
+- `backend/src/repositories/acao.repository.js` — whitelist de campos (evita mass-assignment)
+- `backend/services/demanda.service.js` — handler dedicado do cadastro Kumon + parsing de erros de API estruturada
+- `backend/utils/campo.utils.js` — `coagirValor` e `setByPath`
+- `frontend/src/types/index.ts` — tipos `BOOLEANO`, `DIAS_SEMANA`, `DIAS_SEMANA_OPCOES`, `fixa`/`slug` em `Acao`
+- `frontend/src/constants/index.ts` — novos tipos no seletor de campo
+- `frontend/src/components/form/CampoInput.tsx` — render do campo `dias_semana`
+- `frontend/src/components/modals/EditorTemplateModal.tsx` — opção "Dias da Semana"
+- `frontend/src/pages/Acoes.tsx` — UI de ações de sistema (protegidas)
+
+#### 📌 Migração / Deploy
+
+- Migração `3_add_acao_fixa_slug` aplicada automaticamente no boot (`prisma migrate deploy`)
+- Para habilitar a integração: definir `SISTEMA_GESTAO_KUMON=true` e `KUMON_API_KEY=<chave gerada no Kumon>`, subir o container (o seed cria a Ação) e ajustar a **URL de destino** na tela de Ações para o `/api/v1/students/import-mol` do Kumon
+
+---
+
 ## [1.3.1] - 2026-03-22
 
 ### 🐛 Correções e Melhorias

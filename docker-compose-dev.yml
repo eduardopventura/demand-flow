@@ -59,6 +59,11 @@ services:
         condition: service_healthy
     networks:
       - demand-flow-network
+    # NÃO anexe a kumon-network aqui: este serviço se chama "backend" e o Compose registra
+    # esse nome como alias na rede, colidindo com o "backend" do kumon (quebra o proxy do
+    # kumon-frontend com 404 intermitente). Para o teste de integração em dev, conecte à parte:
+    #   bash scripts-teste/conectar-kumon.sh
+    # (docker network connect usa o NOME DO CONTAINER, sem registrar o alias "backend".)
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
       interval: 30s
@@ -75,7 +80,8 @@ services:
     container_name: demand-flow-frontend
     restart: unless-stopped
     ports:
-      - "3060:80"
+      # 3061 no host: o frontend do kumon já ocupa a 3060.
+      - "3061:80"
     depends_on:
       backend:
         condition: service_healthy

@@ -84,9 +84,12 @@ export const CHART_COLORS = [
 export const FIELD_TYPE_OPTIONS = [
   { value: "texto", label: "Texto" },
   { value: "numero", label: "Número" },
+  { value: "numero_decimal", label: "Número Decimal" },
   { value: "data", label: "Data" },
+  { value: "booleano", label: "Booleano (Sim/Não)" },
   { value: "arquivo", label: "Arquivo" },
   { value: "dropdown", label: "Lista Dropdown" },
+  { value: "dias_semana", label: "Dias da Semana" },
 ] as const;
 
 

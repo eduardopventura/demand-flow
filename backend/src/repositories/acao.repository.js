@@ -6,6 +6,29 @@
 
 const { prisma } = require('../database/client');
 
+// Campos aceitos ao criar/atualizar uma Ação (evita mass-assignment de body cru).
+// Ações de sistema (fixa/slug) são criadas apenas pelo seed, nunca pelas rotas.
+const CAMPOS_PERMITIDOS = [
+  'nome',
+  'url',
+  'campos',
+];
+
+/**
+ * Filtra o body mantendo apenas os campos permitidos e presentes.
+ * @param {Object} data - Body recebido
+ * @returns {Object} - Objeto contendo somente as chaves da whitelist
+ */
+function filtrarCampos(data = {}) {
+  const filtrado = {};
+  for (const chave of CAMPOS_PERMITIDOS) {
+    if (data[chave] !== undefined) {
+      filtrado[chave] = data[chave];
+    }
+  }
+  return filtrado;
+}
+
 class AcaoRepository {
   /**
    * Busca uma ação pelo ID
@@ -47,7 +70,7 @@ class AcaoRepository {
    */
   async create(data) {
     return await prisma.acao.create({
-      data
+      data: filtrarCampos(data)
     });
   }
 
@@ -60,7 +83,7 @@ class AcaoRepository {
   async update(id, data) {
     return await prisma.acao.update({
       where: { id },
-      data
+      data: filtrarCampos(data)
     });
   }
 

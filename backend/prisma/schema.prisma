@@ -140,10 +140,13 @@ model Acao {
   id        String   @id @default(uuid())
   nome      String
   url       String
-  campos    Json     // Array de CampoAcao
+  campos    Json     // Array de CampoAcao (webhook "plano": chave/valor + arquivo opcional)
+  // Ação de sistema (pré-criada e imutável, ex.: integração Kumon). Só a URL é editável.
+  fixa      Boolean  @default(false)
+  slug      String?  @unique
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  
+
   @@index([nome])
 }
 

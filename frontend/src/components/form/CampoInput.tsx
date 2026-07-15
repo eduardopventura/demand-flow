@@ -18,6 +18,7 @@ import { Loader2, Upload, FileCheck, X, Download } from "lucide-react";
 import { apiService } from "@/services/api.service";
 import { toast } from "sonner";
 import type { CampoPreenchimento } from "@/types";
+import { DIAS_SEMANA_OPCOES } from "@/types";
 import { error as logError } from "@/utils/logger";
 
 interface CampoInputProps {
@@ -258,6 +259,23 @@ export const CampoInput = memo(function CampoInput({ campo, value, onChange, sho
         </Select>
       );
     
+    case "dias_semana":
+      // Dropdown fixo com os dias da semana; o valor salvo é o número canônico (0-6).
+      return (
+        <Select value={value} onValueChange={onChange}>
+          <SelectTrigger>
+            <SelectValue placeholder="Selecione o dia da semana" />
+          </SelectTrigger>
+          <SelectContent>
+            {DIAS_SEMANA_OPCOES.map((dia) => (
+              <SelectItem key={dia.value} value={dia.value}>
+                {dia.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      );
+
     default: // texto
       return (
         <Input

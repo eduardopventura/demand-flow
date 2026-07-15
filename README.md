@@ -21,6 +21,7 @@ O **Demand Flow** é uma solução moderna para gerenciamento de processos e dem
 - 📄 **Página de Finalizadas** - Consulta completa com filtros e ordenação
 - 🎯 **Indicadores de Validação** - Feedback visual nas abas do formulário
 - 💾 **Autosave** - Salvamento automático de alterações e uploads
+- 🔗 **Integração Kumon** - Ação de sistema "Realizar Cadastro Kumon" que envia o cadastro do aluno para a API do Kumon (multipart com PDF do MOL + `X-Api-Key`)
 
 ---
 
@@ -166,6 +167,8 @@ Após a primeira execução, você pode editar o arquivo `./.env` para configura
 | `SMTP_PASS` | Senha de app do email | Sim (para emails) |
 | `WHATSAPP_WEBHOOK_URL` | URL do webhook n8n | Sim (para WhatsApp) |
 | `JWT_SECRET` | Chave secreta JWT | Não (gerado automaticamente) |
+| `SISTEMA_GESTAO_KUMON` | Liga a integração Kumon (cria a Ação de sistema no seed) | Não (padrão `false`) |
+| `KUMON_API_KEY` | Chave `X-Api-Key` do Kumon usada pela Ação de cadastro | Sim (se integração Kumon ligada) |
 
 ### Configuração do Webhook WhatsApp
 
@@ -246,7 +249,7 @@ Detalhes das features em [docs/FEATURES.md](./docs/FEATURES.md#-próximas-funcio
 
 ## 📝 Versão Atual
 
-**v1.3.0** - Março de 2026
+**v1.4.0** - Julho de 2026
 
 Ver [CHANGELOG.md](./docs/CHANGELOG.md) para histórico completo.
 

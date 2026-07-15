@@ -141,6 +141,7 @@ const CampoEditor = ({
               <SelectItem value="data">Data</SelectItem>
               <SelectItem value="arquivo">Arquivo</SelectItem>
               <SelectItem value="dropdown">Lista Dropdown</SelectItem>
+              <SelectItem value="dias_semana">Dias da Semana</SelectItem>
             </SelectContent>
           </Select>
         </div>

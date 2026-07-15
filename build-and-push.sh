@@ -1,10 +1,10 @@
 #!/bin/bash
 # Script para build e push das imagens Docker para Docker Hub
-# Versão: 1.3.1
+# Versão: 1.4.0
 
 set -e  # Parar em caso de erro
 
-VERSION="v1.3.1"
+VERSION="v1.4.0"
 DOCKER_USER="edpv"
 BACKEND_IMAGE="${DOCKER_USER}/demand-flow-backend"
 FRONTEND_IMAGE="${DOCKER_USER}/demand-flow-frontend"

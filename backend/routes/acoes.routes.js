@@ -10,6 +10,19 @@ const acaoRepository = require('../src/repositories/acao.repository');
 const { asyncHandler } = require('../middlewares/error.middleware');
 
 /**
+ * Ações de sistema (fixa=true) são imutáveis exceto pela URL de destino.
+ * Garante que só `url` seja alterada e bloqueia exclusão.
+ */
+async function carregarAcaoParaEscrita(id, res) {
+  const acao = await acaoRepository.findById(id);
+  if (!acao) {
+    res.status(404).json({ error: 'Ação não encontrada', message: `Ação com ID ${id} não existe` });
+    return null;
+  }
+  return acao;
+}
+
+/**
  * GET /api/acoes
  * Lista todas as ações
  */
@@ -55,7 +68,12 @@ router.post('/', asyncHandler(async (req, res) => {
  */
 router.patch('/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const acao = await acaoRepository.update(id, req.body);
+  const existente = await carregarAcaoParaEscrita(id, res);
+  if (!existente) return;
+
+  // Ação de sistema: só a URL é editável.
+  const dados = existente.fixa ? { url: req.body.url } : req.body;
+  const acao = await acaoRepository.update(id, dados);
   res.json(acao);
 }));
 
@@ -65,7 +83,12 @@ router.patch('/:id', asyncHandler(async (req, res) => {
  */
 router.put('/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const acao = await acaoRepository.update(id, req.body);
+  const existente = await carregarAcaoParaEscrita(id, res);
+  if (!existente) return;
+
+  // Ação de sistema: só a URL é editável.
+  const dados = existente.fixa ? { url: req.body.url } : req.body;
+  const acao = await acaoRepository.update(id, dados);
   res.json(acao);
 }));
 
@@ -75,6 +98,16 @@ router.put('/:id', asyncHandler(async (req, res) => {
  */
 router.delete('/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
+  const existente = await carregarAcaoParaEscrita(id, res);
+  if (!existente) return;
+
+  if (existente.fixa) {
+    return res.status(403).json({
+      error: 'Ação protegida',
+      message: 'Ação de sistema não pode ser excluída.',
+    });
+  }
+
   await acaoRepository.delete(id);
   res.status(204).send();
 }));

@@ -12,6 +12,12 @@
 require('dotenv').config({ path: '/app/.env' });
 const { prisma } = require('../src/database/client');
 const { hashPassword } = require('../services/auth.service');
+const {
+  KUMON_CADASTRO_SLUG,
+  KUMON_CADASTRO_NOME,
+  KUMON_CADASTRO_CAMPOS,
+  isKumonIntegrationEnabled,
+} = require('../config/kumon-cadastro');
 
 /**
  * Verifica se o banco está vazio (sem usuários)
@@ -121,6 +127,36 @@ async function seedDefaultKanbanColumns() {
 }
 
 /**
+ * Cria (idempotente) a Ação de sistema "Realizar Cadastro Kumon".
+ * Só cria quando a integração está ligada (SISTEMA_GESTAO_KUMON=true).
+ * Roda em todo boot para permitir ligar a integração depois do 1º deploy.
+ */
+async function seedAcaoKumon() {
+  if (!isKumonIntegrationEnabled()) {
+    console.log('ℹ️  SISTEMA_GESTAO_KUMON desligado — Ação de sistema Kumon não será criada.');
+    return;
+  }
+
+  const existente = await prisma.acao.findUnique({ where: { slug: KUMON_CADASTRO_SLUG } });
+  if (existente) {
+    console.log('⚠️  Ação de sistema Kumon já existe, pulando criação...');
+    return;
+  }
+
+  await prisma.acao.create({
+    data: {
+      nome: KUMON_CADASTRO_NOME,
+      url: process.env.KUMON_CADASTRO_URL || 'https://kumon.exemplo.com/api/v1/students/import-mol',
+      campos: KUMON_CADASTRO_CAMPOS,
+      fixa: true,
+      slug: KUMON_CADASTRO_SLUG,
+    },
+  });
+
+  console.log('✅ Ação de sistema "Realizar Cadastro Kumon" criada (edite a URL de destino na tela de Ações).');
+}
+
+/**
  * Função principal de inicialização
  */
 async function initializeDatabase() {
@@ -134,7 +170,12 @@ async function initializeDatabase() {
     await prisma.$connect();
     console.log('✅ Conectado ao banco de dados');
     console.log('');
-    
+
+    // Ação de sistema Kumon: idempotente e independente do estado do banco
+    // (permite ligar a integração em bancos já inicializados).
+    await seedAcaoKumon();
+    console.log('');
+
     // Verificar se banco está vazio
     console.log('🔍 Verificando banco de dados...');
     const isEmpty = await isDatabaseEmpty();
